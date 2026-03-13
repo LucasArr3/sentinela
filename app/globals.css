@@ -1,0 +1,24 @@
+@import "tailwindcss";
+
+:root {
+  --background: #000000;
+  --foreground: #ffffff;
+  --tactical-blue: #1e40af;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+@layer utilities {
+  .bg-tactical-blue {
+    background-color: var(--tactical-blue);
+  }
+  .text-tactical-blue {
+    color: var(--tactical-blue);
+  }
+  .border-tactical-blue {
+    border-color: var(--tactical-blue);
+  }
+}

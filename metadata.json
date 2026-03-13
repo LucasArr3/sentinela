@@ -1,0 +1,5 @@
+{
+  "name": "Sentinela Tático",
+  "description": "Calendário Tático para Policiais Penais - Escala 24x72 e Alarmes de Quarto",
+  "requestFramePermissions": ["camera", "microphone", "geolocation"]
+}
