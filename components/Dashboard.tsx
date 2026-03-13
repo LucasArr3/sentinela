@@ -1,13 +1,12 @@
 'use client';
 
 import React from 'react';
-import { Clock, TrendingUp, Calendar as CalendarIcon, Shield } from 'lucide-react';
+import { Clock, TrendingUp } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
-import { formatDistanceToNow, addDays, isAfter, startOfDay } from 'date-fns';
+import { formatDistanceToNow, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { getBaseShift, ShiftType } from '@/lib/scale-utils';
 import { DayData } from '@/lib/db-service';
-import { generateICS, downloadICS } from '@/lib/calendar-sync';
 
 interface DashboardProps {
   overrides: Record<string, ShiftType>;
@@ -27,13 +26,12 @@ export default function Dashboard({ overrides, dayData, extraValue, baseDate, sc
 
   // Calculate Next Shift
   const getNextShift = () => {
-    let current = new Date();
+    const current = new Date();
     for (let i = 0; i < 30; i++) {
       const date = addDays(current, i);
       const key = date.toISOString().split('T')[0];
       const data = dayData[key];
       const type = data?.type || overrides[key] || getBaseShift(date, baseDate, scaleCycle);
-      
       if (type !== 'FOLGA') {
         return date;
       }

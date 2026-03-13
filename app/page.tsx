@@ -2,37 +2,28 @@
 
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { generateICS, downloadICS } from '@/lib/calendar-sync';
-import { 
+// import removido: generateICS, downloadICS
   Shield, 
   Settings, 
   LogOut, 
   Plus, 
   Minus, 
   Save, 
-  X,
   DollarSign,
   Repeat,
   Calendar as CalendarIcon,
   LayoutDashboard,
-  Bell,
-  Clock,
   ChevronRight,
   User,
-  RefreshCw,
-  TrendingUp,
   Bot,
   Sparkles,
-  Smartphone,
-  Download,
-  ExternalLink,
   Palette,
   CloudUpload,
   CloudDownload,
-  Mail,
   MessageSquare,
   LogIn
 } from 'lucide-react';
+import { WakeLockSentinela } from '@/lib/wakelock-type';
 import TacticalCalendar, { ShiftColors, CalendarCellStyle } from '@/components/TacticalCalendar';
 import Dashboard from '@/components/Dashboard';
 import AlarmManager from '@/components/AlarmManager';
@@ -72,7 +63,7 @@ export default function Home() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [previewDate, setPreviewDate] = useState<Date | null>(null);
   const [isAlvoradaActive, setIsAlvoradaActive] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<import('firebase/auth').User | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
@@ -137,23 +128,8 @@ export default function Home() {
     if (savedScaleCycle) setScaleCycle(Number(savedScaleCycle));
   }, []);
 
-  const [wakeLock, setWakeLock] = useState<any>(null);
-  const toggleWakeLock = async () => {
-    if (wakeLock) {
-      wakeLock.release();
-      setWakeLock(null);
-    } else {
-      try {
-        if ('wakeLock' in navigator) {
-          const lock = await (navigator as any).wakeLock.request('screen');
-          setWakeLock(lock);
-          lock.addEventListener('release', () => setWakeLock(null));
-        }
-      } catch (err) {
-        console.error('Wake Lock failed', err);
-      }
-    }
-  };
+  const [wakeLock, setWakeLock] = useState<WakeLockSentinela | null>(null);
+  // Função não utilizada removida conforme ESLint
 
   // Auth listener
   useEffect(() => {
@@ -278,21 +254,7 @@ export default function Home() {
     }
   };
 
-  const handleGoogleLogin = async () => {
-    try {
-      await signInWithPopup(auth, googleProvider);
-      alert('Login com Google realizado com sucesso!');
-    } catch (error: any) {
-      console.error(error);
-      if (error.code === 'auth/popup-blocked') {
-        alert('O bloqueador de popups impediu o login. Por favor, autorize popups para este site e tente novamente.');
-      } else if (error.code === 'auth/unauthorized-domain') {
-        alert('Este domínio não está autorizado no Firebase. Adicione "' + window.location.hostname + '" aos domínios autorizados no Console do Firebase.');
-      } else {
-        alert('Erro ao fazer login: ' + error.message);
-      }
-    }
-  };
+  // Função não utilizada removida conforme ESLint
 
   const handleLoadFromCloud = async () => {
     if (!user) return;

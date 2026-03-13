@@ -15,8 +15,8 @@ import {
   endOfWeek
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, Shield, DollarSign, Repeat, Clock } from 'lucide-react';
-import { getBaseShift, ShiftType, SHIFT_LABELS, QUARTERS } from '@/lib/scale-utils';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { getBaseShift, ShiftType } from '@/lib/scale-utils';
 import { DayData } from '@/lib/db-service';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';

@@ -1,9 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Book, Plus, Trash2, Clock, ShieldCheck, AlertCircle, MessageSquare } from 'lucide-react';
+import { Book, Plus, Trash2, ShieldCheck, MessageSquare } from 'lucide-react';
 import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { Occurrence } from '@/lib/db-service';
 

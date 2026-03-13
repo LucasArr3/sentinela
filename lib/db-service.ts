@@ -1,5 +1,5 @@
 import { db, auth } from './firebase';
-import { doc, setDoc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { ShiftType } from './scale-utils';
 
 export interface Occurrence {
