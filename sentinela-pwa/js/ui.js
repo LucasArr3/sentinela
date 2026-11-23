@@ -40,7 +40,8 @@ export const ic = (n, cls = '') => `<svg class="ic ${cls}" viewBox="0 0 24 24" f
 export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 export const $ = (s, r = document) => r.querySelector(s);
 export const $$ = (s, r = document) => [...r.querySelectorAll(s)];
-let tt; export function toast(msg, kind = '') {
+let tt;
+export function toast(msg, kind = '') {
   let el = $('#toast'); if (!el) { el = document.createElement('div'); el.id = 'toast'; document.body.appendChild(el); }
   el.className = `toast show ${kind}`; el.textContent = msg; clearTimeout(tt); tt = setTimeout(() => el.classList.remove('show'), 2600);
 }

@@ -1,8 +1,12 @@
 // Persistência local (localStorage) com contas por dispositivo. Dados ficam só neste aparelho.
 import { defaultScale, today } from './core.js';
 const K = 'sentinela:v1';
-const rd = (k, f) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : f; } catch { return f; } };
-const wr = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } };
+// Armazenamento tolerante a bloqueio (aba anônima etc.): cai para memória se o navegador negar.
+const safe = (name) => { const mem = new Map(); let real = null; try { real = window[name]; real.getItem('__t'); } catch { real = null; }
+  return { getItem: (k) => { try { if (real) return real.getItem(k); } catch { /* */ } return mem.has(k) ? mem.get(k) : null; }, setItem: (k, v) => { try { if (real) return real.setItem(k, v); } catch { /* */ } mem.set(k, String(v)); }, removeItem: (k) => { try { if (real) return real.removeItem(k); } catch { /* */ } mem.delete(k); } }; };
+const ls = safe('localStorage'), ss = safe('sessionStorage');
+const rd = (k, f) => { try { const v = ls.getItem(k); return v ? JSON.parse(v) : f; } catch { return f; } };
+const wr = (k, v) => { try { ls.setItem(k, JSON.stringify(v)); return true; } catch { return false; } };
 
 const enc = (s) => new TextEncoder().encode(s);
 const b64 = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf)));
@@ -26,7 +30,7 @@ export const defaultData = (name = '') => ({
 
 export const Store = {
   users: () => rd(`${K}:users`, []),
-  currentId: () => sessionStorage.getItem(`${K}:sid`) || localStorage.getItem(`${K}:sid`),
+  currentId: () => ss.getItem(`${K}:sid`) || ls.getItem(`${K}:sid`),
   load(id) { const d = rd(`${K}:data:${id}`, null); if (!d) return null; const b = defaultData(); return { ...b, ...d, profile: { ...b.profile, ...d.profile }, scale: { ...b.scale, ...d.scale }, money: { ...b.money, ...d.money }, prefs: { ...b.prefs, ...d.prefs } }; },
   save(id, data) { return wr(`${K}:data:${id}`, data); },
   async register({ name, email, password, guest = false }) {
@@ -48,9 +52,9 @@ export const Store = {
     if ((await hashPw(oldPw, u.salt, u.iter)) !== u.hash) throw new Error('Senha atual incorreta.');
     u.salt = b64(crypto.getRandomValues(new Uint8Array(16))); u.hash = await hashPw(newPw, u.salt, u.iter); wr(`${K}:users`, users);
   },
-  startSession(id, remember) { sessionStorage.setItem(`${K}:sid`, id); if (remember) localStorage.setItem(`${K}:sid`, id); else localStorage.removeItem(`${K}:sid`); },
-  endSession() { sessionStorage.removeItem(`${K}:sid`); localStorage.removeItem(`${K}:sid`); },
-  deleteAccount(id) { wr(`${K}:users`, this.users().filter((u) => u.id !== id)); localStorage.removeItem(`${K}:data:${id}`); this.endSession(); },
+  startSession(id, remember) { ss.setItem(`${K}:sid`, id); if (remember) ls.setItem(`${K}:sid`, id); else ls.removeItem(`${K}:sid`); },
+  endSession() { ss.removeItem(`${K}:sid`); ls.removeItem(`${K}:sid`); },
+  deleteAccount(id) { wr(`${K}:users`, this.users().filter((u) => u.id !== id)); ls.removeItem(`${K}:data:${id}`); this.endSession(); },
   user: (id) => rd(`${K}:users`, []).find((u) => u.id === id),
   updateUser(id, patch) { const us = rd(`${K}:users`, []); const u = us.find((x) => x.id === id); if (u) { Object.assign(u, patch); wr(`${K}:users`, us); } },
 };

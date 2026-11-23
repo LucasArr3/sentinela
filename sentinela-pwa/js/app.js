@@ -181,7 +181,7 @@ function summary() {
   <div class="card" style="padding:6px 14px">${tg('values', 'Incluir valores (R$)')}${tg('notes', 'Incluir observações')}${tg('calendar', 'Mini calendário do mês')}</div>
   ${S.sum.editing ? `<textarea id="sumEdit" style="min-height:300px;font-family:ui-monospace,monospace;font-size:13px">${esc(text)}</textarea>` : `<div class="wa-bubble">${waHtml(text)}</div>`}
   <label class="f">WhatsApp de destino (opcional — vazio = escolher o contato)<input type="tel" inputmode="tel" id="waPhone" placeholder="(11) 91234-5678" value="${esc(S.d.prefs.waPhone)}"></label>
-  <button class="btn wa blk" data-act="wa-send">${ic('chat')}Enviar pelo WhatsApp</button>
+  <a class="btn wa blk" data-act="wa-send" href="${esc(waLink(text, S.d.prefs.waPhone))}" target="_blank" rel="noopener" style="text-decoration:none">${ic('chat')}Enviar pelo WhatsApp</a>
   <div class="grid3"><button class="btn" data-act="sum-copy">${ic('copy')}Copiar</button><button class="btn" data-act="sum-share">${ic('share')}Compartilhar</button><button class="btn" data-act="sum-edit">${ic('edit')}${S.sum.editing ? 'Pronto' : 'Editar'}</button></div>`;
 }
 
@@ -269,6 +269,15 @@ function render() {
 }
 function go(v) { S.view = v; S.anim = true; S.sheet && closeSheet(); render(); window.scrollTo(0, 0); }
 
+// ---------- CONFIRMAÇÃO (substitui confirm() nativo) ----------
+function ask(msg, ok = 'Confirmar') {
+  return new Promise((res) => {
+    let r = $('#askRoot'); if (!r) { r = document.createElement('div'); r.id = 'askRoot'; document.body.appendChild(r); }
+    r.innerHTML = `<div class="overlay" style="z-index:90;align-items:center"><div class="sheet" style="border-radius:26px;max-width:380px;padding:22px"><h3 style="margin-bottom:8px">Confirmar</h3><p class="muted" style="margin:0 0 18px;white-space:pre-line">${esc(msg)}</p><div class="row"><button class="btn sp" data-k="0">Cancelar</button><button class="btn pri sp" data-k="1">${esc(ok)}</button></div></div></div>`;
+    r.onclick = (e) => { const b = e.target.closest('[data-k]'); if (!b) return; r.innerHTML = ''; res(b.dataset.k === '1'); };
+  });
+}
+
 // ---------- AÇÕES ----------
 const setPath = (path, val) => { const ks = path.split('.'); let o = S.d; for (const k of ks.slice(0, -1)) o = o[k]; o[ks.at(-1)] = val; };
 const shiftMonth = (o, n) => { const dt = new Date(o.y, o.m + n, 1); o.y = dt.getFullYear(); o.m = dt.getMonth(); };
@@ -278,8 +287,8 @@ const start = async (id, remember = true) => { S.uid = id; S.user = Store.user(i
 const A = {
   'auth-tab': (el) => { S.auth = { tab: el.dataset.v, err: '' }; render(); },
   guest: async () => { const { user, data } = await Store.register({ name: 'Policial Penal', guest: true }); data.onboarded = true; data.scale = C.defaultScale(C.today()); Store.save(user.id, data); await start(user.id, true); toast('Escala 24x72 configurada — hoje é seu plantão ✅'); },
-  logout: () => { if (!confirm('Sair da conta?')) return; Store.endSession(); S.uid = S.d = S.user = null; S.sheet = null; renderSheet(); render(); },
-  'delete-account': () => { if (!confirm('Excluir a conta e TODOS os dados deste aparelho? Não dá para desfazer.')) return; Store.deleteAccount(S.uid); S.uid = S.d = S.user = null; render(); },
+  logout: async () => { if (!(await ask('Sair da conta?', 'Sair'))) return; Store.endSession(); S.uid = S.d = S.user = null; S.sheet = null; renderSheet(); render(); },
+  'delete-account': async () => { if (!(await ask('Excluir a conta e TODOS os dados deste aparelho? Não dá para desfazer.', 'Excluir'))) return; Store.deleteAccount(S.uid); S.uid = S.d = S.user = null; render(); },
   go: (el) => go(el.dataset.v), ai: () => openSheet('ai'), close: () => closeSheet(),
   overlay: (el, ev) => { if (ev.target === el) (S.sheet?.kind === 'form' && S.sheet.back) ? A['f-cancel']() : closeSheet(); },
   // onboarding
@@ -297,7 +306,7 @@ const A = {
   // eventos
   'ev-new': (el) => { const t = el.dataset.t; const back = S.sheet?.kind === 'day' ? S.sheet.date : null; S.sheet = null; openForm({ type: t, date: el.dataset.date, note: '' }); S.sheet.back = back; },
   'ev-edit': (el) => { const e = S.d.events.find((x) => x.id === el.dataset.id); if (e) { const back = S.sheet?.kind === 'day' ? S.sheet.date : null; openForm({ ...e }); S.sheet.back = back; } },
-  'ev-del': (el) => { if (!confirm('Excluir este lançamento?')) return; S.d.events = S.d.events.filter((x) => x.id !== el.dataset.id); save(); const b = S.sheet?.back; b ? openSheet('day', { date: b }) : closeSheet(); render(); toast('Lançamento excluído'); },
+  'ev-del': async (el) => { if (!(await ask('Excluir este lançamento?', 'Excluir'))) return; S.d.events = S.d.events.filter((x) => x.id !== el.dataset.id); save(); const b = S.sheet?.back; b ? openSheet('day', { date: b }) : closeSheet(); render(); toast('Lançamento excluído'); },
   'ev-paid': (el) => { const e = S.d.events.find((x) => x.id === el.dataset.id); e.paid = !e.paid; save(); render(); toast(e.paid ? 'Marcada como recebida ✅' : 'Marcada como a receber'); },
   'ev-settle': (el) => { const e = S.d.events.find((x) => x.id === el.dataset.id); e.settled = !e.settled; save(); render(); toast(e.settled ? 'Permuta quitada ✅' : 'Permuta reaberta'); },
   'f-type': (el) => { const e = S.draft; e.type = el.dataset.v; const T = C.TYPES[e.type]; if (T.range) e._days = e._days || 1; if (e.type === 'extra' && e.value == null) e.value = S.d.money[e.turno || 'diurna']; renderSheet(); },
@@ -305,14 +314,14 @@ const A = {
   'f-cancel': () => { const b = S.sheet?.back; b ? openSheet('day', { date: b }) : closeSheet(); },
   pw: () => openSheet('pw'),
   // resumos
-  'wa-send': () => { S.d.prefs.waPhone = $('#waPhone').value; save(); window.open(waLink(sumText(), S.d.prefs.waPhone), '_blank', 'noopener'); },
+  'wa-send': (el) => { S.d.prefs.waPhone = $('#waPhone').value; save(); el.href = waLink(sumText(), S.d.prefs.waPhone); },
   'sum-copy': () => copyText(sumText()),
   'sum-share': async () => { if (navigator.share) { try { await navigator.share({ text: sumText() }); } catch { /* cancelado */ } } else copyText(sumText()); },
   'sum-edit': () => { if (S.sum.editing) { S.sum.custom = $('#sumEdit').value; S.sum.editing = false; } else { S.sum.custom = sumText(); S.sum.editing = true; } render(); },
   // dados
   export: () => { const blob = new Blob([JSON.stringify({ app: 'sentinela', version: 1, exportedAt: new Date().toISOString(), data: S.d }, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `sentinela-backup-${C.today()}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); toast('Backup exportado ✅'); },
   import: () => $('#impFile').click(),
-  'clear-events': () => { if (!confirm('Apagar TODOS os extras, permutas, folgas, atestados e observações?')) return; S.d.events = []; save(); render(); toast('Lançamentos apagados'); },
+  'clear-events': async () => { if (!(await ask('Apagar TODOS os extras, permutas, folgas, atestados e observações?', 'Apagar tudo'))) return; S.d.events = []; save(); render(); toast('Lançamentos apagados'); },
   install: async () => { const p = window._bip; if (!p) return; p.prompt(); await p.userChoice; window._bip = null; render(); },
 };
 const FORMS = {
@@ -341,7 +350,7 @@ const FORMS = {
 };
 
 document.addEventListener('click', (ev) => {
-  const el = ev.target.closest('[data-act]'); if (!el) return; const fn = A[el.dataset.act]; if (fn) { if (el.tagName === 'A') ev.preventDefault(); fn(el, ev); }
+  const el = ev.target.closest('[data-act]'); if (!el) return; const fn = A[el.dataset.act]; if (fn) { if (el.tagName === 'A' && el.dataset.act !== 'wa-send') ev.preventDefault(); fn(el, ev); }
 });
 document.addEventListener('submit', (ev) => { const f = ev.target.closest('[data-submit]'); if (!f) return; ev.preventDefault(); FORMS[f.dataset.submit]?.(f); });
 // campos do formulário de lançamento
@@ -364,7 +373,7 @@ document.addEventListener('change', async (ev) => {
   if (t.id === 'impFile' && t.files[0]) {
     try {
       const j = JSON.parse(await t.files[0].text()); const d = j.data || j; if (!Array.isArray(d.events) || !d.scale) throw new Error('Arquivo inválido');
-      if (!confirm(`Importar backup com ${d.events.length} lançamento(s)? Os dados atuais serão substituídos.`)) return;
+      if (!(await ask(`Importar backup com ${d.events.length} lançamento(s)? Os dados atuais serão substituídos.`, 'Importar'))) return;
       const b = defaultData(); S.d = { ...b, ...d, profile: { ...b.profile, ...d.profile }, scale: { ...b.scale, ...d.scale }, money: { ...b.money, ...d.money }, prefs: { ...b.prefs, ...d.prefs }, onboarded: true }; save(); render(); toast('Backup importado ✅');
     } catch { toast('Arquivo de backup inválido', 'err'); }
   }
