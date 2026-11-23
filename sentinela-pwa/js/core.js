@@ -37,11 +37,42 @@ export const scaleLabel = (sc) => (sc.preset !== 'custom' ? sc.preset : `${sc.wo
 export const TYPES = {
   extra: { label: 'Extra', plural: 'Extras', color: '#22c55e', icon: 'bolt', emoji: '💰', range: false },
   permuta: { label: 'Permuta', plural: 'Permutas', color: '#f59e0b', icon: 'swap', emoji: '🔁', range: false },
+  quarto: { label: 'Quarto de hora', plural: 'Quartos', color: '#38bdf8', icon: 'clock', emoji: '⏱️', range: false },
   folga: { label: 'Folga', plural: 'Folgas', color: '#a78bfa', icon: 'moon', emoji: '🌙', range: true },
   atestado: { label: 'Atestado médico', plural: 'Atestados', color: '#ef4444', icon: 'medical', emoji: '🏥', range: true },
   ferias: { label: 'Férias', plural: 'Férias', color: '#14b8a6', icon: 'sun', emoji: '🏖️', range: true },
   obs: { label: 'Observação', plural: 'Observações', color: '#94a3b8', icon: 'note', emoji: '📝', range: false },
+  ocorrencia: { label: 'Ocorrência', plural: 'Ocorrências', color: '#fb7185', icon: 'alert', emoji: '📒', range: false },
 };
+
+// ---------- Quartos de hora e postos ----------
+export const DEFAULT_QUARTERS = [
+  { id: '18-20', start: '18:00', end: '20:00' }, { id: '20-22', start: '20:00', end: '22:00' }, { id: '22-00', start: '22:00', end: '00:00' },
+  { id: '00-02', start: '00:00', end: '02:00' }, { id: '02-04', start: '02:00', end: '04:00' }, { id: '04-06', start: '04:00', end: '06:00' },
+  { id: '06-08', start: '06:00', end: '08:00', name: 'Alvorada', alvorada: true },
+];
+export const DEFAULT_POSTS = ['Portaria', 'Pavilhão A', 'Pavilhão B', 'Muralha', 'Ronda'];
+const hh = (t) => t.replace(':00', '') + 'h';
+export const qLabel = (q) => `${hh(q.start)}–${hh(q.end)}`;
+export const qName = (q) => (q.name ? `${q.name} (${qLabel(q)})` : qLabel(q));
+// Início real do quarto: horas antes da entrada do plantão pertencem ao dia seguinte.
+export function slotDate(date, q, sc) {
+  const [h, m] = q.start.split(':').map(Number); const sh = Number(sc.start.split(':')[0]);
+  const [y, mo, d] = (h < sh ? addDays(date, 1) : date).split('-').map(Number); return new Date(y, mo - 1, d, h, m);
+}
+export const slotOrder = (q, sc) => { const h = Number(q.start.slice(0, 2)); return h < Number(sc.start.slice(0, 2)) ? h + 24 : h; };
+const evOrder = (state, e) => { const q = state.quarters.find((x) => x.id === e.slot); return q ? slotOrder(q, state.scale) : 99; };
+export const quartosOn = (state, date) => state.events.filter((e) => e.type === 'quarto' && e.date === date).sort((a, b) => evOrder(state, a) - evOrder(state, b));
+export function nextQuarto(state, now = new Date()) {
+  let best = null;
+  for (const e of state.events) {
+    if (e.type !== 'quarto') continue; const q = state.quarters.find((x) => x.id === e.slot); if (!q) continue;
+    const st = slotDate(e.date, q, state.scale); const [eh, em] = q.end.split(':').map(Number);
+    const en = new Date(st.getFullYear(), st.getMonth(), st.getDate(), eh, em); if (en <= st) en.setDate(en.getDate() + 1);
+    if (en > now && (!best || st < best.start)) best = { ev: e, q, start: st, end: en, active: now >= st };
+  }
+  return best;
+}
 export const TURNOS = { diurna: 'Extra diurna (12h)', noturna: 'Extra noturna (12h)', h24: 'Extra 24h' };
 export const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
 export const evEnd = (e) => e.end || e.date;
@@ -103,6 +134,7 @@ export function monthSummary(state, y, m) {
     extras, extrasTotal: total, extrasPaid: paid, extrasPending: total - paid,
     folgas: days.filter((d) => d.status === 'folga'), atestados: days.filter((d) => d.status === 'atestado'),
     ferias: days.filter((d) => d.status === 'ferias'),
+    quartos: state.events.filter((e) => e.type === 'quarto' && e.date.startsWith(key)).sort((a, b) => a.date.localeCompare(b.date) || evOrder(state, a) - evOrder(state, b)),
     permutas, obs: state.events.filter((e) => e.type === 'obs' && e.date.startsWith(key)).sort((a, b) => a.date.localeCompare(b.date)),
     hours: days.reduce((s, d) => s + hoursOf(d), 0),
     workDays: days.filter((d) => d.works),

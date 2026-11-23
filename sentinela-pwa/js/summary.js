@@ -1,5 +1,5 @@
 // Geração de textos formatados para WhatsApp (*negrito*, _itálico_, ``` monoespaçado ```).
-import { MONTHS, WD3, monthSummary, permutaLedger, upcoming, brl, fmtShort, fmtBR, parse, addDays, scaleLabel, TURNOS, daysInMonth, pad, today, dateLong, evEnd } from './core.js';
+import { MONTHS, WD3, monthSummary, permutaLedger, upcoming, brl, qLabel, fmtShort, fmtBR, parse, addDays, scaleLabel, TURNOS, daysInMonth, pad, today, dateLong, evEnd } from './core.js';
 
 const dow = (d) => WD3[parse(d).getDay()];
 const line = '━━━━━━━━━━━━━━━━━━';
@@ -37,6 +37,11 @@ export function buildSummary(state, y, m, opts = {}) {
     const work = s.days.filter((d) => ['plantao', 'permuta_in'].includes(d.status));
     L.push(...(work.length ? work.map((d) => `▫️ ${dow(d.date)} ${fmtShort(d.date)}${d.status === 'permuta_in' ? ' _(permuta — assumi)_' : ''}`) : ['— nenhum —']));
     L.push('');
+    if (s.quartos.length) {
+      L.push(`⏱️ *QUARTOS E POSTOS (${s.quartos.length})*`); const byDay = {};
+      for (const e of s.quartos) { const q = state.quarters.find((x) => x.id === e.slot); (byDay[e.date] = byDay[e.date] || []).push(`${q ? qLabel(q) : e.slot}${e.post ? ' ' + e.post : ''}`); }
+      L.push(...Object.entries(byDay).map(([d, v]) => `▫️ ${dow(d)} ${fmtShort(d)} — ${v.join(' · ')}`), '');
+    }
   }
   if (s.extras.length || o.kind === 'financeiro') {
     L.push(`💰 *EXTRAS (${s.extras.length})*`);

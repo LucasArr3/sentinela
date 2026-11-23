@@ -1,5 +1,5 @@
 // Persistência local (localStorage) com contas por dispositivo. Dados ficam só neste aparelho.
-import { defaultScale, today } from './core.js';
+import { defaultScale, today, DEFAULT_QUARTERS, DEFAULT_POSTS } from './core.js';
 const K = 'sentinela:v1';
 // Armazenamento tolerante a bloqueio (aba anônima etc.): cai para memória se o navegador negar.
 const safe = (name) => { const mem = new Map(); let real = null; try { real = window[name]; real.getItem('__t'); } catch { real = null; }
@@ -21,17 +21,18 @@ async function hashPw(pw, salt, iter) {
 
 export const defaultData = (name = '') => ({
   v: 1, onboarded: false,
-  profile: { name, rank: 'Policial Penal', matricula: '', unit: '', phone: '' },
+  profile: { name, rank: 'Policial Penal', matricula: '', unit: '', phone: '', alias: '' },
+  quarters: DEFAULT_QUARTERS.map((q) => ({ ...q })), posts: [...DEFAULT_POSTS],
   scale: defaultScale(today()),
   money: { diurna: 219, noturna: 219, h24: 438 },
-  prefs: { theme: 'dark', accent: '#3b82f6', speak: false, waPhone: '', waKind: 'completo' },
+  prefs: { theme: 'dark', accent: '#3b82f6', speak: false, waPhone: '', waKind: 'completo', lastPost: '', reminders: true, lead: 15, alvorada: true, ai: { provider: 'gemini', key: '', model: '' } },
   events: [],
 });
 
 export const Store = {
   users: () => rd(`${K}:users`, []),
   currentId: () => ss.getItem(`${K}:sid`) || ls.getItem(`${K}:sid`),
-  load(id) { const d = rd(`${K}:data:${id}`, null); if (!d) return null; const b = defaultData(); return { ...b, ...d, profile: { ...b.profile, ...d.profile }, scale: { ...b.scale, ...d.scale }, money: { ...b.money, ...d.money }, prefs: { ...b.prefs, ...d.prefs } }; },
+  load(id) { const d = rd(`${K}:data:${id}`, null); if (!d) return null; const b = defaultData(); return { ...b, ...d, profile: { ...b.profile, ...d.profile }, scale: { ...b.scale, ...d.scale }, money: { ...b.money, ...d.money }, prefs: { ...b.prefs, ...d.prefs, ai: { ...b.prefs.ai, ...(d.prefs || {}).ai } }, quarters: Array.isArray(d.quarters) && d.quarters.length ? d.quarters : b.quarters, posts: Array.isArray(d.posts) ? d.posts : b.posts }; },
   save(id, data) { return wr(`${K}:data:${id}`, data); },
   async register({ name, email, password, guest = false }) {
     const users = this.users(); email = (email || '').trim().toLowerCase();

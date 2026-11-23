@@ -55,7 +55,7 @@ function findPerson(raw) {
   return null;
 }
 
-export function parseCommand(input, ref = today()) {
+export function parseCommand(input, ref = today(), ctx = { quarters: [], posts: [] }) {
   const raw = input.trim(); const t = numWords(norm(raw));
   if (!raw) return { kind: 'empty' };
   const has = (...r) => r.some((x) => new RegExp(x).test(t));
@@ -68,6 +68,20 @@ export function parseCommand(input, ref = today()) {
   if (has('\\bsaldo\\b.*\\bpermut', 'quem (me )?deve', 'quanto devo', 'permutas? (abertas|pendentes)', 'devo plantao')) return { kind: 'query', q: 'permutas' };
   if (has('quantos?\\b.*\\bplant', 'plantoes (do|desse|deste|esse|este) mes')) return { kind: 'query', q: 'count', date: parseDate(raw, ref) };
   if (has('quantos?\\b.*\\b(atestado|dias de atestado)')) return { kind: 'query', q: 'atestados' };
+
+  // ---- Quartos de hora ----
+  if (has('\\bquartos?\\b') && ctx.quarters.length) {
+    if (has('\\bproximo quarto', 'qual (e )?(o )?meu quarto', 'meus quartos (de )?hoje', 'quarto (de hoje|agora)')) return { kind: 'query', q: 'nextq' };
+    const ids = [];
+    if (has('todos os quartos', 'quartos todos')) ids.push(...ctx.quarters.filter((q) => !q.alvorada).map((q) => q.id));
+    for (const m of t.matchAll(/(\d{1,2})\s*(?:h|horas?|:00)?\s*(?:as|a|ate|-)\s*(\d{1,2})/g)) {
+      const h1 = Number(m[1]) % 24, h2 = Number(m[2]) % 24;
+      const cand = ctx.quarters.filter((q) => Number(q.start.slice(0, 2)) === h1); const q = cand.find((x) => Number(x.end.slice(0, 2)) === h2) || cand[0]; if (q && !ids.includes(q.id)) ids.push(q.id);
+    }
+    if (has('alvorada')) { const a = ctx.quarters.find((q) => q.alvorada); if (a && !ids.includes(a.id)) ids.push(a.id); }
+    const post = ctx.posts.find((p) => t.includes(norm(p))) || '';
+    return ids.length ? { kind: 'quartos', date: parseDate(raw, ref) || ref, ids, post } : { kind: 'help', text: 'Quais quartos? Diga, por exemplo: “quartos 22 às 00 e 02 às 04 dia 27 no pavilhão A”.' };
+  }
 
   // ---- Criação ----
   let type = null;
