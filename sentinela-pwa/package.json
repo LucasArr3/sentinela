@@ -1,0 +1,11 @@
+{
+  "name": "sentinela-pwa",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Sentinela Tático — calendário de plantão para Policiais Penais (PWA offline, sem build).",
+  "scripts": {
+    "start": "python3 -m http.server 8080",
+    "test": "node --test tests/*.test.mjs"
+  }
+}
