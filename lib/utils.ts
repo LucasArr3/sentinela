@@ -13,7 +13,7 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export const BASE_DATE = new Date(2023, 2, 31); // 31 de março de 2023
+export const BASE_DATE = new Date(2026, 10, 23); // 23/11/2026 (hoje: plantão)
 
 export function isShiftDay(date: Date): boolean {
   const diff = differenceInDays(startOfDay(date), startOfDay(BASE_DATE));

@@ -1,6 +1,6 @@
 import { differenceInDays, startOfDay } from 'date-fns';
 
-export const DEFAULT_BASE_DATE = new Date(2023, 2, 31); // 31/03/2023
+export const DEFAULT_BASE_DATE = new Date(2026, 10, 23); // 23/11/2026 (hoje: plantão)
 export const DEFAULT_CYCLE_DAYS = 4; // 24x72 (1 on, 3 off)
 
 export type ShiftType = 'ORDINARIO' | 'EXTRA_DIURNA' | 'EXTRA_NOTURNA' | 'PASSAR_PLANTAO' | 'ASSUMIR_PLANTAO' | 'FOLGA';

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-// import removido: generateICS, downloadICS
+import {
   Shield, 
   Settings, 
   LogOut, 
@@ -73,7 +73,7 @@ export default function Home() {
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
   const [shiftColors, setShiftColors] = useState<ShiftColors>(DEFAULT_SHIFT_COLORS);
   const [cellStyle, setCellStyle] = useState<CalendarCellStyle>('classic');
-  const [baseDate, setBaseDate] = useState<Date>(new Date(2023, 2, 31));
+  const [baseDate, setBaseDate] = useState<Date>(new Date(2026, 10, 23));
   const [scaleCycle, setScaleCycle] = useState<number>(4);
   const [scaleText, setScaleText] = useState('24x72');
 
