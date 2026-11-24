@@ -49,7 +49,7 @@ export const TYPES = {
 export const DEFAULT_QUARTERS = [
   { id: '18-20', start: '18:00', end: '20:00' }, { id: '20-22', start: '20:00', end: '22:00' }, { id: '22-00', start: '22:00', end: '00:00' },
   { id: '00-02', start: '00:00', end: '02:00' }, { id: '02-04', start: '02:00', end: '04:00' }, { id: '04-06', start: '04:00', end: '06:00' },
-  { id: '06-08', start: '06:00', end: '08:00', name: 'Alvorada', alvorada: true },
+  { id: '06-08', start: '06:00', end: '08:00', name: 'Alvorada', alvorada: true, lead: 0, sound: 'alvorada' },
 ];
 export const DEFAULT_POSTS = ['Portaria', 'Pavilhão A', 'Pavilhão B', 'Muralha', 'Ronda'];
 const hh = (t) => t.replace(':00', '') + 'h';
@@ -202,3 +202,27 @@ export function nextShift(state, now = new Date()) {
   return null;
 }
 export const evDays = (e) => diffDays(evEnd(e), e.date) + 1;
+
+// ---------- Feriados (Brasil) ----------
+export const OC_CATS = ['Rotina', 'Segurança', 'Disciplinar', 'Saúde', 'Visita', 'Outros'];
+function easter(y) {
+  const a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const mo = Math.floor((h + l - 7 * m + 114) / 31), da = ((h + l - 7 * m + 114) % 31) + 1; return `${y}-${pad(mo)}-${pad(da)}`;
+}
+const holCache = new Map();
+// custom: [{ md: 'MM-DD', name }] — feriados estaduais/municipais que se repetem todo ano
+export function holidaysOf(y, custom = []) {
+  const key = y + JSON.stringify(custom); if (holCache.has(key)) return holCache.get(key);
+  const E = easter(y); const m = {};
+  const fixed = { '01-01': 'Confraternização Universal', '04-21': 'Tiradentes', '05-01': 'Dia do Trabalho', '09-07': 'Independência', '10-12': 'N. Sra. Aparecida', '11-02': 'Finados', '11-15': 'Proclamação da República', '11-20': 'Consciência Negra', '12-25': 'Natal' };
+  for (const [md, n] of Object.entries(fixed)) m[`${y}-${md}`] = n;
+  m[addDays(E, -48)] = 'Carnaval'; m[addDays(E, -47)] = 'Carnaval'; m[addDays(E, -2)] = 'Sexta-feira Santa'; m[E] = 'Páscoa'; m[addDays(E, 60)] = 'Corpus Christi';
+  for (const c of custom) if (c && /^\d{2}-\d{2}$/.test(c.md) && c.name) m[`${y}-${c.md}`] = c.name;
+  holCache.set(key, m); return m;
+}
+export const holidayName = (date, custom = []) => holidaysOf(Number(date.slice(0, 4)), custom)[date] || '';
+export function monthHolidays(y, m, custom = []) {
+  const h = holidaysOf(y, custom); const key = ymKey(y, m);
+  return Object.entries(h).filter(([d]) => d.startsWith(key)).sort(([a], [b]) => a.localeCompare(b)).map(([date, name]) => ({ date, name }));
+}

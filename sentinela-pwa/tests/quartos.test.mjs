@@ -45,3 +45,20 @@ test('resumo inclui quartos e postos', () => {
   const t = buildSummary(s, 2026, 10, { kind: 'completo' }); assert.match(t, /QUARTOS E POSTOS \(2\)/); assert.match(t, /22h–00h Muralha · 02h–04h Ronda/);
   assert.equal(quartosOn(s, '2026-11-23').map((e) => e.slot).join(), '22-00,02-04');
 });
+
+import { holidayName, monthHolidays } from '../js/core.js';
+test('feriados nacionais (inclusive móveis) e municipais', () => {
+  assert.equal(holidayName('2026-12-25'), 'Natal'); assert.equal(holidayName('2026-04-03'), 'Sexta-feira Santa'); assert.equal(holidayName('2026-04-05'), 'Páscoa');
+  assert.equal(holidayName('2026-02-17'), 'Carnaval'); assert.equal(holidayName('2026-06-04'), 'Corpus Christi'); assert.equal(holidayName('2026-11-23'), '');
+  assert.equal(holidayName('2027-03-26'), 'Sexta-feira Santa'); // Páscoa 2027 = 28/03
+  assert.equal(holidayName('2026-08-15', [{ md: '08-15', name: 'Aniversário da cidade' }]), 'Aniversário da cidade');
+  assert.deepEqual(monthHolidays(2026, 10).map((h) => h.name), ['Finados', 'Proclamação da República', 'Consciência Negra']);
+});
+test('alarme individual por quarto: antecedência e som próprios', () => {
+  const qs = DEFAULT_QUARTERS.map((q) => (q.id === '22-00' ? { ...q, lead: 5, sound: 'sonar' } : q.id === '02-04' ? { ...q, alarm: false } : q));
+  const s = { ...st([{ id: 'x1', type: 'quarto', date: '2026-11-23', slot: '22-00', post: 'X' }, { id: 'x2', type: 'quarto', date: '2026-11-23', slot: '02-04' }, { id: 'x3', type: 'quarto', date: '2026-11-23', slot: '20-22' }]), quarters: qs };
+  assert.equal(dueAlarms(s, new Date(2026, 10, 23, 21, 46)).length, 0); // 15 min padrão não vale para o 22-00 (usa 5)
+  const a = dueAlarms(s, new Date(2026, 10, 23, 21, 56)); assert.equal(a.length, 1); assert.equal(a[0].sound, 'sonar');
+  const c = dueAlarms(s, new Date(2026, 10, 23, 19, 46)); assert.equal(c.length, 1); assert.equal(c[0].sound, 'sirene'); // 20-22 usa 15 min e som padrão
+  assert.equal(dueAlarms(s, new Date(2026, 10, 24, 1, 46)).length, 0); // alarme desligado no 02-04
+});
