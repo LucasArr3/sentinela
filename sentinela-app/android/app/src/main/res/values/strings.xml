@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Sentinela Tático</string>
+    <string name="title_activity_main">Sentinela Tático</string>
+    <string name="package_name">br.com.sentinela.tatico</string>
+    <string name="custom_url_scheme">br.com.sentinela.tatico</string>
+</resources>

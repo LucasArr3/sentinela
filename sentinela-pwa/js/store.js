@@ -1,5 +1,6 @@
 // Persistência local (localStorage) com contas por dispositivo. Dados ficam só neste aparelho.
 import { defaultScale, today, DEFAULT_QUARTERS, DEFAULT_POSTS } from './core.js';
+import { DEFAULT_SOUND, migrateSound } from './sounds.js';
 const K = 'sentinela:v1';
 // Armazenamento tolerante a bloqueio (aba anônima etc.): cai para memória se o navegador negar.
 const safe = (name) => { const mem = new Map(); let real = null; try { real = window[name]; real.getItem('__t'); } catch { real = null; }
@@ -22,17 +23,18 @@ async function hashPw(pw, salt, iter) {
 export const defaultData = (name = '') => ({
   v: 1, onboarded: false,
   profile: { name, rank: 'Policial Penal', matricula: '', unit: '', phone: '', alias: '' },
-  quarters: DEFAULT_QUARTERS.map((q) => ({ ...q })), posts: [...DEFAULT_POSTS], holidays: [],
+  quarters: DEFAULT_QUARTERS.map((q) => ({ ...q })), posts: [...DEFAULT_POSTS], holidays: [], customSounds: [],
   scale: defaultScale(today()),
   money: { diurna: 219, noturna: 219, h24: 438 },
-  prefs: { theme: 'dark', accent: '#e8e8ea', speak: false, waPhone: '', waKind: 'completo', lastPost: '', reminders: true, lead: 15, sound: 'sirene', alvorada: true, wake: false, cellStyle: 'classic', ai: { provider: 'gemini', key: '', model: '' } },
+  prefs: { theme: 'dark', accent: '#e8e8ea', speak: false, waPhone: '', waKind: 'completo', lastPost: '', reminders: true, lead: 15, sound: DEFAULT_SOUND, snooze: 5, ramp: true, autostop: 5, alvorada: true, wake: false, cellStyle: 'classic', ai: { provider: 'gemini', key: '', model: '' } },
   events: [],
 });
 
 export const Store = {
   users: () => rd(`${K}:users`, []),
   currentId: () => ss.getItem(`${K}:sid`) || ls.getItem(`${K}:sid`),
-  load(id) { const d = rd(`${K}:data:${id}`, null); if (!d) return null; const b = defaultData(); return { ...b, ...d, profile: { ...b.profile, ...d.profile }, scale: { ...b.scale, ...d.scale }, money: { ...b.money, ...d.money }, prefs: { ...b.prefs, ...d.prefs, accent: (d.prefs || {}).accent && (d.prefs || {}).accent !== '#3b82f6' ? d.prefs.accent : b.prefs.accent, ai: { ...b.prefs.ai, ...(d.prefs || {}).ai } }, quarters: Array.isArray(d.quarters) && d.quarters.length ? d.quarters : b.quarters, posts: Array.isArray(d.posts) ? d.posts : b.posts, holidays: Array.isArray(d.holidays) ? d.holidays : [] }; },
+  load(id) { const d = rd(`${K}:data:${id}`, null); if (!d) return null; const b = defaultData();
+    if (d.prefs && d.prefs.sound) d.prefs.sound = migrateSound(d.prefs.sound); if (Array.isArray(d.quarters)) d.quarters.forEach((q) => { if (q.sound) q.sound = migrateSound(q.sound); }); return { ...b, ...d, profile: { ...b.profile, ...d.profile }, scale: { ...b.scale, ...d.scale }, money: { ...b.money, ...d.money }, prefs: { ...b.prefs, ...d.prefs, accent: (d.prefs || {}).accent && (d.prefs || {}).accent !== '#3b82f6' ? d.prefs.accent : b.prefs.accent, ai: { ...b.prefs.ai, ...(d.prefs || {}).ai } }, quarters: Array.isArray(d.quarters) && d.quarters.length ? d.quarters : b.quarters, posts: Array.isArray(d.posts) ? d.posts : b.posts, holidays: Array.isArray(d.holidays) ? d.holidays : [], customSounds: Array.isArray(d.customSounds) ? d.customSounds : [] }; },
   save(id, data) { return wr(`${K}:data:${id}`, data); },
   async register({ name, email, password, guest = false }) {
     const users = this.users(); email = (email || '').trim().toLowerCase();

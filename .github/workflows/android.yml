@@ -1,0 +1,49 @@
+name: Gerar APK Android
+on:
+  push:
+    branches: ['ccr-*', main]
+    paths: ['sentinela-app/**', 'sentinela-pwa/**', '.github/workflows/android.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: sentinela-app/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Testes da lógica
+        run: cd sentinela-pwa && npm test
+      - name: Instalar dependências
+        run: cd sentinela-app && npm ci
+      - name: Copiar a interface web e sincronizar com o Android
+        run: cd sentinela-app && node scripts/prepare-web.mjs && npx cap sync android
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Compilar o APK
+        run: cd sentinela-app/android && chmod +x gradlew && ./gradlew assembleRelease --no-daemon --stacktrace
+      - name: Nomear o APK
+        run: cp sentinela-app/android/app/build/outputs/apk/release/app-release.apk sentinela-tatico.apk && ls -la sentinela-tatico.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sentinela-tatico-apk
+          path: sentinela-tatico.apk
+      - name: Publicar o link fixo de download (release apk-latest)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete apk-latest --cleanup-tag --yes || true
+          gh release create apk-latest sentinela-tatico.apk --prerelease --target "$GITHUB_SHA" \
+            --title "App Android Sentinela Tático (última versão)" \
+            --notes "APK gerado automaticamente a partir do commit ${GITHUB_SHA::7}. Instale no celular Android."

@@ -1,50 +1,64 @@
-// Alarmes de quarto (padrão 15 min antes, ajustável por quarto) e Alvorada. Funcionam com o app aberto.
-import { slotDate, dutyNow } from './core.js';
-const fired = new Set();
-let ctx = null, timer = null;
+// Alarmes de quarto (padrão 15 min antes, ajustável por quarto) e Alvorada.
+// - buildAlarms(): lista pura dos próximos alarmes (enviada ao Android, que toca mesmo com o app fechado).
+// - No navegador, dueAlarms()/startReminders() tocam só com o app aberto.
+import { slotDate, addDays, dayInfo, iso } from './core.js';
+import { SOUND_LIST, soundUrl, DEFAULT_SOUND, isBuiltin } from './sounds.js';
 
-export const SOUNDS = [
-  { id: 'sirene', label: 'Sirene tática' }, { id: 'sonar', label: 'Sonar' }, { id: 'radio', label: 'Rádio HT' },
-  { id: 'alerta', label: 'Alerta (bipes)' }, { id: 'buzina', label: 'Buzina' }, { id: 'alvorada', label: 'Alvorada (clarim)' },
-];
-function tone(f, at, dur, type = 'square', vol = 0.25) {
-  const o = ctx.createOscillator(), g = ctx.createGain(); o.type = type; o.frequency.value = f; o.connect(g); g.connect(ctx.destination);
-  const t = ctx.currentTime + at; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + dur); o.start(t); o.stop(t + dur + 0.05);
+export const SOUNDS = SOUND_LIST;
+const fired = new Set();
+let audio = null, rampTimer = null, stopTimer = null;
+
+export function stopSound() {
+  clearInterval(rampTimer); clearTimeout(stopTimer); rampTimer = null; stopTimer = null;
+  if (audio) { try { audio.pause(); audio.currentTime = 0; } catch { /* */ } audio = null; }
+  try { navigator.vibrate?.(0); } catch { /* */ }
 }
-const PATTERNS = {
-  sirene: { every: 1700, play: () => { for (let i = 0; i < 4; i++) tone(i % 2 ? 920 : 640, i * 0.42, 0.4, 'square', 0.22); } },
-  sonar: { every: 1800, play: () => { tone(1000, 0, 0.9, 'sine', 0.35); tone(1000, 0.55, 0.5, 'sine', 0.12); } },
-  radio: { every: 1900, play: () => { tone(1200, 0, 0.12, 'square', 0.2); tone(1700, 0.16, 0.12, 'square', 0.2); tone(1200, 0.45, 0.12, 'square', 0.2); tone(1700, 0.61, 0.2, 'square', 0.2); } },
-  alerta: { every: 1300, play: () => { for (let i = 0; i < 3; i++) tone(880, i * 0.3, 0.16, 'square', 0.25); } },
-  buzina: { every: 1500, play: () => { tone(196, 0, 0.8, 'sawtooth', 0.28); tone(247, 0, 0.8, 'sawtooth', 0.18); } },
-  alvorada: { every: 2800, play: () => { [392, 523, 659, 784, 659, 784].forEach((f, i) => tone(f, i * 0.28 + (i > 3 ? 0.2 : 0), i === 5 ? 0.7 : 0.26, 'triangle', 0.35)); } },
-};
-export function stopSound() { clearInterval(timer); timer = null; }
-export function playSound(id, previewMs = 0) {
+// Toca um som em loop. previewMs>0: prévia curta. ramp: volume crescente nos primeiros segundos.
+export function playSound(id, opts = {}) {
+  const { previewMs = 0, ramp = false } = typeof opts === 'number' ? { previewMs: opts } : opts;
+  stopSound();
   try {
-    stopSound(); const pat = PATTERNS[id] || PATTERNS.sirene;
-    ctx = ctx || new (window.AudioContext || window.webkitAudioContext)(); if (ctx.state === 'suspended') ctx.resume();
-    pat.play(); timer = setInterval(pat.play, pat.every); navigator.vibrate?.([400, 200, 400, 200, 400]);
-    if (previewMs) setTimeout(stopSound, previewMs);
+    const sid = isBuiltin(id) ? id : DEFAULT_SOUND; audio = new Audio(soundUrl(sid)); audio.loop = true; audio.volume = ramp ? 0.15 : 1;
+    const p = audio.play(); if (p && p.catch) p.catch(() => { /* bloqueado até haver toque do usuário */ });
+    if (ramp) { let v = 0.15; rampTimer = setInterval(() => { v = Math.min(1, v + 0.085); if (audio) audio.volume = v; if (v >= 1) clearInterval(rampTimer); }, 800); }
+    navigator.vibrate?.([500, 250, 500, 250, 500]);
+    if (previewMs) stopTimer = setTimeout(stopSound, previewMs);
   } catch { /* áudio indisponível */ }
 }
 
-export function dueAlarms(state, now = new Date()) {
+// ---------- cálculo dos alarmes ----------
+export function hashId(str) { let h = 5381; for (let i = 0; i < str.length; i++) h = ((h * 33) ^ str.charCodeAt(i)) >>> 0; return (h & 0x7fffffff) || 1; }
+const shiftHours = (info, sc) => (info.status === 'extra' ? (info.events.find((e) => e.type === 'extra')?.turno === 'h24' ? 24 : 12) : sc.hours);
+
+// Alarmes cujo horário cai em [from, to]
+export function alarmsBetween(state, from, to) {
   const out = []; const p = state.prefs; if (!p.reminders) return out;
-  const near = (t) => now >= t && now - t < 120000;
+  const f = from.getTime(), t = to.getTime();
   for (const e of state.events) {
     if (e.type !== 'quarto') continue; const q = state.quarters.find((x) => x.id === e.slot); if (!q || q.alvorada || q.alarm === false) continue;
-    const lead = q.lead ?? p.lead ?? 15; const st = slotDate(e.date, q, state.scale); const at = new Date(st.getTime() - lead * 60000); const key = `q${e.id}${st.getTime()}`;
-    if (near(at) && !fired.has(key)) { fired.add(key); out.push({ title: `Quarto ${q.start.replace(':00', 'h')}${lead ? ` em ${lead} min` : ' agora'}`, body: e.post ? `Posto: ${e.post}` : 'Prepare-se para assumir o quarto', sound: q.sound || p.sound || 'sirene' }); }
+    const lead = q.lead ?? p.lead ?? 15; const st = slotDate(e.date, q, state.scale); const at = st.getTime() - lead * 60000;
+    if (at >= f && at <= t) out.push({ id: hashId(`q:${e.id}:${e.slot}:${e.date}`), at, kind: 'quarto', title: `Quarto ${q.start.replace(':00', 'h')}${lead ? ` em ${lead} min` : ' agora'}`, body: e.post ? `Posto: ${e.post}` : 'Prepare-se para assumir o quarto', sound: q.sound || p.sound || DEFAULT_SOUND });
   }
   if (p.alvorada) {
-    const al = state.quarters.find((q) => q.alvorada); const du = dutyNow(state, now);
-    if (al && al.alarm !== false && du.on) {
-      const [h, m] = al.start.split(':').map(Number); const t = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m); const at = new Date(t.getTime() - (al.lead ?? 0) * 60000); const key = `alv${t.getTime()}`;
-      if (near(at) && !fired.has(key)) { fired.add(key); out.push({ title: 'Alvorada', body: 'Hora da Alvorada', sound: al.sound || 'alvorada' }); }
+    const al = state.quarters.find((q) => q.alvorada);
+    if (al && al.alarm !== false) {
+      const first = addDays(iso(from), -1), last = iso(to); const [sh, sm] = state.scale.start.split(':').map(Number);
+      for (let d = first; d <= last; d = addDays(d, 1)) {
+        const info = dayInfo(d, state); if (!info.works) continue;
+        const [y, m, dd] = d.split('-').map(Number); const start = new Date(y, m - 1, dd, sh, sm).getTime(); const end = start + shiftHours(info, state.scale) * 3600e3;
+        const alT = slotDate(d, al, state.scale).getTime(); if (alT < start || alT >= end) continue;
+        const at = alT - (al.lead ?? 0) * 60000;
+        if (at >= f && at <= t) out.push({ id: hashId(`alv:${d}`), at, kind: 'alvorada', title: 'Alvorada', body: 'Hora da Alvorada', sound: al.sound || 'clarim' });
+      }
     }
   }
-  return out;
+  return out.sort((a, b) => a.at - b.at);
+}
+export const buildAlarms = (state, now = new Date(), days = 14) => alarmsBetween(state, now, new Date(now.getTime() + days * 864e5));
+
+// Navegador: alarmes vencidos nos últimos 2 min que ainda não tocaram
+export function dueAlarms(state, now = new Date()) {
+  return alarmsBetween(state, new Date(now.getTime() - 120000), now).filter((a) => { const k = `${a.id}:${a.at}`; if (fired.has(k)) return false; fired.add(k); return true; });
 }
 export function startReminders(getState, onAlarm) {
   setInterval(() => { try { const s = getState(); if (s) dueAlarms(s).forEach(onAlarm); } catch { /* ignora */ } }, 15000);

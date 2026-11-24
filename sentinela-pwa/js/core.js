@@ -49,7 +49,7 @@ export const TYPES = {
 export const DEFAULT_QUARTERS = [
   { id: '18-20', start: '18:00', end: '20:00' }, { id: '20-22', start: '20:00', end: '22:00' }, { id: '22-00', start: '22:00', end: '00:00' },
   { id: '00-02', start: '00:00', end: '02:00' }, { id: '02-04', start: '02:00', end: '04:00' }, { id: '04-06', start: '04:00', end: '06:00' },
-  { id: '06-08', start: '06:00', end: '08:00', name: 'Alvorada', alvorada: true, lead: 0, sound: 'alvorada' },
+  { id: '06-08', start: '06:00', end: '08:00', name: 'Alvorada', alvorada: true, lead: 0, sound: 'clarim' },
 ];
 export const DEFAULT_POSTS = ['Portaria', 'Pavilhão A', 'Pavilhão B', 'Muralha', 'Ronda'];
 const hh = (t) => t.replace(':00', '') + 'h';

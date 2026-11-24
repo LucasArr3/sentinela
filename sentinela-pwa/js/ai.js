@@ -3,8 +3,8 @@ import { parseCommand } from './nlp.js';
 import * as C from './core.js';
 import { ic, esc, $, fmtDur } from './ui.js';
 import { hasAI, callLLM } from './vision.js';
+import { startListening, canListen } from './native.js';
 
-const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 const EXAMPLES = ['Marca quartos 22 às 00 e 02 às 04 no pavilhão A', 'Quando é meu próximo plantão?', 'Adiciona extra noturna dia 30 valor 250', 'Permuta com o João dia 27, passei meu plantão', 'Quanto vou receber de extras esse mês?', 'Gerar resumo para o WhatsApp'];
 
 export function createAssistant(api) {
@@ -66,15 +66,17 @@ Pedido: ${text}`;
     else say('Não consegui entender esse comando. Tente algo como:\n• “Extra noturna dia 30 valor 250”\n• “Atestado de 3 dias a partir de amanhã”\n• “Quando é meu próximo plantão?”');
   }
 
+  let stopFn = null;
   function toggleMic() {
-    if (!SR) return say('Este navegador não oferece reconhecimento de voz. Use Chrome, Edge ou Safari — ou digite o comando.');
-    if (listening) { rec?.stop(); return; }
-    rec = new SR(); rec.lang = 'pt-BR'; rec.interimResults = true; rec.continuous = false; let fin = '';
-    const input = $('#aiInput', root);
-    rec.onresult = (e) => { fin = ''; let interim = ''; for (const res of e.results) { if (res.isFinal) fin += res[0].transcript; else interim += res[0].transcript; } input.value = (fin + ' ' + interim).trim(); };
-    rec.onerror = (e) => { listening = false; paint(); if (e.error === 'not-allowed' || e.error === 'service-not-allowed') say('Permita o acesso ao microfone nas configurações do navegador para usar a voz.'); else if (!['no-speech', 'aborted'].includes(e.error)) say(`Não consegui ouvir (${e.error}). Tente de novo.`); };
-    rec.onend = () => { listening = false; paint(); const t = (fin || input.value).trim(); if (t) { input.value = ''; submit(t); } };
-    try { rec.start(); listening = true; paint(); } catch { listening = false; }
+    if (!canListen()) return say('Este aparelho ou navegador não oferece reconhecimento de voz. Use o app Android, Chrome, Edge ou Safari, ou digite o comando.');
+    if (listening) { if (stopFn) stopFn(); return; }
+    const input = $('#aiInput', root); listening = true; paint();
+    stopFn = startListening({
+      prompt: 'Fale seu comando',
+      onText: (t) => { input.value = t; },
+      onEnd: (t) => { listening = false; stopFn = null; paint(); const v = (t || input.value).trim(); if (v) { input.value = ''; submit(v); } },
+      onError: (e) => { listening = false; paint(); if (e.code === 'not-allowed' || e.code === 'service-not-allowed') say('Permita o acesso ao microfone para usar a voz.'); else if (!['no-speech', 'aborted'].includes(e.code)) say('Não consegui ouvir. Tente de novo.'); },
+    });
   }
 
   function paint() { const b = $('#aiMic', root); if (!b) return; b.classList.toggle('rec', listening); b.innerHTML = ic(listening ? 'stop' : 'mic', ''); $('#aiHint', root).textContent = listening ? 'Ouvindo… fale seu comando' : 'Toque no microfone e fale'; }
@@ -104,7 +106,7 @@ Pedido: ${text}`;
           if (a === 'no') { m.done = true; say('Ok, cancelei.'); }
           if (a === 'edit') { m.done = true; if (m.pendingQ) { api.close(); api.goto('quartos'); } else api.edit(m.pending); } }
       });
-      if (!SR) $('#aiHint', root).textContent = 'Voz indisponível neste navegador — use o campo de texto';
+      if (!canListen()) $('#aiHint', root).textContent = 'Voz indisponível aqui — use o campo de texto';
     },
     unmount() { try { rec?.abort(); } catch { /* ignore */ } listening = false; root = null; },
   };

@@ -1,0 +1,35 @@
+name: Publicar app web (GitHub Pages)
+on:
+  push:
+    branches: [main]
+    paths: ['sentinela-pwa/**', '.github/workflows/pages.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: cd sentinela-pwa && npm test
+  publicar:
+    needs: testes
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - run: mkdir _site && cp -r sentinela-pwa/index.html sentinela-pwa/manifest.webmanifest sentinela-pwa/sw.js sentinela-pwa/css sentinela-pwa/js sentinela-pwa/icons sentinela-pwa/sounds _site/
+      - uses: actions/upload-pages-artifact@v3
+        with: { path: _site }
+      - id: deploy
+        uses: actions/deploy-pages@v4

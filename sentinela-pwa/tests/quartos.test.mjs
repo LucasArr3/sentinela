@@ -59,6 +59,31 @@ test('alarme individual por quarto: antecedência e som próprios', () => {
   const s = { ...st([{ id: 'x1', type: 'quarto', date: '2026-11-23', slot: '22-00', post: 'X' }, { id: 'x2', type: 'quarto', date: '2026-11-23', slot: '02-04' }, { id: 'x3', type: 'quarto', date: '2026-11-23', slot: '20-22' }]), quarters: qs };
   assert.equal(dueAlarms(s, new Date(2026, 10, 23, 21, 46)).length, 0); // 15 min padrão não vale para o 22-00 (usa 5)
   const a = dueAlarms(s, new Date(2026, 10, 23, 21, 56)); assert.equal(a.length, 1); assert.equal(a[0].sound, 'sonar');
-  const c = dueAlarms(s, new Date(2026, 10, 23, 19, 46)); assert.equal(c.length, 1); assert.equal(c[0].sound, 'sirene'); // 20-22 usa 15 min e som padrão
+  const c = dueAlarms(s, new Date(2026, 10, 23, 19, 46)); assert.equal(c.length, 1); assert.equal(c[0].sound, 'sirene_lamento'); // 20-22 usa 15 min e som padrão
   assert.equal(dueAlarms(s, new Date(2026, 10, 24, 1, 46)).length, 0); // alarme desligado no 02-04
+});
+
+import { buildAlarms, alarmsBetween, hashId } from '../js/reminders.js';
+import { SOUND_LIST, migrateSound, isBuiltin } from '../js/sounds.js';
+test('buildAlarms: próximos 14 dias, ordenados, ids estáveis e únicos', () => {
+  const evs = [{ id: 'k1', type: 'quarto', date: '2026-11-23', slot: '22-00', post: 'Muralha' }, { id: 'k2', type: 'quarto', date: '2026-11-27', slot: '02-04' }, { id: 'k3', type: 'quarto', date: '2026-12-20', slot: '18-20' }];
+  const s = st(evs); const now = new Date(2026, 10, 23, 8, 0);
+  const a = buildAlarms(s, now, 14); const q = a.filter((x) => x.kind === 'quarto');
+  assert.equal(q.length, 2); // o de 20/12 fica fora do horizonte
+  assert.ok(q[0].at < q[1].at); assert.equal(new Date(q[0].at).getHours(), 21); assert.equal(new Date(q[0].at).getMinutes(), 45);
+  assert.equal(q[0].body, 'Posto: Muralha'); assert.deepEqual(a.map((x) => x.id), buildAlarms(s, now, 14).map((x) => x.id));
+  assert.equal(new Set(a.map((x) => x.id)).size, a.length);
+});
+test('Alvorada: toca nos plantões de 24h às 06:00 do dia seguinte', () => {
+  const s = st(); const now = new Date(2026, 10, 23, 8, 0);
+  const alv = buildAlarms(s, now, 10).filter((x) => x.kind === 'alvorada'); const d = alv.map((x) => new Date(x.at).toISOString().slice(0, 10));
+  assert.equal(alv.length >= 2, true); assert.equal(new Date(alv[0].at).getHours() , 6); assert.equal(alv[0].sound, 'clarim');
+  assert.equal(d[0] , new Date(2026, 10, 24, 6).toISOString().slice(0, 10));
+  assert.equal(buildAlarms({ ...s, prefs: { ...s.prefs, alvorada: false } }, now, 10).filter((x) => x.kind === 'alvorada').length, 0);
+  const s12 = { ...s, scale: { ...s.scale, hours: 12 } }; assert.equal(buildAlarms(s12, now, 10).filter((x) => x.kind === 'alvorada').length, 0); // 12h: 06:00 fora do serviço
+  assert.equal(buildAlarms({ ...s, prefs: { ...s.prefs, reminders: false } }, now, 10).length, 0);
+});
+test('catálogo de sons e migração dos ids antigos', () => {
+  assert.equal(SOUND_LIST.length, 13); assert.equal(migrateSound('sirene'), 'sirene_lamento'); assert.equal(migrateSound('alvorada'), 'clarim'); assert.equal(migrateSound('klaxon'), 'klaxon');
+  assert.ok(isBuiltin('radio')); assert.ok(!isBuiltin('custom:abc')); assert.notEqual(hashId('a'), hashId('b'));
 });
