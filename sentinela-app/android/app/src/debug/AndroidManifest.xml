@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <!-- SOMENTE no build de depuração: permite ao teste automático (adb) disparar um alarme -->
+        <receiver android:name="br.com.sentinela.tatico.DebugTriggerReceiver" android:exported="true">
+            <intent-filter>
+                <action android:name="br.com.sentinela.tatico.DEBUG_ALARM" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>

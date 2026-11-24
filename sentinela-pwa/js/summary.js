@@ -1,6 +1,7 @@
 // Geração de textos formatados para WhatsApp (*negrito*, _itálico_, ``` monoespaçado ```).
-import { MONTHS, WD3, monthSummary, permutaLedger, upcoming, brl, qLabel, fmtShort, fmtBR, parse, addDays, scaleLabel, TURNOS, daysInMonth, pad, today, dateLong, evEnd } from './core.js';
+import { MONTHS, WD3, monthSummary, permutaLedger, upcoming, qLabel, fmtShort, fmtBR, parse, addDays, scaleLabel, TURNOS, daysInMonth, pad, today, dateLong, evEnd } from './core.js';
 
+const brl = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0); // texto de envio: valor real
 const dow = (d) => WD3[parse(d).getDay()];
 const line = '━━━━━━━━━━━━━━━━━━';
 

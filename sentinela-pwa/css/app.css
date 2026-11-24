@@ -282,3 +282,7 @@ input:focus,select:focus,textarea:focus{border-color:color-mix(in srgb,var(--acc
 .seg.prio button.on[data-p=Atenção]{background:var(--warn);color:#0a0a0a}
 .seg.prio button.on[data-p=Urgente]{background:var(--danger);color:#0a0a0a}
 .wa-bubble{background:#10261d}
+
+/* legibilidade: rótulo do calendário maior */
+.cal .cell .tg{font-size:8.5px}
+@media(min-width:960px){.cal .cell .tg{font-size:10px}}

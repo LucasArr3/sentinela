@@ -225,7 +225,11 @@ public class AlarmService extends Service {
 
     private void stopAlarm() {
         stopPlayback();
-        stopForeground(STOP_FOREGROUND_REMOVE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            stopForeground(STOP_FOREGROUND_REMOVE);
+        } else {
+            stopForeground(true);
+        }
         NotificationManagerCompat.from(this).cancel(NOTIF_ID);
         sendBroadcast(new Intent(ACTION_STOPPED).setPackage(getPackageName()));
         current = null;

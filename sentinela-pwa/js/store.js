@@ -31,6 +31,9 @@ export const defaultData = (name = '') => ({
 });
 
 export const Store = {
+  usage() { let chars = 0; try { const L = window.localStorage; for (let i = 0; i < L.length; i++) { const k = L.key(i); chars += k.length + (L.getItem(k) || '').length; } } catch { /* sem acesso */ } return { chars, pct: (chars / 5_000_000) * 100 }; },
+  newSalt: () => b64(crypto.getRandomValues(new Uint8Array(16))),
+  hashPin: (pin, salt) => hashPw(pin, salt, 100000),
   users: () => rd(`${K}:users`, []),
   currentId: () => ss.getItem(`${K}:sid`) || ls.getItem(`${K}:sid`),
   load(id) { const d = rd(`${K}:data:${id}`, null); if (!d) return null; const b = defaultData();

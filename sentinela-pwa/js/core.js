@@ -16,7 +16,8 @@ export const ymKey = (y, m) => `${y}-${pad(m + 1)}`;
 export const fmtBR = (s) => { const [y, m, d] = s.split('-'); return `${d}/${m}/${y}`; };
 export const fmtShort = (s) => { const [, m, d] = s.split('-'); return `${d}/${m}`; };
 export const weekday = (s) => parse(s).getDay();
-export const brl = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);
+export const PRIV = { on: false }; // modo discreto: esconde valores em R$ na tela
+export const brl = (v) => (PRIV.on ? 'R$ ••••' : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0));
 
 // ---------- Escalas ----------
 export const PRESETS = {
