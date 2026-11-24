@@ -11,8 +11,8 @@ import { NativeAlarm, isNative, startListening, canListen, APK_URL } from './nat
 const nowD = new Date();
 const S = { uid: null, user: null, d: null, view: 'dashboard', cal: { y: nowD.getFullYear(), m: nowD.getMonth() }, fin: { y: nowD.getFullYear(), m: nowD.getMonth() }, sum: { y: nowD.getFullYear(), m: nowD.getMonth(), values: true, notes: true, calendar: true, custom: null }, sheet: null, qv: { y: nowD.getFullYear(), m: nowD.getMonth() }, liv: { y: nowD.getFullYear(), m: nowD.getMonth() }, roster: null, qsel: null, open: new Set(), livf: { q: '', cat: '' }, alarm: null, auth: { tab: 'login', err: '' }, ob: { step: 0, today: true }, draft: null };
 const ACCENTS = ['#e8e8ea', '#d4a63a', '#7aa8cf', '#66c08a', '#d96b6b', '#9b8fd1'];
-const VIEWS = { dashboard: ['Início', 'home'], calendar: ['Calendário', 'calendar'], quartos: ['Quartos', 'clock'], finance: ['Finanças', 'wallet'], summary: ['Resumos', 'chat'], livro: ['Ocorrências', 'book'], more: ['Mais', 'menu'], settings: ['Ajustes', 'settings'] };
-const save = () => { if (S.uid && !Store.save(S.uid, S.d)) toast('Não foi possível salvar (armazenamento cheio?)', 'err'); syncAlarmsSoon(); };
+const VIEWS = { dashboard: ['Início', 'home'], calendar: ['Calendário', 'calendar'], plantao: ['Plantão', 'shield'], quartos: ['Quartos', 'clock'], finance: ['Finanças', 'wallet'], summary: ['Resumos', 'chat'], livro: ['Ocorrências', 'book'], more: ['Mais', 'menu'], settings: ['Ajustes', 'settings'] };
+const save = () => { if (S.uid && !Store.save(S.uid, S.d)) toast('Não foi possível salvar (armazenamento cheio?)', 'err'); syncAlarmsSoon(); if (!S.warnedFull && Store.usage().pct > 90) { S.warnedFull = true; toast('Armazenamento quase cheio: exporte um backup e apague fotos antigas', 'err'); } };
 // ---- alarmes nativos (Android): reenvia a lista dos próximos 14 dias sempre que algo muda ----
 let syncT = null;
 function syncAlarmsSoon() { if (!isNative()) return; clearTimeout(syncT); syncT = setTimeout(syncAlarms, 900); }
@@ -28,8 +28,10 @@ const tint = (c, p = 18) => `color-mix(in srgb,${c} ${p}%,transparent)`;
 function applyTheme() {
   const p = S.d?.prefs || { theme: 'dark', accent: ACCENTS[0] }; let th = p.theme;
   if (th === 'auto') th = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-  document.documentElement.dataset.theme = th; document.documentElement.style.setProperty('--accent', p.accent);
-  $('meta[name=theme-color]')?.setAttribute('content', th === 'light' ? '#f4f4f5' : '#050505');
+  document.documentElement.dataset.theme = th; if (th === 'night') document.documentElement.style.removeProperty('--accent'); else document.documentElement.style.setProperty('--accent', p.accent);
+  document.documentElement.style.zoom = p.zoom && p.zoom !== 1 ? String(p.zoom) : '';
+  C.PRIV.on = !!p.discreet;
+  $('meta[name=theme-color]')?.setAttribute('content', th === 'light' ? '#f4f4f5' : th === 'night' ? '#000000' : '#050505');
 }
 
 // ---------- títulos de eventos ----------
@@ -108,10 +110,10 @@ const moneyFields = () => `<div class="grid3"><label class="f">Diurna 12h<input 
 
 // ---------- SHELL ----------
 function shell() {
-  const [title] = VIEWS[S.view]; const p = S.d.profile; const moreSet = ['more', 'finance', 'summary', 'livro', 'settings'];
+  const [title] = VIEWS[S.view]; const p = S.d.profile; const moreSet = ['more', 'plantao', 'finance', 'summary', 'livro', 'settings'];
   const nav = (k) => `<button class="nav ${S.view === k ? 'on' : ''}" data-act="go" data-v="${k}">${ic(VIEWS[k][1])}${VIEWS[k][0]}</button>`;
   const tab = (k, on = S.view === k) => `<button class="tab ${on ? 'on' : ''}" data-act="go" data-v="${k}">${ic(VIEWS[k][1])}${VIEWS[k][0]}</button>`;
-  return `<div class="shell"><aside class="side"><div class="brand" style="margin:4px 8px 22px"><div class="logo">${ic('shield')}</div>Sentinela</div>${['dashboard', 'calendar', 'quartos', 'finance', 'summary', 'livro'].map(nav).join('')}<button class="nav" data-act="ai">${ic('sparkles')}Assistente IA</button><span class="sp"></span>${nav('settings')}
+  return `<div class="shell"><aside class="side"><div class="brand" style="margin:4px 8px 22px"><div class="logo">${ic('shield')}</div>Sentinela</div>${['dashboard', 'plantao', 'calendar', 'quartos', 'finance', 'summary', 'livro'].map(nav).join('')}<button class="nav" data-act="ai">${ic('sparkles')}Assistente IA</button><span class="sp"></span>${nav('settings')}
    <div class="item" style="margin-top:8px"><div class="avatar" style="width:38px;height:38px;border-radius:12px;font-size:13px">${esc(initials(p.name))}</div><div class="sp" style="min-width:0"><div class="t" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.name || 'Policial')}</div><div class="s">${C.scaleLabel(S.d.scale)}</div></div><button class="ibtn" style="width:34px;height:34px" data-act="logout" title="Sair">${ic('logout')}</button></div></aside>
    <main class="main"><header class="top"><div class="sp"><div class="muted sm">${S.view === 'dashboard' ? greet() + ',' : 'Sentinela Tático'}</div><h1>${S.view === 'dashboard' ? esc((p.name || 'Policial').split(' ')[0]) : title}</h1></div><button class="avatar" data-act="go" data-v="settings" aria-label="Ajustes">${esc(initials(p.name))}</button></header><section class="view" id="view"></section></main></div>
    <nav class="tabbar" aria-label="Navegação">${tab('dashboard')}${tab('calendar')}<button class="fab" data-act="ai" aria-label="Assistente IA">${ic('sparkles')}</button>${tab('quartos')}${tab('more', moreSet.includes(S.view))}</nav><button class="fab desk" data-act="ai" aria-label="Assistente IA">${ic('sparkles')}</button>`;
@@ -138,17 +140,28 @@ function dashboard() {
   const nextLine = nq ? `<div class="nextq"><div><div class="muted xs">${nq.active ? 'Quarto atual' : 'Próximo quarto'}</div><div class="big">${C.qLabel(nq.q)}${nq.ev.post ? ' · ' + esc(nq.ev.post) : ''}</div></div><div class="when">${nq.active ? 'agora' : 'em ' + fmtDur(nq.start - now)}</div></div>` : '';
   const pills = qs.map((e) => { const q = d.quarters.find((x) => x.id === e.slot); return `<span class="qp">${q ? C.qLabel(q) : e.slot}${e.post ? ' · ' + esc(e.post) : ''}</span>`; }).join('');
   const up = C.upcoming(d, 3, t);
-  return `<div class="hero ${du.on ? 'on' : ''}"><span class="pill"><span class="dot"></span>${pill}</span><h2>${h}</h2><div class="muted">${sub}</div>${extra}<div class="muted xs" style="margin-top:14px">Escala ${C.scaleLabel(sc)} · dia ${pos + 1} de ${c}${hol ? ` · Feriado: ${esc(hol)}` : ''}</div></div>
+  return `<div class="hero ${du.on ? 'on' : ''}"><span class="pill"><span class="dot"></span>${pill}</span><h2>${h}</h2><div class="muted">${sub}</div>${extra}<div class="muted xs" style="margin-top:14px">Escala ${C.scaleLabel(sc)} · dia ${pos + 1} de ${c}${hol ? ` · Feriado: ${esc(hol)}` : ''}</div>${du.on ? `<button class="btn sm" style="margin-top:12px" data-act="go" data-v="plantao">${ic('shield')}Abrir Modo Plantão</button>` : ''}</div>
   <div class="card col" style="gap:12px"><div class="row"><div class="sp"><div class="b">Quartos de hora</div><div class="muted xs">${C.dateLong(qDate)}</div></div><button class="ibtn" data-act="roster-open" data-date="${qDate}" aria-label="Foto da escala">${ic('camera')}</button><button class="ibtn" data-act="q-open" data-date="${qDate}" aria-label="Editar quartos">${ic('edit')}</button></div>${nextLine}${qs.length ? `<div class="qp-list">${pills}</div>` : `<button class="btn sm blk" data-act="q-open" data-date="${qDate}">${ic('plus')}Marcar meus quartos</button>`}</div>
   <div class="h2">Próximos plantões</div><div class="list">${up.map((x) => `<button class="item" data-act="day" data-date="${x.date}"><div class="sp"><div class="t">${C.dateLong(x.date)}</div><div class="s">${C.relDays(x.date)}</div></div>${ic('chevR')}</button>`).join('')}</div>
   <div class="card row" style="justify-content:space-around;text-align:center"><div><div class="b">${ms.plantoes.length + ms.permutaIn.length}</div><div class="muted xs">plantões no mês</div></div><div><div class="b">${C.brl(ms.extrasTotal)}</div><div class="muted xs">extras</div></div><div><div class="b">${ms.quartos.length}</div><div class="muted xs">quartos</div></div></div>`;
+}
+function plantaoView() {
+  const d = S.d, now = new Date(), t = C.today(); const du = C.dutyNow(d, now); const nq = C.nextQuarto(d, now); const ns = C.nextShift(d, now);
+  const qd = du.on ? C.iso(du.start) : (ns ? ns.info.date : t); const qs = C.quartosOn(d, qd); const pct = du.on ? Math.min(100, ((now - du.start) / (du.end - du.start)) * 100) : 0;
+  const hhmm = (x) => `${String(x.getHours()).padStart(2, '0')}:${String(x.getMinutes()).padStart(2, '0')}`;
+  const pills = qs.map((e) => { const q = d.quarters.find((x) => x.id === e.slot); return `<span class="qp">${q ? C.qLabel(q) : e.slot}${e.post ? ' · ' + esc(e.post) : ''}</span>`; }).join('');
+  const btn = (act, icn, label, extra = '') => `<button class="pbtn" data-act="${act}" ${extra}>${ic(icn)}<span>${label}</span></button>`;
+  return `<div class="card col" style="text-align:center;gap:8px"><div class="clock" id="plClock">${now.toTimeString().slice(0, 8)}</div><div class="muted">${C.dateLong(t)}</div>${du.on ? `<div class="bar"><i style="width:${pct}%"></i></div><div class="muted sm">Em serviço · termina às ${hhmm(du.end)} · faltam ${fmtDur(du.end - now)}</div>` : `<div class="muted sm">Fora de serviço${ns ? ` · próximo plantão ${C.relDays(ns.info.date)}` : ''}</div>`}</div>
+  ${nq ? `<div class="nextq"><div><div class="muted xs">${nq.active ? 'Quarto atual' : 'Próximo quarto'}</div><div class="big">${C.qLabel(nq.q)}${nq.ev.post ? ' · ' + esc(nq.ev.post) : ''}</div></div><div class="when">${nq.active ? 'agora' : 'em ' + fmtDur(nq.start - now)}</div></div>` : '<div class="card empty">Nenhum quarto marcado para este plantão.</div>'}
+  ${pills ? `<div class="qp-list">${pills}</div>` : ''}
+  <div class="pbtns">${btn('ev-new', 'book', 'Ocorrência', `data-t="ocorrencia" data-date="${t}"`)}${btn('q-open', 'clock', 'Quartos', `data-date="${qd}"`)}${btn('ev-new', 'coins', 'Extra', `data-t="extra" data-date="${t}"`)}${btn('roster-open', 'camera', 'Foto da escala', `data-date="${qd}"`)}</div>`;
 }
 function chart() {
   const now = new Date(); const pts = [];
   for (let i = 5; i >= 0; i--) { const dt = new Date(now.getFullYear(), now.getMonth() - i, 1); pts.push({ l: C.MONTHS[dt.getMonth()].slice(0, 3), v: C.monthSummary(S.d, dt.getFullYear(), dt.getMonth()).extrasTotal }); }
   const max = Math.max(...pts.map((p) => p.v), 1); const w = 300, h = 130, bw = 30, gap = (w - bw * 6) / 7;
   if (pts.every((p) => !p.v)) return `<div class="empty">Nenhuma extra registrada ainda.<br><span class="xs">Cadastre extras para acompanhar sua evolução.</span></div>`;
-  return `<svg class="chartbars" viewBox="0 0 ${w} ${h}" width="100%" role="img" aria-label="Extras por mês">${pts.map((p, i) => { const bh = Math.max(3, (p.v / max) * 82); const x = gap + i * (bw + gap); const last = i === 5; return `<rect x="${x}" y="${100 - bh}" width="${bw}" height="${bh}" rx="8" fill="${last ? 'var(--accent)' : 'var(--ok)'}" opacity="${last ? 1 : .55}"/><text x="${x + bw / 2}" y="${94 - bh}" text-anchor="middle">${p.v ? (p.v >= 1000 ? (p.v / 1000).toFixed(1).replace('.', ',') + 'k' : Math.round(p.v)) : ''}</text><text x="${x + bw / 2}" y="118" text-anchor="middle">${p.l}</text>`; }).join('')}</svg>`;
+  return `<svg class="chartbars" viewBox="0 0 ${w} ${h}" width="100%" role="img" aria-label="Extras por mês">${pts.map((p, i) => { const bh = Math.max(3, (p.v / max) * 82); const x = gap + i * (bw + gap); const last = i === 5; return `<rect x="${x}" y="${100 - bh}" width="${bw}" height="${bh}" rx="8" fill="${last ? 'var(--accent)' : 'var(--ok)'}" opacity="${last ? 1 : .55}"/><text x="${x + bw / 2}" y="${94 - bh}" text-anchor="middle">${C.PRIV.on ? '' : p.v ? (p.v >= 1000 ? (p.v / 1000).toFixed(1).replace('.', ',') + 'k' : Math.round(p.v)) : ''}</text><text x="${x + bw / 2}" y="118" text-anchor="middle">${p.l}</text>`; }).join('')}</svg>`;
 }
 
 // ---------- QUARTOS DE HORA ----------
@@ -197,7 +210,7 @@ function livroView() {
 }
 function moreView() {
   const row = (v, icn, t, sub) => `<button class="item" data-act="go" data-v="${v}"><div class="ico" style="background:${tint('var(--accent)', 18)};color:var(--accent)">${ic(icn)}</div><div class="sp"><div class="t">${t}</div><div class="s">${sub}</div></div>${ic('chevR')}</button>`;
-  return `<div class="list">${row('finance', 'wallet', 'Finanças', 'Extras, valores a receber e permutas')}${row('summary', 'chat', 'Resumos para WhatsApp', 'Escala, quartos e finanças do mês')}${row('livro', 'book', 'Livro de ocorrências', 'Registros com hora e foto')}${row('settings', 'settings', 'Ajustes', 'Escala, quartos, postos, alarmes, IA e conta')}</div>`;
+  return `<div class="list">${row('plantao', 'shield', 'Modo Plantão', 'Relógio grande, próximo quarto e atalhos')}${row('finance', 'wallet', 'Finanças', 'Extras, valores a receber e permutas')}${row('summary', 'chat', 'Resumos para WhatsApp', 'Escala, quartos e finanças do mês')}${row('livro', 'book', 'Livro de ocorrências', 'Registros com hora e foto')}${row('settings', 'settings', 'Ajustes', 'Escala, quartos, postos, alarmes, IA e conta')}</div>`;
 }
 
 // ---------- CALENDÁRIO ----------
@@ -249,6 +262,7 @@ function summary() {
 // ---------- AJUSTES ----------
 const sec = (id, icn, title, sub, body) => `<details class="sec" data-sec="${id}" ${S.open.has(id) ? 'open' : ''}><summary><span class="ico">${ic(icn)}</span><span class="sp"><b>${title}</b><small>${sub}</small></span>${ic('chevR', 'chv')}</summary><div class="secbody">${body}</div></details>`;
 const sndOpts = (sel) => SOUND_CATS.map((c) => `<optgroup label="${c}">${SOUNDS.filter((x) => x.cat === c).map((x) => `<option value="${x.id}" ${sel === x.id ? 'selected' : ''}>${x.label}</option>`).join('')}</optgroup>`).join('') + (S.d.customSounds.length ? `<optgroup label="Meus sons">${S.d.customSounds.map((x) => `<option value="${x.id}" ${sel === x.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</optgroup>` : '');
+const storageMeter = () => { const u = Store.usage(); const col = u.pct > 80 ? 'var(--danger)' : u.pct > 60 ? 'var(--warn)' : 'var(--ok)'; return `<div class="col" style="gap:6px"><div class="row"><b class="sp">Espaço usado neste aparelho</b><span class="muted sm">${(u.chars / 1e6).toFixed(1)} de ~5 MB</span></div><div class="bar" style="margin:0"><i style="width:${Math.min(100, u.pct)}%;background:${col}"></i></div>${u.pct > 70 ? '<div class="muted xs">Está enchendo: apague fotos antigas das ocorrências ou exporte um backup.</div>' : ''}</div>`; };
 const natChecks = () => {
   const st = S.alarmStatus; if (st === undefined) return '<div class="muted xs">Verificando permissões…</div>';
   if (!st) return '<div class="muted xs">Não consegui ler o status. Toque em Atualizar.</div>';
@@ -272,11 +286,12 @@ function settings() {
   <details class="sub" data-sec="alq" ${S.open.has('alq') ? 'open' : ''}><summary>Ajustar quarto a quarto</summary><div class="col" style="margin-top:10px">${alq}</div></details>${nat ? '' : `<div class="grid2"><button class="btn sm" data-act="alarm-test">${ic('alert')}Testar alarme</button><button class="btn sm" data-act="notify">Permitir notificações</button></div>`}`;
   const feriados = `<div class="muted sm">Os feriados nacionais (com Carnaval, Páscoa e Corpus Christi) já estão no calendário. Cadastre aqui os da sua cidade ou estado.</div>${(d.holidays || []).map((h, i) => `<div class="row"><span class="chip on" style="flex:none">${h.md.slice(3)}/${h.md.slice(0, 2)}</span><span class="sp">${esc(h.name)}</span><button class="ibtn" data-act="hol-del" data-i="${i}" aria-label="Excluir feriado">${ic('trash')}</button></div>`).join('')}<div class="grid2"><input type="date" id="holDate" aria-label="Data"><input id="holName" placeholder="Nome do feriado"></div><button class="btn sm" data-act="hol-add">${ic('plus')}Adicionar feriado</button>`;
   const ia = `<div class="seg"><button class="${ai.provider === 'gemini' ? 'on' : ''}" data-act="ai-provider" data-v="gemini">Gemini (Google)</button><button class="${ai.provider === 'anthropic' ? 'on' : ''}" data-act="ai-provider" data-v="anthropic">Claude</button></div><label class="f">Chave da API<input type="password" data-bind="prefs.ai.key" value="${esc(ai.key)}" placeholder="Cole sua chave aqui" autocomplete="off"></label><label class="f">Modelo (opcional)<input data-bind="prefs.ai.model" value="${esc(ai.model)}" placeholder="${DEFAULT_MODELS[ai.provider]}"></label><button class="btn sm" data-act="ai-test">${ic('check')}Testar conexão</button><div class="muted xs">${ai.provider === 'gemini' ? 'Chave gratuita em aistudio.google.com/app/apikey.' : 'Chave em console.anthropic.com.'} Fica salva só neste aparelho e vai direto dele ao provedor. Sem chave, tudo funciona; você marca os quartos tocando.</div>`;
-  const aparencia = `<div class="seg">${[['dark', 'Escuro'], ['light', 'Claro'], ['auto', 'Automático']].map(([v, l]) => `<button class="${pr.theme === v ? 'on' : ''}" data-act="theme" data-v="${v}">${l}</button>`).join('')}</div><div class="sw">${ACCENTS.map((c) => `<button class="${pr.accent === c ? 'on' : ''}" style="background:${c}" data-act="accent" data-v="${c}" aria-label="Cor ${c}"></button>`).join('')}</div><div class="b" style="margin-top:4px">Estilo das células do calendário</div><div class="seg">${[['classic', 'Clássico'], ['solid', 'Cheio'], ['clean', 'Limpo']].map(([v, l]) => `<button class="${pr.cellStyle === v ? 'on' : ''}" data-act="cell-style" data-v="${v}">${l}</button>`).join('')}</div><label class="tgl"><span><div class="b">Ler respostas em voz alta</div><div class="muted xs">O assistente fala as respostas</div></span><input type="checkbox" data-bind="prefs.speak" ${pr.speak ? 'checked' : ''}></label>`;
-  const dados = `<div class="muted sm">Seus dados ficam somente neste aparelho. Faça backup para guardar ou levar para outro celular.</div><div class="grid2"><button class="btn" data-act="export">${ic('download')}Exportar</button><button class="btn" data-act="import">${ic('upload')}Importar</button></div><input type="file" id="impFile" accept="application/json,.json" class="hidden">${window._bip ? `<button class="btn pri" data-act="install">${ic('download')}Instalar app no aparelho</button>` : `<div class="muted xs">Para instalar: no Chrome use “Adicionar à tela inicial”; no iPhone, Compartilhar → “Adicionar à Tela de Início”.</div>`}<button class="btn dng" data-act="clear-events">${ic('trash')}Apagar todos os lançamentos</button>`;
+  const aparencia = `<div class="seg">${[['dark', 'Escuro'], ['night', 'Noturno'], ['light', 'Claro'], ['auto', 'Auto']].map(([v, l]) => `<button class="${pr.theme === v ? 'on' : ''}" data-act="theme" data-v="${v}">${l}</button>`).join('')}</div><div class="muted xs">Noturno: tudo em tons de vermelho, para não ofuscar a visão de madrugada.</div><div class="b" style="margin-top:4px">Tamanho do texto</div><div class="seg">${[[1, 'Normal'], [1.12, 'Grande'], [1.25, 'Muito grande']].map(([v, l]) => `<button class="${(pr.zoom || 1) === v ? 'on' : ''}" data-act="zoom" data-v="${v}">${l}</button>`).join('')}</div><div class="sw">${ACCENTS.map((c) => `<button class="${pr.accent === c ? 'on' : ''}" style="background:${c}" data-act="accent" data-v="${c}" aria-label="Cor ${c}"></button>`).join('')}</div><div class="b" style="margin-top:4px">Estilo das células do calendário</div><div class="seg">${[['classic', 'Clássico'], ['solid', 'Cheio'], ['clean', 'Limpo']].map(([v, l]) => `<button class="${pr.cellStyle === v ? 'on' : ''}" data-act="cell-style" data-v="${v}">${l}</button>`).join('')}</div><label class="tgl"><span><div class="b">Ler respostas em voz alta</div><div class="muted xs">O assistente fala as respostas</div></span><input type="checkbox" data-bind="prefs.speak" ${pr.speak ? 'checked' : ''}></label>`;
+  const seguranca = `${pr.pin ? `<div class="grid2"><button class="btn" data-act="pin-new">${ic('lock')}Alterar PIN</button><button class="btn dng" data-act="pin-off">Remover PIN</button></div><label class="f">Bloquear automaticamente<select data-bind="prefs.lockAfter" data-numstr>${[[0, 'Ao sair do app'], [1, 'Depois de 1 minuto'], [5, 'Depois de 5 minutos'], [-1, 'Só ao abrir o app']].map(([v, l]) => `<option value="${v}" ${(pr.lockAfter ?? 1) === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>` : `<div class="muted sm">Peça um PIN para abrir o app. Protege suas ocorrências e dados contra quem pegar o seu celular.</div><button class="btn pri" data-act="pin-new">${ic('lock')}Criar PIN</button>`}<label class="tgl"><span><div class="b">Modo discreto</div><div class="muted xs">Esconde os valores em R$ na tela</div></span><input type="checkbox" data-bind="prefs.discreet" ${pr.discreet ? 'checked' : ''}></label><div class="muted xs">O PIN não criptografa os dados guardados. No modo sem cadastro não há recuperação do PIN: guarde-o e exporte um backup.</div>`;
+  const dados = `${storageMeter()}<div class="muted sm">Seus dados ficam somente neste aparelho. Faça backup para guardar ou levar para outro celular.</div><div class="grid2"><button class="btn" data-act="export">${ic('download')}Exportar</button><button class="btn" data-act="import">${ic('upload')}Importar</button></div><input type="file" id="impFile" accept="application/json,.json" class="hidden">${window._bip ? `<button class="btn pri" data-act="install">${ic('download')}Instalar app no aparelho</button>` : `<div class="muted xs">Para instalar: no Chrome use “Adicionar à tela inicial”; no iPhone, Compartilhar → “Adicionar à Tela de Início”.</div>`}<button class="btn dng" data-act="clear-events">${ic('trash')}Apagar todos os lançamentos</button>`;
   const conta = `${S.user.guest ? '<div class="muted sm">Você está no modo sem cadastro. Crie uma conta para proteger os dados com senha.</div>' : `<button class="btn" data-act="pw">${ic('lock')}Alterar senha</button>`}<button class="btn" data-act="logout">${ic('logout')}Sair</button><button class="btn dng" data-act="delete-account">${ic('trash')}Excluir conta e dados</button>`;
   return `<div class="card row"><div class="avatar">${esc(initials(p.name))}</div><div class="sp"><div class="b">${esc(p.name || 'Policial')}</div><div class="muted sm">${esc(S.user.guest ? 'Modo sem cadastro' : S.user.email)}</div></div></div>
-  ${sec('perfil', 'user', 'Perfil', p.name || 'Seu nome e cargo', perfil)}${sec('escala', 'calendar', 'Escala de plantão', `${C.scaleLabel(d.scale)} · entrada ${d.scale.start}`, scaleEditor())}${sec('quartos', 'clock', 'Quartos e postos', `${d.quarters.length} quartos · ${d.posts.length} postos`, quartos)}${sec('alarmes', 'alert', 'Alarmes', pr.reminders ? `${pr.lead} min antes · ${soundLabel(pr.sound, d.customSounds)}` : 'Desligados', alarmes)}${sec('feriados', 'sun', 'Feriados da minha cidade', `${(d.holidays || []).length} cadastrado(s)`, feriados)}${sec('valores', 'wallet', 'Valores das extras', `Diurna ${C.brl(d.money.diurna)}`, `${moneyFields()}<div class="muted xs">O valor é sugerido ao lançar uma extra e pode ser alterado em cada lançamento.</div>`)}${sec('ia', 'sparkles', 'IA para ler fotos', hasAI(ai) ? 'Conectada' : 'Opcional', ia)}${sec('aparencia', 'eye', 'Aparência', pr.theme === 'dark' ? 'Escuro' : pr.theme === 'light' ? 'Claro' : 'Automático', aparencia)}${sec('dados', 'download', 'Dados e backup', 'Exportar, importar, instalar', dados)}${sec('conta', 'lock', 'Conta', S.user.guest ? 'Sem cadastro' : S.user.email, conta)}
+  ${sec('perfil', 'user', 'Perfil', p.name || 'Seu nome e cargo', perfil)}${sec('escala', 'calendar', 'Escala de plantão', `${C.scaleLabel(d.scale)} · entrada ${d.scale.start}`, scaleEditor())}${sec('quartos', 'clock', 'Quartos e postos', `${d.quarters.length} quartos · ${d.posts.length} postos`, quartos)}${sec('alarmes', 'alert', 'Alarmes', pr.reminders ? `${pr.lead} min antes · ${soundLabel(pr.sound, d.customSounds)}` : 'Desligados', alarmes)}${sec('feriados', 'sun', 'Feriados da minha cidade', `${(d.holidays || []).length} cadastrado(s)`, feriados)}${sec('valores', 'wallet', 'Valores das extras', `Diurna ${C.brl(d.money.diurna)}`, `${moneyFields()}<div class="muted xs">O valor é sugerido ao lançar uma extra e pode ser alterado em cada lançamento.</div>`)}${sec('ia', 'sparkles', 'IA para ler fotos', hasAI(ai) ? 'Conectada' : 'Opcional', ia)}${sec('aparencia', 'eye', 'Aparência', pr.theme === 'dark' ? 'Escuro' : pr.theme === 'night' ? 'Noturno' : pr.theme === 'light' ? 'Claro' : 'Automático', aparencia)}${sec('seguranca', 'lock', 'Segurança e privacidade', pr.pin ? 'PIN ativo' : 'Sem PIN', seguranca)}${sec('dados', 'download', 'Dados e backup', 'Exportar, importar, instalar', dados)}${sec('conta', 'lock', 'Conta', S.user.guest ? 'Sem cadastro' : S.user.email, conta)}
   <p class="muted xs" style="text-align:center">Sentinela Tático · versão 1.1 · feito para Policiais Penais</p>`;
 }
 
@@ -334,6 +349,7 @@ function rosterList() {
   const mine = rows.filter((r) => r.mine).length;
   return `<div class="muted sm">${mine ? `Achei ${mine} linha(s) com o seu nome.` : 'Não achei o seu nome. Confira Ajustes → nome na escala, ou marque as linhas abaixo.'}</div><div class="list">${rows.map((r, i) => { const q = S.d.quarters.find((x) => x.id === r.slotId); return `<label class="item" style="${r.mine ? 'border-color:var(--accent)' : ''}"><input type="checkbox" data-ri="${i}" ${r.checked ? 'checked' : ''} ${q ? '' : 'disabled'}><div class="sp" style="min-width:0"><div class="t">${esc(r.name)}${r.mine ? ' · você' : ''}</div><div class="s">${q ? C.qLabel(q) : '⚠ faixa não reconhecida: ' + esc(r.slotText)}${r.post ? ' · ' + esc(r.post) : ''}</div></div></label>`; }).join('')}</div><button class="btn pri blk" data-act="roster-apply">${ic('check')}Marcar selecionados (${rows.filter((r) => r.checked).length})</button>`;
 }
+function pinSheet() { return `<div class="grab"></div><div class="row"><h3 class="sp">${S.d.prefs.pin ? 'Alterar PIN' : 'Criar PIN'}</h3><button class="ibtn" data-act="close">${ic('x')}</button></div><form class="col" style="margin-top:14px" data-submit="pin-save"><label class="f">PIN (4 a 6 números)<input name="p1" type="password" inputmode="numeric" pattern="[0-9]{4,6}" minlength="4" maxlength="6" required autocomplete="off"></label><label class="f">Repita o PIN<input name="p2" type="password" inputmode="numeric" pattern="[0-9]{4,6}" minlength="4" maxlength="6" required autocomplete="off"></label><div id="pinErr"></div><button class="btn pri">Salvar PIN</button></form>`; }
 function pwSheet() { return `<div class="grab"></div><div class="row"><h3 class="sp">Alterar senha</h3><button class="ibtn" data-act="close">${ic('x')}</button></div><form class="col" style="margin-top:14px" data-submit="pw-save"><label class="f">Senha atual<input name="old" type="password" required autocomplete="current-password"></label><label class="f">Nova senha<input name="n1" type="password" minlength="6" required autocomplete="new-password"></label><div id="pwErr"></div><button class="btn pri">Salvar nova senha</button></form>`; }
 
 const assistant = createAssistant({
@@ -357,7 +373,7 @@ function renderSheet() {
   if (!root.firstChild || root.dataset.kind !== sh.kind) { root.dataset.kind = sh.kind; root.innerHTML = `<div class="overlay" data-act="overlay"><div class="sheet" role="dialog" aria-modal="true"></div></div>`; }
   const el = $('.sheet', root); const top = el.scrollTop;
   if (sh.kind === 'ai') assistant.mount(el);
-  else { el.innerHTML = { day: () => daySheet(sh.date), quartos: () => quartosSheet(sh.date), form: formSheet, pw: pwSheet, roster: rosterSheet }[sh.kind](); el.scrollTop = top; }
+  else { el.innerHTML = { day: () => daySheet(sh.date), quartos: () => quartosSheet(sh.date), form: formSheet, pw: pwSheet, pinset: pinSheet, roster: rosterSheet }[sh.kind](); el.scrollTop = top; }
 }
 function openForm(base) {
   const T = C.TYPES[base.type]; const e = { turno: 'diurna', dir: 'passei', ...base };
@@ -375,7 +391,7 @@ function addEvent(e) {
 // ---------- RENDER ----------
 function renderView() {
   const el = $('#view'); if (!el) return;
-  el.innerHTML = { dashboard, calendar, quartos: quartosView, finance, summary, livro: livroView, more: moreView, settings }[S.view]();
+  el.innerHTML = { dashboard, plantao: plantaoView, calendar, quartos: quartosView, finance, summary, livro: livroView, more: moreView, settings }[S.view]();
   el.classList.toggle('enter', !!S.anim); S.anim = false;
 }
 function render() {
@@ -386,6 +402,16 @@ function render() {
   root.innerHTML = shell(); renderView(); window.scrollTo(0, keep);
 }
 function go(v) { S.view = v; S.anim = true; S.sheet && closeSheet(); render(); window.scrollTo(0, 0); if (v === 'quartos') setTimeout(() => $('#qtoday')?.scrollIntoView({ block: 'center' }), 60); }
+
+// ---------- TRAVA POR PIN ----------
+function renderLock() {
+  let r = $('#lockRoot'); if (!r) { r = document.createElement('div'); r.id = 'lockRoot'; document.body.appendChild(r); }
+  if (!S.locked) { r.innerHTML = ''; return; }
+  const len = S.d.prefs.pin.len; const dots = Array.from({ length: len }, (_, i) => `<i class="${i < S.pinBuf.length ? 'on' : ''}"></i>`).join('');
+  const keys = [1, 2, 3, 4, 5, 6, 7, 8, 9, '', 0, '⌫'].map((k) => (k === '' ? '<span></span>' : `<button data-act="pin-key" data-k="${k}" aria-label="${k === '⌫' ? 'Apagar' : k}">${k}</button>`)).join('');
+  r.innerHTML = `<div class="lock"><div class="logo">${ic('lock')}</div><h2>Digite o PIN</h2><div class="dots ${S.pinErr ? 'err' : ''}">${dots}</div><div class="muted sm" style="min-height:20px">${S.pinMsg || ''}</div><div class="keypad">${keys}</div><button class="link" data-act="pin-forgot">Esqueci o PIN</button></div>`;
+}
+function lockNow() { if (S.uid && S.d?.prefs.pin) { S.locked = true; S.pinBuf = ''; S.pinErr = false; S.pinMsg = ''; renderLock(); } }
 
 // ---------- CONFIRMAÇÃO (substitui confirm() nativo) ----------
 function ask(msg, ok = 'Confirmar') {
@@ -450,6 +476,7 @@ const A = {
   'q-none': (el) => { S.d.events = S.d.events.filter((x) => !(x.type === 'quarto' && x.date === el.dataset.date)); S.qsel = null; refreshQ(); },
   'q-posts': () => { S.open.add('quartos'); S.qsel = null; closeSheet(); go('settings'); setTimeout(() => $('#cfg-postos')?.scrollIntoView({ block: 'start' }), 120); },
   'liv-cat': (el) => { S.livf.cat = el.dataset.v; renderView(); },
+  zoom: (el) => { S.d.prefs.zoom = Number(el.dataset.v); save(); render(); },
   'cell-style': (el) => { S.d.prefs.cellStyle = el.dataset.v; save(); renderView(); },
   'snd-test': async (el) => {
     const q = el.dataset.qi !== undefined ? S.d.quarters[+el.dataset.qi] : null; const id = el.dataset.sid || (q && q.sound) || S.d.prefs.sound;
@@ -501,6 +528,24 @@ const A = {
   'roster-apply': () => { const R = S.roster; let n = 0; for (const r of R.entries.filter((x) => x.checked && x.slotId)) { setQuarto(R.date, r.slotId, r.post); n++; } refreshQ(); toast(n ? `${n} quarto(s) marcado(s) ✅` : 'Nada selecionado'); },
   'roster-save': () => { const R = S.roster; S.d.events.push({ id: C.uid(), type: 'ocorrencia', date: R.date, time: '', title: 'Escala de quartos (foto)', cat: 'Rotina', note: '', photos: [R.image] }); save(); render(); toast('Foto guardada no Livro de ocorrências ✅'); },
   pw: () => openSheet('pw'),
+  'pin-new': () => openSheet('pinset'),
+  'pin-off': async () => { if (!(await ask('Remover o PIN? O app passará a abrir sem pedir senha.', 'Remover'))) return; delete S.d.prefs.pin; save(); renderView(); toast('PIN removido'); },
+  'pin-key': async (el) => {
+    if (S.lockUntil && Date.now() < S.lockUntil) return; const k = el.dataset.k; const len = S.d.prefs.pin.len;
+    if (k === '⌫') S.pinBuf = S.pinBuf.slice(0, -1); else if (S.pinBuf.length < len) S.pinBuf += k;
+    S.pinErr = false; S.pinMsg = ''; renderLock();
+    if (S.pinBuf.length === len) {
+      const ok = (await Store.hashPin(S.pinBuf, S.d.prefs.pin.salt)) === S.d.prefs.pin.hash;
+      if (ok) { S.locked = false; S.pinTries = 0; S.pinBuf = ''; renderLock(); render(); return; }
+      S.pinTries = (S.pinTries || 0) + 1; S.pinErr = true; S.pinMsg = 'PIN incorreto'; if (S.pinTries >= 5) { S.lockUntil = Date.now() + 30000; S.pinTries = 0; S.pinMsg = 'Muitas tentativas. Aguarde 30 segundos.'; }
+      renderLock(); setTimeout(() => { S.pinBuf = ''; S.pinErr = false; renderLock(); }, 450);
+    }
+  },
+  'pin-forgot': async () => {
+    if (S.user.guest) return toast('No modo sem cadastro não há recuperação. Limpe os dados do app nas configurações do celular.', 'err');
+    if (!(await ask('Sair da conta? Você entra de novo com e-mail e senha, e seus dados continuam salvos.', 'Sair'))) return;
+    S.locked = false; renderLock(); Store.endSession(); S.uid = S.d = S.user = null; render();
+  },
   // resumos
   'wa-send': (el) => { S.d.prefs.waPhone = $('#waPhone').value; save(); el.href = waLink(sumText(), S.d.prefs.waPhone); },
   'sum-copy': () => copyText(sumText()),
@@ -533,6 +578,13 @@ const FORMS = {
     if (e.id) S.d.events = S.d.events.map((x) => (x.id === e.id ? e : x)); else { e.id = C.uid(); S.d.events.push(e); }
     save(); const b = S.sheet?.back; if (b) openSheet('day', { date: b }); else closeSheet(); render(); toast('Salvo ✅');
   },
+  async 'pin-save'(f) {
+    const fd = new FormData(f); const p1 = String(fd.get('p1')), p2 = String(fd.get('p2'));
+    if (!/^\d{4,6}$/.test(p1)) { $('#pinErr').innerHTML = '<div class="err">Use de 4 a 6 números.</div>'; return; }
+    if (p1 !== p2) { $('#pinErr').innerHTML = '<div class="err">Os PINs não são iguais.</div>'; return; }
+    const salt = Store.newSalt(); S.d.prefs.pin = { salt, hash: await Store.hashPin(p1, salt), len: p1.length }; if (S.d.prefs.lockAfter == null) S.d.prefs.lockAfter = 1;
+    save(); closeSheet(); renderView(); toast('PIN criado ✅');
+  },
   async 'pw-save'(f) {
     const fd = new FormData(f); try { await Store.changePassword(S.uid, fd.get('old'), fd.get('n1')); closeSheet(); toast('Senha alterada ✅'); } catch (e) { $('#pwErr').innerHTML = `<div class="err">${esc(e.message)}</div>`; }
   },
@@ -562,12 +614,12 @@ document.addEventListener('change', async (ev) => {
   }
   if (t.dataset.posts !== undefined) { S.d.posts = [...new Set(t.value.split('\n').map((x) => x.trim()).filter(Boolean))]; save(); return; }
   if (t.dataset.bind) {
-    let v = t.type === 'checkbox' ? t.checked : t.value; if (t.dataset.num !== undefined) v = Math.max(0, Number(v) || 0); if (t.dataset.numnull !== undefined) v = t.value === '' ? null : Math.max(0, Number(t.value) || 0);
+    let v = t.type === 'checkbox' ? t.checked : t.value; if (t.dataset.numstr !== undefined) v = Number(v); if (t.dataset.num !== undefined) v = Math.max(0, Number(v) || 0); if (t.dataset.numnull !== undefined) v = t.value === '' ? null : Math.max(0, Number(t.value) || 0);
     if (t.dataset.bind === 'prefs.wake') keepAwake(v);
     if (t.dataset.bind === 'scale.anchor' && !v) return;
     setPath(t.dataset.bind, v);
     if (t.dataset.bind.startsWith('scale.') && ['work', 'off', 'hours'].includes(t.dataset.bind.split('.')[1])) S.d.scale.preset = 'custom';
-    save(); if (t.dataset.bind.startsWith('scale') || t.dataset.bind.startsWith('profile') || (t.dataset.bind.startsWith('money') && S.view === 'settings') || ['prefs.lead', 'prefs.sound', 'prefs.reminders'].includes(t.dataset.bind)) render(); return;
+    save(); if (t.dataset.bind.startsWith('scale') || t.dataset.bind.startsWith('profile') || (t.dataset.bind.startsWith('money') && S.view === 'settings') || ['prefs.lead', 'prefs.sound', 'prefs.reminders', 'prefs.discreet'].includes(t.dataset.bind)) render(); return;
   }
   if (t.dataset.sum) { S.sum[t.dataset.sum] = t.checked; S.sum.custom = null; render(); return; }
   if (t.id === 'waPhone') { S.d.prefs.waPhone = t.value; save(); return; }
@@ -581,12 +633,18 @@ document.addEventListener('change', async (ev) => {
 });
 document.addEventListener('toggle', (e) => { const d = e.target; if (d.matches && d.matches('details[data-sec]')) { if (d.open) S.open.add(d.dataset.sec); else S.open.delete(d.dataset.sec); } }, true);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && S.d?.prefs.wake) keepAwake(true); });
+document.addEventListener('visibilitychange', () => {
+  if (!S.d?.prefs.pin) return;
+  if (document.visibilityState === 'hidden') S.hiddenAt = Date.now();
+  else { const la = S.d.prefs.lockAfter ?? 1; const away = (Date.now() - (S.hiddenAt || Date.now())) / 60000; if (la >= 0 && away >= la) lockNow(); }
+});
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && S.sheet) closeSheet(); });
 // gestos: deslizar no calendário troca o mês
 let tx = 0; document.addEventListener('touchstart', (e) => { if (e.target.closest('#cal')) tx = e.touches[0].clientX; else tx = 0; }, { passive: true });
 document.addEventListener('touchend', (e) => { if (!tx) return; const dx = e.changedTouches[0].clientX - tx; if (Math.abs(dx) > 70) { shiftMonth(S.cal, dx < 0 ? 1 : -1); render(); } tx = 0; }, { passive: true });
 window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); window._bip = e; if (S.view === 'settings') renderView(); });
-setInterval(() => { if (S.uid && S.d?.onboarded && S.view === 'dashboard' && !S.sheet && !document.activeElement?.closest('input,textarea')) renderView(); }, 30000);
+setInterval(() => { if (S.view === 'plantao' && !S.sheet && !S.locked) { const el = $('#plClock'); if (el) el.textContent = new Date().toTimeString().slice(0, 8); } }, 1000);
+setInterval(() => { if (S.uid && S.d?.onboarded && (S.view === 'dashboard' || S.view === 'plantao') && !S.sheet && !document.activeElement?.closest('input,textarea')) renderView(); }, 30000);
 
 // ---------- BOOT ----------
 (function boot() {
@@ -594,6 +652,7 @@ setInterval(() => { if (S.uid && S.d?.onboarded && S.view === 'dashboard' && !S.
   const root = document.createElement('div'); root.id = 'root'; const sr = document.createElement('div'); sr.id = 'sheetRoot'; document.body.append(root, sr);
   render();
   if ('serviceWorker' in navigator && location.protocol.startsWith('http') && !isNative()) navigator.serviceWorker.register('./sw.js').catch(() => {});
+  if (S.d?.prefs.pin) lockNow();
   if (S.d?.prefs.wake) keepAwake(true);
   if (isNative()) { loadAlarmStatus(); syncAlarms(); setInterval(syncAlarms, 6 * 3600e3); document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { loadAlarmStatus(); syncAlarms(); } }); }
   else startReminders(() => (S.uid && S.d?.onboarded ? S.d : null), showAlarm);

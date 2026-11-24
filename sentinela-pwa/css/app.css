@@ -286,3 +286,17 @@ input:focus,select:focus,textarea:focus{border-color:color-mix(in srgb,var(--acc
 /* legibilidade: rótulo do calendário maior */
 .cal .cell .tg{font-size:8.5px}
 @media(min-width:960px){.cal .cell .tg{font-size:10px}}
+
+/* tema noturno: tudo em vermelho (preserva a visão de madrugada) */
+:root[data-theme=night]{--bg:#000;--bg2:#070202;--surface:#0e0505;--surface2:#170808;--line:rgba(255,90,70,.22);--text:#ff8f7f;--muted:#a85a50;--accent:#ff6a55;--on:#120302;--ok:#c0503f;--warn:#d9693f;--danger:#ff4a3a;color-scheme:dark}
+html[data-theme=night]{filter:sepia(.9) hue-rotate(-40deg) saturate(2.4) brightness(.92)}
+/* trava por PIN */
+.lock{position:fixed;inset:0;z-index:200;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px}
+.dots{display:flex;gap:14px;height:18px}.dots i{width:14px;height:14px;border-radius:50%;border:2px solid var(--muted)}.dots i.on{background:var(--text);border-color:var(--text)}
+.dots.err{animation:shake .4s}@keyframes shake{20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+.keypad{display:grid;grid-template-columns:repeat(3,76px);gap:14px;margin:6px 0}.keypad button{height:76px;border-radius:50%;background:var(--surface2);border:1px solid var(--line);font-size:26px;font-weight:600}.keypad button:active{transform:scale(.93);background:var(--surface)}
+/* modo plantão */
+.clock{font-size:clamp(48px,16vw,84px);font-weight:800;letter-spacing:-.03em;font-variant-numeric:tabular-nums;line-height:1}
+.pbtns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pbtn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:104px;border-radius:20px;background:var(--surface);border:1px solid var(--line);font-weight:700;font-size:15px}
+.pbtn .ic{width:28px;height:28px}.pbtn:active{transform:scale(.96)}
