@@ -20,7 +20,10 @@ import android.provider.Settings;
 import androidx.activity.result.ActivityResult;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationManagerCompat;
+import androidx.biometric.BiometricManager;
+import androidx.biometric.BiometricPrompt;
 import androidx.core.content.ContextCompat;
+import androidx.fragment.app.FragmentActivity;
 
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
@@ -34,6 +37,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.concurrent.Executor;
 
 /** Ponte entre a interface web e o alarme nativo do Android. */
 @CapacitorPlugin(name = "SentinelaAlarm")
@@ -142,6 +146,59 @@ public class SentinelaAlarmPlugin extends Plugin {
                 && ContextCompat.checkSelfPermission(getContext(), Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(a, new String[]{Manifest.permission.POST_NOTIFICATIONS}, 7781);
         }
+        call.resolve();
+    }
+
+    // ---------------- biometria (digital/rosto) ----------------
+    @PluginMethod
+    public void bioStatus(PluginCall call) {
+        int can = BiometricManager.from(getContext()).canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK);
+        JSObject r = new JSObject();
+        r.put("available", can == BiometricManager.BIOMETRIC_SUCCESS);
+        r.put("code", can);
+        call.resolve(r);
+    }
+
+    @PluginMethod
+    public void bioAuth(PluginCall call) {
+        Activity a = getActivity();
+        if (!(a instanceof FragmentActivity)) {
+            call.reject("biometria indisponível");
+            return;
+        }
+        final FragmentActivity fa = (FragmentActivity) a;
+        final String title = call.getString("title", "Sentinela Tático");
+        fa.runOnUiThread(() -> {
+            Executor ex = ContextCompat.getMainExecutor(fa);
+            BiometricPrompt bp = new BiometricPrompt(fa, ex, new BiometricPrompt.AuthenticationCallback() {
+                @Override
+                public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result) {
+                    JSObject r = new JSObject();
+                    r.put("ok", true);
+                    call.resolve(r);
+                }
+
+                @Override
+                public void onAuthenticationError(int code, CharSequence msg) {
+                    call.reject(String.valueOf(msg), String.valueOf(code));
+                }
+            });
+            BiometricPrompt.PromptInfo info = new BiometricPrompt.PromptInfo.Builder()
+                    .setTitle(title)
+                    .setSubtitle("Confirme sua identidade")
+                    .setNegativeButtonText("Usar PIN")
+                    .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_WEAK)
+                    .build();
+            bp.authenticate(info);
+        });
+    }
+
+    // ---------------- widget do plantão ----------------
+    @PluginMethod
+    public void widget(PluginCall call) {
+        JSObject data = call.getObject("data");
+        if (data != null) AlarmStore.saveWidget(getContext(), data.toString());
+        PlantaoWidget.refresh(getContext());
         call.resolve();
     }
 

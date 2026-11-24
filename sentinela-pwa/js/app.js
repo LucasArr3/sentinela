@@ -3,37 +3,67 @@ import { Store, defaultData } from './store.js';
 import { ic, esc, $, $$, toast, initials, fmtDur, greet, waHtml } from './ui.js';
 import { buildSummary, waLink } from './summary.js';
 import { createAssistant } from './ai.js';
-import { hasAI, readRoster, compressImage, callLLM, DEFAULT_MODELS, autoPickGeminiModel } from './vision.js';
-import { startReminders, playSound, stopSound, SOUNDS, keepAwake, notify, askNotifyPermission, buildAlarms } from './reminders.js';
+import { hasAI, readRoster, compressImage, squareImage, callLLM, DEFAULT_MODELS, autoPickGeminiModel } from './vision.js';
+import { startReminders, playSound, stopSound, SOUNDS, keepAwake, notify, askNotifyPermission, buildAlarms, buildWidget } from './reminders.js';
 import { SOUND_CATS, soundLabel, DEFAULT_SOUND, isBuiltin } from './sounds.js';
 import { NativeAlarm, isNative, startListening, canListen, APK_URL } from './native.js';
+import { signUp, signIn, resetPassword, backupUpload, backupDownload, getMeta, explain, checkAuthEnabled } from './cloud.js';
 
 const nowD = new Date();
 const S = { uid: null, user: null, d: null, view: 'dashboard', cal: { y: nowD.getFullYear(), m: nowD.getMonth() }, fin: { y: nowD.getFullYear(), m: nowD.getMonth() }, sum: { y: nowD.getFullYear(), m: nowD.getMonth(), values: true, notes: true, calendar: true, custom: null }, sheet: null, qv: { y: nowD.getFullYear(), m: nowD.getMonth() }, liv: { y: nowD.getFullYear(), m: nowD.getMonth() }, roster: null, qsel: null, open: new Set(), livf: { q: '', cat: '' }, alarm: null, auth: { tab: 'login', err: '' }, ob: { step: 0, today: true }, draft: null };
 const ACCENTS = ['', '#e8e8ea', '#4d8dff', '#d4a63a', '#9bbf5a', '#e07a7a', '#c08ae6'];
 const THEMES = [
   { id: 'dark', name: 'Preto', desc: 'Grafite e branco, sóbrio', bg: '#050505', sf: '#111113', ac: '#e8e8ea' },
+  { id: 'obsidiana', name: 'Obsidiana', desc: 'Preto espelhado, com degradê', bg: '#030304', sf: '#1b1b22', ac: '#c9ced8' },
   { id: 'tatico', name: 'Tático azul', desc: 'Estilo do app original', bg: '#04070f', sf: '#0d1526', ac: '#3b82ff' },
   { id: 'ouro', name: 'Ouro', desc: 'Preto com dourado', bg: '#050505', sf: '#12110d', ac: '#d4a63a' },
   { id: 'oliva', name: 'Verde oliva', desc: 'Tático militar', bg: '#070906', sf: '#12170f', ac: '#9bbf5a' },
   { id: 'night', name: 'Noturno', desc: 'Vermelho, visão de madrugada', bg: '#000000', sf: '#0e0505', ac: '#ff6a55' },
   { id: 'light', name: 'Claro', desc: 'Fundo branco', bg: '#f4f4f5', sf: '#ffffff', ac: '#18181b' },
 ];
-const THEME_BG = { dark: '#050505', tatico: '#04070f', ouro: '#050505', oliva: '#070906', night: '#000000', light: '#f4f4f5' };
+const THEME_BG = { dark: '#050505', obsidiana: '#030304', tatico: '#04070f', ouro: '#050505', oliva: '#070906', night: '#000000', light: '#f4f4f5' };
 const VIEWS = { dashboard: ['Início', 'home'], calendar: ['Calendário', 'calendar'], plantao: ['Plantão', 'shield'], quartos: ['Quartos', 'clock'], finance: ['Finanças', 'wallet'], summary: ['Resumos', 'chat'], livro: ['Ocorrências', 'book'], more: ['Mais', 'menu'], settings: ['Ajustes', 'settings'] };
-const save = () => { if (S.uid && !Store.save(S.uid, S.d)) toast('Não foi possível salvar (armazenamento cheio?)', 'err'); syncAlarmsSoon(); if (!S.warnedFull && Store.usage().pct > 90) { S.warnedFull = true; toast('Armazenamento quase cheio: exporte um backup e apague fotos antigas', 'err'); } };
+const save = () => { if (S.d) S.d.mod = Date.now(); if (S.uid && !Store.save(S.uid, S.d)) toast('Não foi possível salvar (armazenamento cheio?)', 'err'); syncAlarmsSoon(); cloudPushSoon(); if (!S.warnedFull && Store.usage().pct > 90) { S.warnedFull = true; toast('Armazenamento quase cheio: exporte um backup e apague fotos antigas', 'err'); } };
 // ---- alarmes nativos (Android): reenvia a lista dos próximos 14 dias sempre que algo muda ----
 let syncT = null;
 function syncAlarmsSoon() { if (!isNative()) return; clearTimeout(syncT); syncT = setTimeout(syncAlarms, 900); }
 async function syncAlarms() {
   if (!isNative() || !S.uid || !S.d || !S.d.onboarded) return;
   try { const list = buildAlarms(S.d, new Date(), 14); await NativeAlarm.schedule(list, { snoozeMin: S.d.prefs.snooze, ramp: S.d.prefs.ramp, autostopMin: S.d.prefs.autostop }); S.alarmSync = { n: list.length }; } catch (e) { S.alarmSync = { err: e.message || 'falha ao agendar' }; }
+  try { await NativeAlarm.widget(buildWidget(S.d)); } catch { /* widget é opcional */ }
   if (S.view === 'settings') renderView();
 }
+// ---- nuvem: backup/restauração no Firebase (login por e-mail) ----
+const devName = () => (isNative() ? 'App Android' : 'Navegador');
+function cloudPayload() { const p = JSON.parse(JSON.stringify(S.d)); if (p.prefs) { delete p.prefs.cloud; delete p.prefs.pin; if (p.prefs.ai) p.prefs.ai.key = ''; } return p; }
+function cloudApply(d) {
+  const keep = { cloud: S.d.prefs.cloud, pin: S.d.prefs.pin, key: S.d.prefs.ai.key, auto: S.d.prefs.cloudAuto, bio: S.d.prefs.bio }; const b = defaultData();
+  S.d = { ...b, ...d, profile: { ...b.profile, ...d.profile }, scale: { ...b.scale, ...d.scale }, money: { ...b.money, ...d.money }, prefs: { ...b.prefs, ...d.prefs, ai: { ...b.prefs.ai, ...(d.prefs || {}).ai, key: keep.key } }, quarters: Array.isArray(d.quarters) && d.quarters.length ? d.quarters : b.quarters, posts: Array.isArray(d.posts) ? d.posts : b.posts, holidays: d.holidays || [], customSounds: [], onboarded: true };
+  S.d.prefs.cloud = keep.cloud; S.d.prefs.cloudAuto = keep.auto; if (keep.pin) S.d.prefs.pin = keep.pin; if (keep.bio) S.d.prefs.bio = keep.bio;
+}
+let cloudT = null;
+function cloudPushSoon() { const c = S.d && S.d.prefs && S.d.prefs.cloud; if (!c || S.d.prefs.cloudAuto === false) return; clearTimeout(cloudT); cloudT = setTimeout(() => cloudUpload(true), 25000); }
+async function cloudUpload(silent = false) {
+  const c = S.d && S.d.prefs.cloud; if (!c || S.cloudBusy) return; S.cloudBusy = true;
+  try { const r = await backupUpload(c, cloudPayload(), { updatedAt: S.d.mod || Date.now(), device: devName() }); S.d.prefs.cloudAt = S.d.mod || Date.now(); S.cloudErr = ''; Store.save(S.uid, S.d); if (!silent) toast(`Backup enviado ✅ (${r.chunks} parte${r.chunks > 1 ? 's' : ''})`); }
+  catch (e) { S.cloudErr = explain(e); if (!silent || !S.cloudWarned) { S.cloudWarned = true; toast(S.cloudErr, 'err'); } }
+  S.cloudBusy = false; if (S.view === 'settings') renderView();
+}
+async function cloudRestore() {
+  const c = S.d.prefs.cloud;
+  try {
+    const r = await backupDownload(c); if (!r) return toast('Ainda não há backup na nuvem.', 'err');
+    const n = (r.payload.events || []).length; const when = new Date(r.meta.updatedAt).toLocaleString('pt-BR');
+    if (!(await ask(`Trocar os dados deste aparelho pelo backup de ${when} (${n} lançamentos, enviado por ${r.meta.device || 'outro aparelho'})?`, 'Restaurar'))) return;
+    cloudApply(r.payload); S.d.mod = r.meta.updatedAt; S.d.prefs.cloudAt = r.meta.updatedAt; Store.save(S.uid, S.d); render(); syncAlarmsSoon(); toast('Dados restaurados ✅');
+  } catch (e) { toast(explain(e), 'err'); }
+}
+async function loadBio() { if (!isNative()) return; try { const r = await NativeAlarm.bioStatus(); S.bioOk = !!(r && r.available); } catch { S.bioOk = false; } if (S.view === 'settings') renderView(); }
 async function loadAlarmStatus() { if (!isNative()) return; try { S.alarmStatus = await NativeAlarm.status(); } catch { S.alarmStatus = null; } if (S.view === 'settings') renderView(); }
 const typeColor = (t) => C.TYPES[t].color;
 const tint = (c, p = 18) => `color-mix(in srgb,${c} ${p}%,transparent)`;
 
+const avatarHtml = (p) => (p.photo ? `<img src="${p.photo}" alt="Foto de ${esc(p.name || 'perfil')}">` : esc(initials(p.name)));
 function applyTheme() {
   const p = S.d?.prefs || { theme: 'dark', accent: '' }; let th = p.theme;
   if (th === 'auto') th = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
@@ -125,8 +155,8 @@ function shell() {
   const nav = (k) => `<button class="nav ${S.view === k ? 'on' : ''}" data-act="go" data-v="${k}">${ic(VIEWS[k][1])}${VIEWS[k][0]}</button>`;
   const tab = (k, on = S.view === k) => `<button class="tab ${on ? 'on' : ''}" data-act="go" data-v="${k}">${ic(VIEWS[k][1])}${VIEWS[k][0]}</button>`;
   return `<div class="shell"><aside class="side"><div class="brand" style="margin:4px 8px 22px"><div class="logo">${ic('shield')}</div>Sentinela</div>${['dashboard', 'plantao', 'calendar', 'quartos', 'finance', 'summary', 'livro'].map(nav).join('')}<button class="nav" data-act="ai">${ic('sparkles')}Assistente IA</button><span class="sp"></span>${nav('settings')}
-   <div class="item" style="margin-top:8px"><div class="avatar" style="width:38px;height:38px;border-radius:12px;font-size:13px">${esc(initials(p.name))}</div><div class="sp" style="min-width:0"><div class="t" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.name || 'Policial')}</div><div class="s">${C.scaleLabel(S.d.scale)}</div></div><button class="ibtn" style="width:34px;height:34px" data-act="logout" title="Sair">${ic('logout')}</button></div></aside>
-   <main class="main"><header class="top"><div class="sp"><div class="muted sm">${S.view === 'dashboard' ? greet() + ',' : 'Sentinela Tático'}</div><h1>${S.view === 'dashboard' ? esc((p.name || 'Policial').split(' ')[0]) : title}</h1></div><button class="avatar" data-act="go" data-v="settings" aria-label="Ajustes">${esc(initials(p.name))}</button></header><section class="view" id="view"></section></main></div>
+   <div class="item" style="margin-top:8px"><div class="avatar" style="width:38px;height:38px;border-radius:12px;font-size:13px">${avatarHtml(p)}</div><div class="sp" style="min-width:0"><div class="t" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.name || 'Policial')}</div><div class="s">${C.scaleLabel(S.d.scale)}</div></div><button class="ibtn" style="width:34px;height:34px" data-act="logout" title="Sair">${ic('logout')}</button></div></aside>
+   <main class="main"><header class="top"><div class="sp"><div class="muted sm">${S.view === 'dashboard' ? greet() + ',' : 'Sentinela Tático'}</div><h1>${S.view === 'dashboard' ? esc((p.name || 'Policial').split(' ')[0]) : title}</h1></div><button class="avatar" data-act="go" data-v="settings" aria-label="Ajustes">${avatarHtml(p)}</button></header><section class="view" id="view"></section></main></div>
    <nav class="tabbar" aria-label="Navegação">${tab('dashboard')}${tab('calendar')}<button class="fab" data-act="ai" aria-label="Assistente IA">${ic('sparkles')}</button>${tab('quartos')}${tab('more', moreSet.includes(S.view))}</nav><button class="fab desk" data-act="ai" aria-label="Assistente IA">${ic('sparkles')}</button>`;
 }
 
@@ -151,10 +181,13 @@ function dashboard() {
   const nextLine = nq ? `<div class="nextq"><div><div class="muted xs">${nq.active ? 'Quarto atual' : 'Próximo quarto'}</div><div class="big">${C.qLabel(nq.q)}${nq.ev.post ? ' · ' + esc(nq.ev.post) : ''}</div></div><div class="when">${nq.active ? 'agora' : 'em ' + fmtDur(nq.start - now)}</div></div>` : '';
   const pills = qs.map((e) => { const q = d.quarters.find((x) => x.id === e.slot); return `<span class="qp">${q ? C.qLabel(q) : e.slot}${e.post ? ' · ' + esc(e.post) : ''}</span>`; }).join('');
   const up = C.upcoming(d, 3, t);
+  const hm = (x) => `${String(x.getHours()).padStart(2, '0')}:${String(x.getMinutes()).padStart(2, '0')}`;
+  const nextTile = du.on ? `<div class="tile"><span class="tl">Agora</span><span class="tv">Em serviço</span><span class="ts">até ${hm(du.end)}</span></div>` : ns ? `<button class="tile" data-act="day" data-date="${ns.info.date}"><span class="tl">Próximo plantão</span><span class="tv">${+ns.info.date.slice(8)} ${C.MONTHS[+ns.info.date.slice(5, 7) - 1].slice(0, 3).toLowerCase()}</span><span class="ts">${C.WD3[C.weekday(ns.info.date)]} · ${C.relDays(ns.info.date)}</span></button>` : '<div class="tile"><span class="tl">Próximo plantão</span><span class="tv">—</span><span class="ts">sem plantões</span></div>';
   return `<div class="hero ${du.on ? 'on' : ''}"><span class="pill"><span class="dot"></span>${pill}</span><h2>${h}</h2><div class="muted">${sub}</div>${extra}<div class="muted xs" style="margin-top:14px">Escala ${C.scaleLabel(sc)} · dia ${pos + 1} de ${c}${hol ? ` · Feriado: ${esc(hol)}` : ''}</div>${du.on ? `<button class="btn sm" style="margin-top:12px" data-act="go" data-v="plantao">${ic('shield')}Abrir Modo Plantão</button>` : ''}</div>
+  <div class="tiles">${nextTile}<button class="tile" data-act="go" data-v="finance"><span class="tl">Extras do mês</span><span class="tv">${C.brl(ms.extrasTotal)}</span><span class="ts">${ms.extras.length} extra(s)${ms.extrasPending > 0 ? ' · ' + C.brl(ms.extrasPending) + ' a receber' : ''}</span></button></div>
   <div class="card col" style="gap:12px"><div class="row"><div class="sp"><div class="b">Quartos de hora</div><div class="muted xs">${C.dateLong(qDate)}</div></div><button class="ibtn" data-act="roster-open" data-date="${qDate}" aria-label="Foto da escala">${ic('camera')}</button><button class="ibtn" data-act="q-open" data-date="${qDate}" aria-label="Editar quartos">${ic('edit')}</button></div>${nextLine}${qs.length ? `<div class="qp-list">${pills}</div>` : `<button class="btn sm blk" data-act="q-open" data-date="${qDate}">${ic('plus')}Marcar meus quartos</button>`}</div>
-  <div class="h2">Próximos plantões</div><div class="list">${up.map((x) => `<button class="item" data-act="day" data-date="${x.date}"><div class="sp"><div class="t">${C.dateLong(x.date)}</div><div class="s">${C.relDays(x.date)}</div></div>${ic('chevR')}</button>`).join('')}</div>
-  <div class="card row" style="justify-content:space-around;text-align:center"><div><div class="b">${ms.plantoes.length + ms.permutaIn.length}</div><div class="muted xs">plantões no mês</div></div><div><div class="b">${C.brl(ms.extrasTotal)}</div><div class="muted xs">extras</div></div><div><div class="b">${ms.quartos.length}</div><div class="muted xs">quartos</div></div></div>`;
+  <div class="h2">Próximos plantões</div><div class="list">${up.map((x) => `<button class="drow" data-act="day" data-date="${x.date}"><div class="dd"><b>${+x.date.slice(8)}</b><span>${C.WD3[C.weekday(x.date)]}</span></div><div class="sp"><div class="t">${C.dateLong(x.date)}</div><div class="s muted">${C.relDays(x.date)}${x.date === t && du.on ? ' · em serviço' : ''}</div></div>${ic('chevR')}</button>`).join('')}</div>
+  <div class="card col" style="gap:10px"><div class="b">${C.MONTHS[now.getMonth()]} em números</div><div class="trio"><div><b>${ms.plantoes.length + ms.permutaIn.length}</b><span>plantões</span></div><div><b>${ms.quartos.length}</b><span>quartos</span></div><div><b>${ms.permutas.length}</b><span>permutas</span></div></div></div>`;
 }
 function plantaoView() {
   const d = S.d, now = new Date(), t = C.today(); const du = C.dutyNow(d, now); const nq = C.nextQuarto(d, now); const ns = C.nextShift(d, now);
@@ -231,7 +264,7 @@ function calendar() {
   const cells = Array.from({ length: first }, () => '<div class="cell blank"></div>').join('') + C.monthDays(y, m).map((date) => {
     const i = C.dayInfo(date, S.d); const hol = C.holidayName(date, hols); const types = [...new Set(i.events.map((e) => e.type))].slice(0, 3);
     const ex = i.events.find((e) => e.type === 'extra'); const label = i.status === 'extra' && ex && ex.turno === 'h24' ? '24h' : tag[i.status];
-    const mark = `<span class="dots">${types.map((k) => `<i style="background:${typeColor(k)}"></i>`).join('')}</span>`;
+    const mark = '';
     return `<button class="cell ${date === t ? 'today' : ''} ${hol ? 'hol' : ''}" style="--sc:${i.status === 'livre' ? 'transparent' : (i.status === 'extra' && ex ? (ex.turno === 'noturna' ? C.EXTRA_N : C.EXTRA_D) : C.STATUS[i.status].color)}" data-st="${i.status}" data-act="day" data-date="${date}" aria-label="${C.dateLong(date)}${hol ? ', ' + hol : ''}: ${C.STATUS[i.status].label}"><span class="tg">${label}</span><span class="n">${+date.slice(8)}</span>${mark}${hol ? '<span class="hbar"></span>' : ''}</button>`;
   }).join('');
   const mh = C.monthHolidays(y, m, hols); const tk = mh.map((h) => `<span><b>${C.fmtShort(h.date)}</b> ${esc(h.name)}</span>`).join('');
@@ -284,7 +317,7 @@ const natChecks = () => {
 };
 function settings() {
   const d = S.d, p = d.profile, pr = d.prefs, ai = pr.ai; const row = (l, inner) => `<label class="f">${l}${inner}</label>`;
-  const perfil = `${row('Nome', `<input data-bind="profile.name" value="${esc(p.name)}">`)}${row('Cargo', `<input data-bind="profile.rank" value="${esc(p.rank)}">`)}<div class="grid2">${row('Matrícula', `<input data-bind="profile.matricula" value="${esc(p.matricula)}">`)}${row('Unidade', `<input data-bind="profile.unit" value="${esc(p.unit)}">`)}</div>${row('Como seu nome aparece nas escalas de quartos', `<input data-bind="profile.alias" value="${esc(p.alias || '')}" placeholder="Ex.: Lucas, PP Silva (separe por vírgula)">`)}`;
+  const perfil = `<div class="row" style="gap:12px"><div class="avatar" style="width:64px;height:64px;font-size:22px;border-radius:20px">${avatarHtml(p)}</div><div class="col sp" style="gap:8px"><div class="b">Foto do perfil</div><div class="row wrap" style="gap:8px"><label class="btn sm">${ic('camera')}Câmera<input type="file" accept="image/*" capture="user" data-avatar class="hidden"></label><label class="btn sm">${ic('image')}Galeria<input type="file" accept="image/*" data-avatar class="hidden"></label>${p.photo ? `<button class="btn sm dng" data-act="avatar-del">Remover</button>` : ''}</div></div></div>${row('Nome', `<input data-bind="profile.name" value="${esc(p.name)}">`)}${row('Cargo', `<input data-bind="profile.rank" value="${esc(p.rank)}">`)}<div class="grid2">${row('Matrícula', `<input data-bind="profile.matricula" value="${esc(p.matricula)}">`)}${row('Unidade', `<input data-bind="profile.unit" value="${esc(p.unit)}">`)}</div>${row('Como seu nome aparece nas escalas de quartos', `<input data-bind="profile.alias" value="${esc(p.alias || '')}" placeholder="Ex.: Lucas, PP Silva (separe por vírgula)">`)}`;
   const quartos = `<div class="muted sm">Faixas usadas ao marcar os quartos (início, fim e nome opcional).</div>${d.quarters.map((q, i) => `<div class="row" style="gap:6px"><input type="time" data-bind="quarters.${i}.start" value="${q.start}"><span class="muted">–</span><input type="time" data-bind="quarters.${i}.end" value="${q.end}"><input data-bind="quarters.${i}.name" value="${esc(q.name || '')}" placeholder="nome"><button class="ibtn" data-act="q-del" data-i="${i}" aria-label="Remover quarto">${ic('trash')}</button></div>`).join('')}<div class="grid2"><button class="btn sm" data-act="q-add">${ic('plus')}Adicionar quarto</button><button class="btn sm" data-act="q-reset">Restaurar padrão</button></div>
   <div id="cfg-postos" class="b" style="margin-top:8px">Postos da unidade</div><div class="muted xs">Estes são exemplos. Edite o nome, exclua ou adicione os postos reais da sua unidade.</div>${d.posts.map((x, i) => `<div class="row"><input data-post-i="${i}" value="${esc(x)}" aria-label="Posto ${i + 1}"><button class="ibtn" data-act="post-del" data-i="${i}" aria-label="Excluir ${esc(x)}">${ic('trash')}</button></div>`).join('')}<div class="row"><input id="postNew" placeholder="Novo posto (ex.: Pavilhão C)"><button class="btn sm" data-act="post-add">${ic('plus')}</button></div>`;
   const alq = d.quarters.map((q, i) => `<div class="qrow"><div class="row"><b class="sp">${esc(q.name || C.qLabel(q))}${q.name ? ` <span class="muted xs">${C.qLabel(q)}</span>` : ''}</b><input type="checkbox" class="sw2" data-bind="quarters.${i}.alarm" ${q.alarm !== false ? 'checked' : ''} aria-label="Alarme ligado"></div><div class="row"><input class="num" type="number" min="0" max="120" inputmode="numeric" data-bind="quarters.${i}.lead" data-numnull placeholder="${q.alvorada ? 0 : pr.lead}" value="${q.lead ?? ''}" aria-label="Minutos antes"><span class="muted xs">min antes</span><select class="sp" data-bind="quarters.${i}.sound" aria-label="Som"><option value="">Padrão</option>${sndOpts(q.sound)}</select><button class="ibtn" data-act="snd-test" data-qi="${i}" aria-label="Ouvir som">${ic('volume')}</button></div></div>`).join('');
@@ -301,11 +334,13 @@ function settings() {
   const feriados = `<div class="muted sm">Os feriados nacionais (com Carnaval, Páscoa e Corpus Christi) já estão no calendário. Cadastre aqui os da sua cidade ou estado.</div>${(d.holidays || []).map((h, i) => `<div class="row"><span class="chip on" style="flex:none">${h.md.slice(3)}/${h.md.slice(0, 2)}</span><span class="sp">${esc(h.name)}</span><button class="ibtn" data-act="hol-del" data-i="${i}" aria-label="Excluir feriado">${ic('trash')}</button></div>`).join('')}<div class="grid2"><input type="date" id="holDate" aria-label="Data"><input id="holName" placeholder="Nome do feriado"></div><button class="btn sm" data-act="hol-add">${ic('plus')}Adicionar feriado</button>`;
   const ia = `<div class="seg"><button class="${ai.provider === 'gemini' ? 'on' : ''}" data-act="ai-provider" data-v="gemini">Gemini (Google)</button><button class="${ai.provider === 'anthropic' ? 'on' : ''}" data-act="ai-provider" data-v="anthropic">Claude</button></div><label class="f">Chave da API<input type="password" data-bind="prefs.ai.key" value="${esc(ai.key)}" placeholder="Cole sua chave aqui" autocomplete="off"></label><label class="f">Modelo (opcional)<input data-bind="prefs.ai.model" value="${esc(ai.model)}" placeholder="${DEFAULT_MODELS[ai.provider]}"></label><button class="btn sm" data-act="ai-test">${ic('check')}Testar conexão</button><div class="muted xs">${ai.provider === 'gemini' ? 'Chave gratuita em aistudio.google.com/app/apikey.' : 'Chave em console.anthropic.com.'} Fica salva só neste aparelho e vai direto dele ao provedor. Sem chave, tudo funciona; você marca os quartos tocando.</div>`;
   const aparencia = `<div class="b">Tema</div><div class="themes">${THEMES.map((t) => `<button class="theme ${pr.theme === t.id ? 'on' : ''}" data-act="theme" data-v="${t.id}" aria-label="Tema ${t.name}"><span class="sw" style="background:${t.bg}"><i style="background:${t.sf}"></i><b style="background:${t.ac}"></b></span><span class="tn">${t.name}</span><span class="td">${t.desc}</span></button>`).join('')}<button class="theme ${pr.theme === 'auto' ? 'on' : ''}" data-act="theme" data-v="auto"><span class="sw" style="background:linear-gradient(90deg,#050505 50%,#f4f4f5 50%)"></span><span class="tn">Automático</span><span class="td">Segue o celular</span></button></div><div class="b" style="margin-top:6px">Cor de destaque</div><div class="sw3">${ACCENTS.map((c) => `<button class="${(pr.accent || '') === c ? 'on' : ''}" style="${c ? `background:${c}` : 'background:conic-gradient(#e8e8ea,#4d8dff,#d4a63a,#9bbf5a,#e8e8ea)'}" data-act="accent" data-v="${c}" aria-label="${c ? 'Cor ' + c : 'Cor do tema'}"></button>`).join('')}</div><div class="muted xs">A primeira bolinha usa a cor própria do tema.</div><div class="b" style="margin-top:6px">Tamanho do texto</div><div class="seg">${[[1, 'Normal'], [1.12, 'Grande'], [1.25, 'Muito grande']].map(([v, l]) => `<button class="${(pr.zoom || 1) === v ? 'on' : ''}" data-act="zoom" data-v="${v}">${l}</button>`).join('')}</div><div class="b" style="margin-top:4px">Estilo do calendário</div><div class="seg">${[['classic', 'Clássico'], ['circle', 'Círculos'], ['solid', 'Cheio'], ['clean', 'Limpo']].map(([v, l]) => `<button class="${pr.cellStyle === v ? 'on' : ''}" data-act="cell-style" data-v="${v}">${l}</button>`).join('')}</div><label class="tgl"><span><div class="b">Ler respostas em voz alta</div><div class="muted xs">O assistente fala as respostas</div></span><input type="checkbox" data-bind="prefs.speak" ${pr.speak ? 'checked' : ''}></label>`;
-  const seguranca = `${pr.pin ? `<div class="grid2"><button class="btn" data-act="pin-new">${ic('lock')}Alterar PIN</button><button class="btn dng" data-act="pin-off">Remover PIN</button></div><label class="f">Bloquear automaticamente<select data-bind="prefs.lockAfter" data-numstr>${[[0, 'Ao sair do app'], [1, 'Depois de 1 minuto'], [5, 'Depois de 5 minutos'], [-1, 'Só ao abrir o app']].map(([v, l]) => `<option value="${v}" ${(pr.lockAfter ?? 1) === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>` : `<div class="muted sm">Peça um PIN para abrir o app. Protege suas ocorrências e dados contra quem pegar o seu celular.</div><button class="btn pri" data-act="pin-new">${ic('lock')}Criar PIN</button>`}<label class="tgl"><span><div class="b">Modo discreto</div><div class="muted xs">Esconde os valores em R$ na tela</div></span><input type="checkbox" data-bind="prefs.discreet" ${pr.discreet ? 'checked' : ''}></label><div class="muted xs">O PIN não criptografa os dados guardados. No modo sem cadastro não há recuperação do PIN: guarde-o e exporte um backup.</div>`;
+  const seguranca = `${pr.pin ? `<div class="grid2"><button class="btn" data-act="pin-new">${ic('lock')}Alterar PIN</button><button class="btn dng" data-act="pin-off">Remover PIN</button></div><label class="f">Bloquear automaticamente<select data-bind="prefs.lockAfter" data-numstr>${[[0, 'Ao sair do app'], [1, 'Depois de 1 minuto'], [5, 'Depois de 5 minutos'], [-1, 'Só ao abrir o app']].map(([v, l]) => `<option value="${v}" ${(pr.lockAfter ?? 1) === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>` : `<div class="muted sm">Peça um PIN para abrir o app. Protege suas ocorrências e dados contra quem pegar o seu celular.</div><button class="btn pri" data-act="pin-new">${ic('lock')}Criar PIN</button>`}${isNative() && pr.pin && S.bioOk ? `<label class="tgl"><span><div class="b">Desbloquear com biometria</div><div class="muted xs">Digital ou rosto; o PIN continua como alternativa</div></span><input type="checkbox" data-bind="prefs.bio" ${pr.bio ? 'checked' : ''}></label>` : ''}<label class="tgl"><span><div class="b">Modo discreto</div><div class="muted xs">Esconde os valores em R$ na tela</div></span><input type="checkbox" data-bind="prefs.discreet" ${pr.discreet ? 'checked' : ''}></label><div class="muted xs">O PIN não criptografa os dados guardados. No modo sem cadastro não há recuperação do PIN: guarde-o e exporte um backup.</div>`;
+  const cl = pr.cloud;
+  const nuvem = cl ? `<div class="card col" style="background:var(--surface2);gap:6px"><div class="row"><b class="sp">Conectado</b><span class="badge" style="background:${tint('#6fcf97', 22)};color:#6fcf97">nuvem</span></div><div class="muted sm">${esc(cl.email)}</div><div class="muted xs">${pr.cloudAt ? 'Último backup: ' + new Date(pr.cloudAt).toLocaleString('pt-BR') : 'Nenhum backup enviado ainda'}</div>${S.cloudErr ? `<div class="err">${esc(S.cloudErr)}</div>` : ''}</div><div class="grid2"><button class="btn pri" data-act="cloud-up">${ic('upload')}Enviar agora</button><button class="btn" data-act="cloud-down">${ic('download')}Restaurar</button></div><label class="tgl"><span><div class="b">Backup automático</div><div class="muted xs">Envia sozinho depois que você mexe nos dados</div></span><input type="checkbox" data-bind="prefs.cloudAuto" ${pr.cloudAuto !== false ? 'checked' : ''}></label><button class="btn sm dng" data-act="cloud-out">Sair da nuvem</button>` : `<div class="muted sm">Guarda uma cópia dos seus dados na nuvem e deixa você usar o mesmo login em outro aparelho. Fotos e ocorrências vão junto. A chave de IA e o PIN <b>não</b> vão para a nuvem.</div><form class="col" data-submit="cloud-login"><label class="f">E-mail<input id="cloudEmail" name="email" type="email" required autocomplete="email"></label><label class="f">Senha<input name="password" type="password" minlength="6" required autocomplete="current-password"></label><div class="grid2"><button class="btn pri" type="submit" name="mode" value="in">Entrar</button><button class="btn" type="submit" name="mode" value="up">Criar conta</button></div></form><div class="row"><button class="link" data-act="cloud-reset">Esqueci a senha</button><span class="sp"></span><button class="link" data-act="cloud-check">Verificar configuração</button></div>`;
   const dados = `${storageMeter()}<div class="muted sm">Seus dados ficam somente neste aparelho. Faça backup para guardar ou levar para outro celular.</div><div class="grid2"><button class="btn" data-act="export">${ic('download')}Exportar</button><button class="btn" data-act="import">${ic('upload')}Importar</button></div><input type="file" id="impFile" accept="application/json,.json" class="hidden">${window._bip ? `<button class="btn pri" data-act="install">${ic('download')}Instalar app no aparelho</button>` : `<div class="muted xs">Para instalar: no Chrome use “Adicionar à tela inicial”; no iPhone, Compartilhar → “Adicionar à Tela de Início”.</div>`}<button class="btn dng" data-act="clear-events">${ic('trash')}Apagar todos os lançamentos</button>`;
   const conta = `${S.user.guest ? '<div class="muted sm">Você está no modo sem cadastro. Crie uma conta para proteger os dados com senha.</div>' : `<button class="btn" data-act="pw">${ic('lock')}Alterar senha</button>`}<button class="btn" data-act="logout">${ic('logout')}Sair</button><button class="btn dng" data-act="delete-account">${ic('trash')}Excluir conta e dados</button>`;
-  return `<div class="card row"><div class="avatar">${esc(initials(p.name))}</div><div class="sp"><div class="b">${esc(p.name || 'Policial')}</div><div class="muted sm">${esc(S.user.guest ? 'Modo sem cadastro' : S.user.email)}</div></div></div>
-  ${sec('perfil', 'user', 'Perfil', p.name || 'Seu nome e cargo', perfil)}${sec('escala', 'calendar', 'Escala de plantão', `${C.scaleLabel(d.scale)} · entrada ${d.scale.start}`, scaleEditor())}${sec('quartos', 'clock', 'Quartos e postos', `${d.quarters.length} quartos · ${d.posts.length} postos`, quartos)}${sec('alarmes', 'alert', 'Alarmes', pr.reminders ? `${pr.lead} min antes · ${soundLabel(pr.sound, d.customSounds)}` : 'Desligados', alarmes)}${sec('feriados', 'sun', 'Feriados da minha cidade', `${(d.holidays || []).length} cadastrado(s)`, feriados)}${sec('valores', 'wallet', 'Valores das extras', `Diurna ${C.brl(d.money.diurna)}`, `${moneyFields()}<div class="muted xs">O valor é sugerido ao lançar uma extra e pode ser alterado em cada lançamento.</div>`)}${sec('ia', 'sparkles', 'IA para ler fotos', hasAI(ai) ? 'Conectada' : 'Opcional', ia)}${sec('aparencia', 'eye', 'Aparência', (THEMES.find((t) => t.id === pr.theme) || { name: 'Automático' }).name, aparencia)}${sec('seguranca', 'lock', 'Segurança e privacidade', pr.pin ? 'PIN ativo' : 'Sem PIN', seguranca)}${sec('dados', 'download', 'Dados e backup', 'Exportar, importar, instalar', dados)}${sec('conta', 'lock', 'Conta', S.user.guest ? 'Sem cadastro' : S.user.email, conta)}
+  return `<div class="card row"><div class="avatar">${avatarHtml(p)}</div><div class="sp"><div class="b">${esc(p.name || 'Policial')}</div><div class="muted sm">${esc(S.user.guest ? 'Modo sem cadastro' : S.user.email)}</div></div></div>
+  ${sec('perfil', 'user', 'Perfil', p.name || 'Seu nome e cargo', perfil)}${sec('escala', 'calendar', 'Escala de plantão', `${C.scaleLabel(d.scale)} · entrada ${d.scale.start}`, scaleEditor())}${sec('quartos', 'clock', 'Quartos e postos', `${d.quarters.length} quartos · ${d.posts.length} postos`, quartos)}${sec('alarmes', 'alert', 'Alarmes', pr.reminders ? `${pr.lead} min antes · ${soundLabel(pr.sound, d.customSounds)}` : 'Desligados', alarmes)}${sec('feriados', 'sun', 'Feriados da minha cidade', `${(d.holidays || []).length} cadastrado(s)`, feriados)}${sec('valores', 'wallet', 'Valores das extras', `Diurna ${C.brl(d.money.diurna)}`, `${moneyFields()}<div class="muted xs">O valor é sugerido ao lançar uma extra e pode ser alterado em cada lançamento.</div>`)}${sec('ia', 'sparkles', 'IA para ler fotos', hasAI(ai) ? 'Conectada' : 'Opcional', ia)}${sec('aparencia', 'eye', 'Aparência', (THEMES.find((t) => t.id === pr.theme) || { name: 'Automático' }).name, aparencia)}${sec('nuvem', 'cloud', 'Nuvem e backup', cl ? esc(cl.email) : 'Não conectado', nuvem)}${sec('seguranca', 'lock', 'Segurança e privacidade', pr.pin ? 'PIN ativo' : 'Sem PIN', seguranca)}${sec('dados', 'download', 'Dados e backup', 'Exportar, importar, instalar', dados)}${sec('conta', 'lock', 'Conta', S.user.guest ? 'Sem cadastro' : S.user.email, conta)}
   <p class="muted xs" style="text-align:center">Sentinela Tático · versão 1.1 · feito para Policiais Penais</p>`;
 }
 
@@ -432,9 +467,9 @@ function renderLock() {
   if (!S.locked) { r.innerHTML = ''; return; }
   const len = S.d.prefs.pin.len; const dots = Array.from({ length: len }, (_, i) => `<i class="${i < S.pinBuf.length ? 'on' : ''}"></i>`).join('');
   const keys = [1, 2, 3, 4, 5, 6, 7, 8, 9, '', 0, '⌫'].map((k) => (k === '' ? '<span></span>' : `<button data-act="pin-key" data-k="${k}" aria-label="${k === '⌫' ? 'Apagar' : k}">${k}</button>`)).join('');
-  r.innerHTML = `<div class="lock"><div class="logo">${ic('lock')}</div><h2>Digite o PIN</h2><div class="dots ${S.pinErr ? 'err' : ''}">${dots}</div><div class="muted sm" style="min-height:20px">${S.pinMsg || ''}</div><div class="keypad">${keys}</div><button class="link" data-act="pin-forgot">Esqueci o PIN</button></div>`;
+  r.innerHTML = `<div class="lock"><div class="logo">${ic('lock')}</div><h2>Digite o PIN</h2><div class="dots ${S.pinErr ? 'err' : ''}">${dots}</div><div class="muted sm" style="min-height:20px">${S.pinMsg || ''}</div><div class="keypad">${keys}</div>${S.d.prefs.bio && isNative() ? `<button class="btn sm" data-act="pin-bio">${ic('lock')}Usar biometria</button>` : ''}<button class="link" data-act="pin-forgot">Esqueci o PIN</button></div>`;
 }
-function lockNow() { if (S.uid && S.d?.prefs.pin) { S.locked = true; S.pinBuf = ''; S.pinErr = false; S.pinMsg = ''; renderLock(); } }
+function lockNow() { if (S.uid && S.d?.prefs.pin) { S.locked = true; S.pinBuf = ''; S.pinErr = false; S.pinMsg = ''; renderLock(); if (S.d.prefs.bio && isNative()) setTimeout(() => A['pin-bio'](), 350); } }
 
 // ---------- CONFIRMAÇÃO (substitui confirm() nativo) ----------
 function ask(msg, ok = 'Confirmar') {
@@ -500,6 +535,16 @@ const A = {
   'q-posts': () => { S.open.add('quartos'); S.qsel = null; closeSheet(); go('settings'); setTimeout(() => $('#cfg-postos')?.scrollIntoView({ block: 'start' }), 120); },
   'liv-cat': (el) => { S.livf.cat = el.dataset.v; renderView(); },
   zoom: (el) => { S.d.prefs.zoom = Number(el.dataset.v); save(); render(); },
+  'avatar-del': () => { delete S.d.profile.photo; save(); render(); },
+  'cloud-up': async () => {
+    const c = S.d.prefs.cloud;
+    try { const m = await getMeta(c); if (m && m.updatedAt > (S.d.prefs.cloudAt || 0) + 2000 && !(await ask(`A nuvem tem um backup mais novo (${new Date(m.updatedAt).toLocaleString('pt-BR')}, de ${m.device || 'outro aparelho'}). Substituir mesmo assim?`, 'Substituir'))) return; } catch (e) { return toast(explain(e), 'err'); }
+    await cloudUpload();
+  },
+  'cloud-down': () => cloudRestore(),
+  'cloud-out': async () => { if (!(await ask('Sair da nuvem neste aparelho? O backup continua guardado lá.', 'Sair'))) return; delete S.d.prefs.cloud; save(); renderView(); },
+  'cloud-reset': async () => { const em = String(($('#cloudEmail') || {}).value || '').trim(); if (!em) return toast('Digite seu e-mail acima', 'err'); try { await resetPassword(em); toast('Enviamos um e-mail para criar nova senha ✅'); } catch (e) { toast(explain(e), 'err'); } },
+  'cloud-check': async () => { const r = await checkAuthEnabled(); toast(r.ok ? 'Login por e-mail ativado ✅' : r.msg, r.ok ? '' : 'err'); },
   'cell-style': (el) => { S.d.prefs.cellStyle = el.dataset.v; save(); renderView(); },
   'snd-test': async (el) => {
     const q = el.dataset.qi !== undefined ? S.d.quarters[+el.dataset.qi] : null; const id = el.dataset.sid || (q && q.sound) || S.d.prefs.sound;
@@ -552,6 +597,7 @@ const A = {
   'roster-save': () => { const R = S.roster; S.d.events.push({ id: C.uid(), type: 'ocorrencia', date: R.date, time: '', title: 'Escala de quartos (foto)', cat: 'Rotina', note: '', photos: [R.image] }); save(); render(); toast('Foto guardada no Livro de ocorrências ✅'); },
   pw: () => openSheet('pw'),
   'pin-new': () => openSheet('pinset'),
+  'pin-bio': async () => { if (!S.locked || S.bioBusy) return; S.bioBusy = true; try { await NativeAlarm.bioAuth('Abrir o Sentinela'); S.locked = false; S.pinBuf = ''; S.pinTries = 0; renderLock(); render(); } catch { /* cancelou ou falhou: segue o PIN */ } S.bioBusy = false; },
   'pin-off': async () => { if (!(await ask('Remover o PIN? O app passará a abrir sem pedir senha.', 'Remover'))) return; delete S.d.prefs.pin; save(); renderView(); toast('PIN removido'); },
   'pin-key': async (el) => {
     if (S.lockUntil && Date.now() < S.lockUntil) return; const k = el.dataset.k; const len = S.d.prefs.pin.len;
@@ -601,6 +647,18 @@ const FORMS = {
     if (e.id) S.d.events = S.d.events.map((x) => (x.id === e.id ? e : x)); else { e.id = C.uid(); S.d.events.push(e); }
     save(); const b = S.sheet?.back; if (b) openSheet('day', { date: b }); else closeSheet(); render(); toast('Salvo ✅');
   },
+  async 'cloud-login'(f, sub) {
+    const fd = new FormData(f); const email = String(fd.get('email')).trim(); const pw = String(fd.get('password')); const up = !!(sub && sub.value === 'up');
+    try {
+      toast(up ? 'Criando conta…' : 'Entrando…'); const s = up ? await signUp(email, pw) : await signIn(email, pw);
+      S.d.prefs.cloud = s; S.d.prefs.cloudAuto = S.d.prefs.cloudAuto !== false; Store.save(S.uid, S.d);
+      const meta = await getMeta(s);
+      if (!meta) await cloudUpload();
+      else if (meta.updatedAt > (S.d.mod || 0)) { renderView(); await cloudRestore(); }
+      else if (await ask('A nuvem já tem um backup mais antigo. Enviar os dados deste aparelho e substituir?', 'Enviar')) await cloudUpload();
+      renderView(); toast('Conectado à nuvem ✅');
+    } catch (e) { toast(explain(e), 'err'); }
+  },
   async 'pin-save'(f) {
     const fd = new FormData(f); const p1 = String(fd.get('p1')), p2 = String(fd.get('p2'));
     if (!/^\d{4,6}$/.test(p1)) { $('#pinErr').innerHTML = '<div class="err">Use de 4 a 6 números.</div>'; return; }
@@ -616,7 +674,7 @@ const FORMS = {
 document.addEventListener('click', (ev) => {
   const el = ev.target.closest('[data-act]'); if (!el) return; const fn = A[el.dataset.act]; if (fn) { if (el.tagName === 'A' && el.dataset.native === undefined) ev.preventDefault(); fn(el, ev); }
 });
-document.addEventListener('submit', (ev) => { const f = ev.target.closest('[data-submit]'); if (!f) return; ev.preventDefault(); FORMS[f.dataset.submit]?.(f); });
+document.addEventListener('submit', (ev) => { const f = ev.target.closest('[data-submit]'); if (!f) return; ev.preventDefault(); FORMS[f.dataset.submit]?.(f, ev.submitter); });
 // campos do formulário de lançamento
 document.addEventListener('input', (ev) => {
   const t = ev.target;
@@ -625,6 +683,7 @@ document.addEventListener('input', (ev) => {
 function renderHint() { /* atualização leve do texto "Até dd/mm" ao digitar */ const h = $('#sheetRoot .muted.xs[style*="-6px"]'); if (h) h.textContent = (+S.draft._days || 1) > 1 && S.draft.date ? `Até ${C.fmtBR(C.addDays(S.draft.date, (+S.draft._days || 1) - 1))}` : ''; }
 document.addEventListener('change', async (ev) => {
   const t = ev.target;
+  if (t.dataset.avatar !== undefined && t.files[0]) { try { S.d.profile.photo = await squareImage(t.files[0]); save(); render(); toast('Foto atualizada ✅'); } catch (e) { toast(e.message, 'err'); } return; }
   if (t.dataset.photo !== undefined && t.files.length) { try { const add = []; for (const f of [...t.files].slice(0, 4)) add.push(await compressImage(f, 1024, 0.68)); S.draft.photos = [...(S.draft.photos || []), ...add].slice(0, 4); renderSheet(); } catch (e) { toast(e.message, 'err'); } return; }
   if (t.dataset.rosterFile !== undefined && t.files[0]) { try { S.roster.image = await compressImage(t.files[0]); S.roster.entries = null; S.roster.err = ''; renderSheet(); } catch (e) { toast(e.message, 'err'); } return; }
   if (t.dataset.rosterDate !== undefined) { S.roster.date = t.value || S.roster.date; renderSheet(); return; }
@@ -680,9 +739,9 @@ function demoData(theme, cell) {
   ev({ type: 'permuta', dir: 'passei', who: 'João', date: pk(shifts, 2) }); ev({ type: 'permuta', dir: 'assumi', who: 'Maria', date: pk(free, 8) });
   ev({ type: 'folga', date: pk(free, 11), end: C.addDays(pk(free, 11), 1), reason: 'Compensação' }); ev({ type: 'atestado', date: pk(free, 14), end: C.addDays(pk(free, 14), 2) });
   const ns = shifts.find((x) => x >= t) || shifts[0];
-  [['22-00', 'Pavilhão A'], ['00-02', 'Muralha'], ['04-06', 'Portaria']].forEach(([slot, post]) => ev({ type: 'quarto', date: ns, slot, post }));
-  ev({ type: 'ocorrencia', date: ns, time: '14:30', title: 'Revista de rotina', cat: 'Segurança', prio: 'Atenção', place: 'Pavilhão B', note: 'Sem alterações. 1 item apreendido.' });
-  ev({ type: 'ocorrencia', date: ns, time: '09:10', title: 'Contagem de presos', cat: 'Rotina', prio: 'Normal', place: 'Pavilhão A', note: 'Contagem conferida.' });
+  [['22-00', 'Bloco A'], ['00-02', 'G1'], ['04-06', 'Monitoramento']].forEach(([slot, post]) => ev({ type: 'quarto', date: ns, slot, post }));
+  ev({ type: 'ocorrencia', date: ns, time: '14:30', title: 'Revista de rotina', cat: 'Segurança', prio: 'Atenção', place: 'Bloco B', note: 'Sem alterações. 1 item apreendido.' });
+  ev({ type: 'ocorrencia', date: ns, time: '09:10', title: 'Contagem de presos', cat: 'Rotina', prio: 'Normal', place: 'Bloco A', note: 'Contagem conferida.' });
   return d;
 }
 
@@ -696,7 +755,7 @@ function demoData(theme, cell) {
   if ('serviceWorker' in navigator && location.protocol.startsWith('http') && !isNative() && !hp.has('demo')) navigator.serviceWorker.register('./sw.js').catch(() => {});
   if (S.d?.prefs.pin) lockNow();
   if (S.d?.prefs.wake) keepAwake(true);
-  if (isNative()) { loadAlarmStatus(); syncAlarms(); setInterval(syncAlarms, 6 * 3600e3); document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { loadAlarmStatus(); syncAlarms(); } }); }
+  if (isNative()) { loadBio(); loadAlarmStatus(); syncAlarms(); setInterval(syncAlarms, 6 * 3600e3); document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { loadAlarmStatus(); syncAlarms(); } }); }
   else startReminders(() => (S.uid && S.d?.onboarded ? S.d : null), showAlarm);
   window.__sentinela = { S, go, openSheet, openForm, render }; // útil para depuração/testes
 })();

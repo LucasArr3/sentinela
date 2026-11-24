@@ -18,10 +18,10 @@ test('nome na lista é o meu', () => {
   assert.equal(nameMatches('João Pereira', me), false);
 });
 test('lê o JSON da IA, mesmo com cerca de código', () => {
-  const raw = '```json\n{"date":"2026-11-23","entries":[{"name":"PP Lucas Silva","slot":"22h às 00h","post":"pavilhao a"},{"name":"Maria","slot":"00h às 02h","post":"Portaria"}]}\n```';
+  const raw = '```json\n{"date":"2026-11-23","entries":[{"name":"PP Lucas Silva","slot":"22h às 00h","post":"bloco a"},{"name":"Maria","slot":"00h às 02h","post":"Portaria"}]}\n```';
   const r = parseRoster(raw, { quarters: Q, posts: DEFAULT_POSTS, profile: { name: 'Lucas Silva Santos' } });
   assert.equal(r.date, '2026-11-23'); assert.equal(r.entries.length, 2);
-  assert.deepEqual([r.entries[0].slotId, r.entries[0].post, r.entries[0].mine], ['22-00', 'Pavilhão A', true]); assert.equal(r.entries[1].mine, false);
+  assert.deepEqual([r.entries[0].slotId, r.entries[0].post, r.entries[0].mine], ['22-00', 'Bloco A', true]); assert.equal(r.entries[1].mine, false);
   assert.throws(() => parseRoster('sem json', { quarters: Q, posts: [], profile: { name: 'x' } }));
 });
 test('quartos após a meia-noite pertencem ao plantão do dia anterior', () => {
@@ -36,8 +36,8 @@ test('próximo quarto e alarme 15 min antes', () => {
   assert.equal(dueAlarms(s, new Date(2026, 10, 23, 21, 47)).length, 0); // não repete
 });
 test('comando de voz para quartos', () => {
-  const r = parseCommand('marca quartos 22 às 00 e 02 às 04 dia 27 no pavilhão A', '2026-11-23', { quarters: Q, posts: DEFAULT_POSTS });
-  assert.equal(r.kind, 'quartos'); assert.deepEqual(r.ids, ['22-00', '02-04']); assert.equal(r.date, '2026-11-27'); assert.equal(r.post, 'Pavilhão A');
+  const r = parseCommand('marca quartos 22 às 00 e 02 às 04 dia 27 no bloco A', '2026-11-23', { quarters: Q, posts: DEFAULT_POSTS });
+  assert.equal(r.kind, 'quartos'); assert.deepEqual(r.ids, ['22-00', '02-04']); assert.equal(r.date, '2026-11-27'); assert.equal(r.post, 'Bloco A');
   assert.equal(parseCommand('todos os quartos hoje', '2026-11-23', { quarters: Q, posts: [] }).ids.length, 6);
 });
 test('resumo inclui quartos e postos', () => {
@@ -94,4 +94,13 @@ test('lembrete antes do plantão (opcional) e extras com cores distintas', () =>
   const on = { ...s, prefs: { ...s.prefs, shiftReminder: 120 } };
   const a = buildAlarms(on, now, 3).filter((x) => x.kind === 'plantao'); assert.equal(a.length, 1);
   assert.equal(new Date(a[0].at).getHours(), 5); assert.match(a[0].body, /2 horas/); assert.equal(a[0].sound, 'carrilhao');
+});
+
+import { buildWidget } from '../js/reminders.js';
+test('widget: próximos plantões e quartos para a tela inicial', () => {
+  const s = st([{ id: 'w1', type: 'quarto', date: '2026-11-23', slot: '22-00', post: 'Bloco A' }]); const now = new Date(2026, 10, 23, 8, 0);
+  const w = buildWidget(s, now); assert.ok(w.shifts.length >= 3 && w.shifts[0].s <= now.getTime() && w.shifts[0].e > now.getTime()); // plantão em andamento
+  assert.equal(new Date(w.shifts[0].s).getHours(), 7); assert.equal(w.shifts[0].e - w.shifts[0].s, 24 * 3600e3);
+  assert.deepEqual([w.quartos.length, w.quartos[0].l, w.quartos[0].p], [1, '22h–00h', 'Bloco A']); assert.equal(new Date(w.quartos[0].e).getDate(), 24);
+  assert.deepEqual(buildWidget(s, new Date(2026, 10, 25, 9, 0)).quartos, []); // quarto já passou
 });

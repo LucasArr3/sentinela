@@ -310,7 +310,6 @@ body{background:radial-gradient(900px 420px at 85% -18%,color-mix(in srgb,var(--
 :root[data-theme=light] body{background:var(--bg)}
 .hero{background:linear-gradient(150deg,color-mix(in srgb,var(--accent) var(--tint),var(--surface)),var(--surface))}
 .hero.on{background:linear-gradient(150deg,color-mix(in srgb,var(--ok) 14%,var(--surface)),var(--surface))}
-:root[data-theme=tatico] .top h1,:root[data-theme=tatico] .hero h2,:root[data-theme=tatico] .brand{font-style:italic;text-transform:uppercase;font-weight:900;letter-spacing:-.02em}
 :root[data-theme=tatico] .tab.on,:root[data-theme=oliva] .tab.on,:root[data-theme=ouro] .tab.on{color:var(--accent)}
 :root[data-theme=ouro] .card,:root[data-theme=ouro] .item,:root[data-theme=ouro] .hero{border-color:rgba(212,166,58,.22)}
 /* seletor de temas */
@@ -337,3 +336,23 @@ body{background:radial-gradient(900px 420px at 85% -18%,color-mix(in srgb,var(--
 .cal[data-cs=circle] .cell.today .n{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--text)}
 .cal[data-cs=circle] .cell .dots{bottom:2px}
 .cal[data-cs=circle] .cell.hol[data-st=livre] .n{color:var(--warn)}
+
+/* tema Obsidiana: preto espelhado, com degradê e brilho */
+:root[data-theme=obsidiana]{--bg:#030304;--bg2:#0b0b0f;--surface:#101015;--surface2:#1b1b22;--line:rgba(255,255,255,.11);--text:#f0f0f4;--muted:#8e8e99;--accent:#c9ced8;--on:#0a0a0d;--tint:0%;--glow:0%;color-scheme:dark}
+:root[data-theme=obsidiana] body{background:radial-gradient(1100px 520px at 12% -12%,rgba(180,195,255,.13),transparent 60%),radial-gradient(900px 520px at 105% 0,rgba(255,255,255,.07),transparent 55%),linear-gradient(180deg,#08080c,#020203)}
+:root[data-theme=obsidiana] .card,:root[data-theme=obsidiana] .item,:root[data-theme=obsidiana] .drow,:root[data-theme=obsidiana] .oc,:root[data-theme=obsidiana] .sec,:root[data-theme=obsidiana] .add,:root[data-theme=obsidiana] .pbtn,:root[data-theme=obsidiana] .tile,:root[data-theme=obsidiana] .theme{background:linear-gradient(155deg,rgba(255,255,255,.085),rgba(255,255,255,.02) 40%,rgba(255,255,255,.045)),var(--surface);border-color:rgba(255,255,255,.11);box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 12px 30px -20px #000}
+:root[data-theme=obsidiana] .hero{background:linear-gradient(150deg,rgba(255,255,255,.16),rgba(255,255,255,.025) 42%,rgba(255,255,255,.08)),var(--surface);border-color:rgba(255,255,255,.14);box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 18px 40px -22px #000}
+:root[data-theme=obsidiana] .hero::after{display:block;inset:0;right:auto;top:auto;width:100%;height:100%;border-radius:inherit;background:linear-gradient(112deg,transparent 38%,rgba(255,255,255,.085) 50%,transparent 62%)}
+:root[data-theme=obsidiana] .tabbar{background:linear-gradient(180deg,rgba(255,255,255,.09),rgba(255,255,255,.02)),rgba(8,8,12,.88);border-color:rgba(255,255,255,.12);box-shadow:inset 0 1px 0 rgba(255,255,255,.14)}
+:root[data-theme=obsidiana] .fab{background:linear-gradient(145deg,#f3f5fa,#aeb4c2);box-shadow:inset 0 1px 0 #fff,0 12px 28px -12px rgba(190,200,230,.5)}
+:root[data-theme=obsidiana] .btn.pri,:root[data-theme=obsidiana] .seg button.on{background:linear-gradient(145deg,#f3f5fa,#b4bac8)}
+/* início: cartões organizados */
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tile{display:flex;flex-direction:column;gap:4px;text-align:left;padding:14px 16px;border-radius:20px;background:var(--surface);border:1px solid var(--line);min-width:0}
+.tile .tl{font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.tile .tv{font-size:24px;font-weight:800;letter-spacing:-.03em;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile .ts{font-size:12.5px;color:var(--muted)}
+.trio{display:grid;grid-template-columns:repeat(3,1fr);text-align:center}
+.trio div{display:flex;flex-direction:column;gap:2px}.trio b{font-size:22px;font-weight:800;letter-spacing:-.03em}.trio span{font-size:12px;color:var(--muted)}
+.trio div+div{border-left:1px solid var(--line)}
+.avatar{overflow:hidden}.avatar img{width:100%;height:100%;object-fit:cover;display:block}

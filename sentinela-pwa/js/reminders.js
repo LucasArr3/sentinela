@@ -1,7 +1,7 @@
 // Alarmes de quarto (padrão 15 min antes, ajustável por quarto) e Alvorada.
 // - buildAlarms(): lista pura dos próximos alarmes (enviada ao Android, que toca mesmo com o app fechado).
 // - No navegador, dueAlarms()/startReminders() tocam só com o app aberto.
-import { slotDate, addDays, dayInfo, iso } from './core.js';
+import { slotDate, addDays, dayInfo, iso, qLabel } from './core.js';
 import { SOUND_LIST, soundUrl, DEFAULT_SOUND, isBuiltin } from './sounds.js';
 
 export const SOUNDS = SOUND_LIST;
@@ -77,4 +77,23 @@ export function notify(a) { try { if ('Notification' in window && Notification.p
 let lock = null;
 export async function keepAwake(on) {
   try { if (on && 'wakeLock' in navigator && !lock) { lock = await navigator.wakeLock.request('screen'); lock.addEventListener('release', () => { lock = null; }); } else if (!on && lock) { await lock.release(); lock = null; } } catch { /* */ }
+}
+
+// Resumo para o widget da tela inicial: próximos plantões e quartos (o Android calcula os textos na hora).
+export function buildWidget(state, now = new Date()) {
+  const sc = state.scale; const [sh, sm] = sc.start.split(':').map(Number); const nowMs = now.getTime(); const shifts = [];
+  for (let d = addDays(iso(now), -1), n = 0; n < 40 && shifts.length < 12; d = addDays(d, 1), n++) {
+    const info = dayInfo(d, state); if (!info.works) continue;
+    const [y, m, dd] = d.split('-').map(Number); const s = new Date(y, m - 1, dd, sh, sm).getTime(); const e = s + shiftHours(info, sc) * 3600e3;
+    if (e > nowMs) shifts.push({ s, e });
+  }
+  const quartos = [];
+  for (const ev of state.events) {
+    if (ev.type !== 'quarto') continue; const q = state.quarters.find((x) => x.id === ev.slot); if (!q) continue;
+    const st = slotDate(ev.date, q, sc).getTime(); const [eh, em] = q.end.split(':').map(Number); const sd = new Date(st);
+    let en = new Date(sd.getFullYear(), sd.getMonth(), sd.getDate(), eh, em).getTime(); if (en <= st) en += 864e5;
+    if (en > nowMs) quartos.push({ s: st, e: en, l: qLabel(q), p: ev.post || '' });
+  }
+  quartos.sort((a, b) => a.s - b.s);
+  return { shifts, quartos: quartos.slice(0, 20) };
 }

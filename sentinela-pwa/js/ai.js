@@ -5,7 +5,7 @@ import { ic, esc, $, fmtDur } from './ui.js';
 import { hasAI, callLLM } from './vision.js';
 import { startListening, canListen } from './native.js';
 
-const EXAMPLES = ['Marca quartos 22 às 00 e 02 às 04 no pavilhão A', 'Quando é meu próximo plantão?', 'Adiciona extra noturna dia 30 valor 250', 'Permuta com o João dia 27, passei meu plantão', 'Quanto vou receber de extras esse mês?', 'Gerar resumo para o WhatsApp'];
+const EXAMPLES = ['Marca quartos 22 às 00 e 02 às 04 no bloco A', 'Quando é meu próximo plantão?', 'Adiciona extra noturna dia 30 valor 250', 'Permuta com o João dia 27, passei meu plantão', 'Quanto vou receber de extras esse mês?', 'Gerar resumo para o WhatsApp'];
 
 export function createAssistant(api) {
   let msgs = [{ who: 'bot', text: 'Olá! Sou o assistente do Sentinela. 🎙️ Toque no microfone e fale — ou digite — para registrar extras, permutas, folgas, atestados e consultar sua escala.' }];

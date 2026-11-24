@@ -1,5 +1,5 @@
 // Persistência local (localStorage) com contas por dispositivo. Dados ficam só neste aparelho.
-import { defaultScale, today, DEFAULT_QUARTERS, DEFAULT_POSTS } from './core.js';
+import { defaultScale, today, DEFAULT_QUARTERS, DEFAULT_POSTS, OLD_DEFAULT_POSTS } from './core.js';
 import { DEFAULT_SOUND, migrateSound } from './sounds.js';
 const K = 'sentinela:v1';
 // Armazenamento tolerante a bloqueio (aba anônima etc.): cai para memória se o navegador negar.
@@ -38,6 +38,10 @@ export const Store = {
   users: () => rd(`${K}:users`, []),
   currentId: () => ss.getItem(`${K}:sid`) || ls.getItem(`${K}:sid`),
   load(id) { const d = rd(`${K}:data:${id}`, null); if (!d) return null; const b = defaultData();
+    if (Array.isArray(d.posts) && JSON.stringify(d.posts) === JSON.stringify(OLD_DEFAULT_POSTS)) { // lista de fábrica antiga -> postos da unidade
+      const map = { 'Pavilhão A': 'Bloco A', 'Pavilhão B': 'Bloco B' }; d.posts = [...DEFAULT_POSTS];
+      (d.events || []).forEach((e) => { if (e.post && map[e.post]) e.post = map[e.post]; });
+    }
     if (d.prefs && d.prefs.sound) d.prefs.sound = migrateSound(d.prefs.sound); if (Array.isArray(d.quarters)) d.quarters.forEach((q) => { if (q.sound) q.sound = migrateSound(q.sound); }); return { ...b, ...d, profile: { ...b.profile, ...d.profile }, scale: { ...b.scale, ...d.scale }, money: { ...b.money, ...d.money }, prefs: { ...b.prefs, ...d.prefs, accent: (d.prefs || {}).accent && !['#3b82f6', '#e8e8ea'].includes(d.prefs.accent) ? d.prefs.accent : '', ai: { ...b.prefs.ai, ...(d.prefs || {}).ai } }, quarters: Array.isArray(d.quarters) && d.quarters.length ? d.quarters : b.quarters, posts: Array.isArray(d.posts) ? d.posts : b.posts, holidays: Array.isArray(d.holidays) ? d.holidays : [], customSounds: Array.isArray(d.customSounds) ? d.customSounds : [] }; },
   save(id, data) { return wr(`${K}:data:${id}`, data); },
   async register({ name, email, password, guest = false }) {

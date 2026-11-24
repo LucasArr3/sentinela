@@ -80,7 +80,7 @@ export function parseCommand(input, ref = today(), ctx = { quarters: [], posts: 
     }
     if (has('alvorada')) { const a = ctx.quarters.find((q) => q.alvorada); if (a && !ids.includes(a.id)) ids.push(a.id); }
     const post = ctx.posts.find((p) => t.includes(norm(p))) || '';
-    return ids.length ? { kind: 'quartos', date: parseDate(raw, ref) || ref, ids, post } : { kind: 'help', text: 'Quais quartos? Diga, por exemplo: “quartos 22 às 00 e 02 às 04 dia 27 no pavilhão A”.' };
+    return ids.length ? { kind: 'quartos', date: parseDate(raw, ref) || ref, ids, post } : { kind: 'help', text: 'Quais quartos? Diga, por exemplo: “quartos 22 às 00 e 02 às 04 dia 27 no bloco A”.' };
   }
 
   // ---- Criação ----

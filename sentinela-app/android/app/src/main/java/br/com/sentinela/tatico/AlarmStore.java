@@ -50,6 +50,10 @@ final class AlarmStore {
         sp(c).edit().putString("sched", ids.toString()).apply();
     }
 
+    // ---- widget do plantão: resumo calculado pela interface (próximos plantões e quartos) ----
+    static void saveWidget(Context c, String json) { sp(c).edit().putString("widget", json).apply(); }
+    static String widgetJson(Context c) { return sp(c).getString("widget", "{}"); }
+
     // ---- sons importados pelo usuário: id "custom:123" -> nome do arquivo em filesDir/sounds ----
     static void putSound(Context c, String id, String file) { sp(c).edit().putString("snd_" + id, file).apply(); }
     static String soundFile(Context c, String id) { return sp(c).getString("snd_" + id, null); }

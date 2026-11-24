@@ -20,6 +20,9 @@ check "app abriu (MainActivity em foco)" "adb shell dumpsys window | grep -q 'mC
 check "WebView carregou a interface (sem 'Uncaught' no console)" "! grep -E 'Uncaught|SyntaxError|ReferenceError' '$OUT/logcat-abertura.txt'"
 check "Capacitor carregou o app local" "grep -q 'Loading app at' '$OUT/logcat-abertura.txt'"
 
+check "widget do plantão registrado no app" "adb shell dumpsys package $PKG | grep -q 'PlantaoWidget'"
+check "biometria declarada" "adb shell dumpsys package $PKG | grep -q 'USE_BIOMETRIC'"
+
 # Dispara um alarme de teste em 8 s e manda o app para segundo plano (HOME)
 adb logcat -c
 adb shell am broadcast -a br.com.sentinela.tatico.DEBUG_ALARM -n $PKG/.DebugTriggerReceiver --ei sec 8 --es sound sirene_lamento

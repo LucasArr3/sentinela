@@ -23,6 +23,9 @@ export const NativeAlarm = {
   requestNotifications: () => call('SentinelaAlarm', 'requestNotifications'),
   pickSound: () => call('SentinelaAlarm', 'pickSound'),
   removeSound: (id) => call('SentinelaAlarm', 'removeSound', { id }),
+  widget: (data) => call('SentinelaAlarm', 'widget', { data }),
+  bioStatus: () => call('SentinelaAlarm', 'bioStatus'),
+  bioAuth: (title) => call('SentinelaAlarm', 'bioAuth', { title }),
   preview: (sound) => call('SentinelaAlarm', 'preview', { sound }),
   stopPreview: () => call('SentinelaAlarm', 'stopPreview'),
 };

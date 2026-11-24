@@ -92,3 +92,12 @@ export async function autoPickGeminiModel(key) {
   if (!ok.length) throw new Error('Nenhum modelo compatível encontrado nesta chave.');
   return ok[0];
 }
+
+// Foto de perfil: recorta o centro em quadrado e reduz (guarda pouco espaço).
+export function squareImage(file, size = 256, q = 0.82) {
+  return new Promise((res, rej) => {
+    const img = new Image(); const url = URL.createObjectURL(file);
+    img.onload = () => { const s = Math.min(img.width, img.height); const c = document.createElement('canvas'); c.width = c.height = size; c.getContext('2d').drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, size, size); URL.revokeObjectURL(url); res(c.toDataURL('image/jpeg', q)); };
+    img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('Não consegui abrir essa imagem.')); }; img.src = url;
+  });
+}

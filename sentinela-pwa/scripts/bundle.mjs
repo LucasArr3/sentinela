@@ -1,7 +1,7 @@
 // Gera um único HTML autossuficiente (CSS + JS embutidos) — útil para pré-visualizar/publicar.
 // Uso: node scripts/bundle.mjs saida.html
 import { readFileSync, writeFileSync } from 'node:fs';
-const order = ['core', 'nlp', 'ui', 'sounds', 'store', 'summary', 'vision', 'native', 'reminders', 'ai', 'app'];
+const order = ['core', 'nlp', 'ui', 'sounds', 'store', 'summary', 'vision', 'native', 'cloud', 'reminders', 'ai', 'app'];
 let js = 'const __m = {};\n';
 for (const name of order) {
   let src = readFileSync(new URL(`../js/${name}.js`, import.meta.url), 'utf8'); const names = [];
