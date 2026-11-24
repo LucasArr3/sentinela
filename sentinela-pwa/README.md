@@ -22,6 +22,11 @@ Para usar no celular, publique a pasta em qualquer hospedagem estática com HTTP
 - **Resumos WhatsApp**: Completo, Escala, Finanças ou Próximos; mini-calendário em texto, edição livre, abrir direto no WhatsApp, copiar ou compartilhar.
 - **Ajustes**: perfil, escala, valores, tema claro/escuro/automático, cor de destaque, backup (exportar/importar JSON), alterar senha.
 
+## Alarme de verdade (Android)
+No navegador o alarme só toca com o app aberto. Para tocar **com a tela bloqueada**, como o relógio do celular, use o app Android em `../sentinela-app` (APK gerado pelo GitHub Actions). Veja `../sentinela-app/README.md`.
+
+Sons: `sounds/*.wav` são gerados por `python3 tools/gen_sounds.py` (sintetizados por código, sem direitos autorais).
+
 ## Privacidade e limites
 - Todos os dados ficam **no próprio aparelho** (localStorage). Use *Ajustes → Exportar backup* para guardar/transferir.
 - A "IA" interpreta comandos **localmente** (regras de português), sem enviar nada a terceiros. O reconhecimento de voz usa o serviço do navegador.
