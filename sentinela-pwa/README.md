@@ -22,6 +22,13 @@ Para usar no celular, publique a pasta em qualquer hospedagem estática com HTTP
 - **Resumos WhatsApp**: Completo, Escala, Finanças ou Próximos; mini-calendário em texto, edição livre, abrir direto no WhatsApp, copiar ou compartilhar.
 - **Ajustes**: perfil, escala, valores, tema claro/escuro/automático, cor de destaque, backup (exportar/importar JSON), alterar senha.
 
+## Novidades
+- **Modo Plantão:** relógio grande, progresso do serviço, próximo quarto e atalhos (ocorrência, quartos, extra, foto).
+- **Segurança:** trava por **PIN** (4 a 6 números, guardado só como hash), bloqueio automático e **modo discreto** (esconde valores em R$).
+- **Temas e leitura:** Escuro, **Noturno vermelho** (visão de madrugada), Claro e Automático; texto Normal/Grande/Muito grande.
+- **Espaço:** medidor de armazenamento em Ajustes → Dados, com aviso quando enche.
+- **Alarmes:** 13 sons táticos/clássicos, antecedência e som por quarto, soneca, volume crescente, parada automática.
+
 ## Alarme de verdade (Android)
 No navegador o alarme só toca com o app aberto. Para tocar **com a tela bloqueada**, como o relógio do celular, use o app Android em `../sentinela-app` (APK gerado pelo GitHub Actions). Veja `../sentinela-app/README.md`.
 

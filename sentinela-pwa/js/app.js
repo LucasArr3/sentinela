@@ -357,7 +357,7 @@ const assistant = createAssistant({
   add: (e) => { addEvent(e); }, edit: (e) => { closeSheet(); openForm(e); },
   ctx: () => ({ quarters: S.d.quarters, posts: S.d.posts }),
   addQuartos: (date, ids, post) => { ids.forEach((id) => setQuarto(date, id, post, true)); save(); render(); },
-  roster: () => { closeSheet(); A['roster-open']({ dataset: { date: C.today() } }); },
+  roster: () => { assistant.unmount(); S.sheet = null; A['roster-open']({ dataset: { date: C.today() } }); },
 });
 const setQuarto = (date, slot, post, force = false) => { const e = S.d.events.find((x) => x.type === 'quarto' && x.date === date && x.slot === slot); if (e) { if (force) e.post = post || ''; } else S.d.events.push({ id: C.uid(), type: 'quarto', date, slot, post: post || '' }); };
 const refreshQ = () => { save(); render(); if (S.sheet) renderSheet(); };
@@ -365,8 +365,16 @@ function showAlarm(a) {
   S.alarm = a; playSound(a.sound, { ramp: S.d.prefs.ramp }); notify(a); clearTimeout(S.alarmT); S.alarmT = setTimeout(() => { if (S.alarm === a) A['alarm-off'](); }, (S.d.prefs.autostop || 5) * 60000); let r = $('#alarmRoot'); if (!r) { r = document.createElement('div'); r.id = 'alarmRoot'; document.body.appendChild(r); }
   r.innerHTML = `<div class="overlay" style="z-index:120;align-items:center;background:rgba(110,0,0,.6)"><div class="sheet" style="border-radius:28px;max-width:380px;text-align:center;padding:28px"><div class="logo" style="margin:0 auto 14px;background:var(--danger)">${ic('alert')}</div><h3 style="font-size:24px">${esc(a.title)}</h3><p class="muted">${esc(a.body)}</p><div class="row" style="margin-top:16px"><button class="btn pri sp" data-act="alarm-off">Entendido</button><button class="btn sp" data-act="alarm-snooze">Soneca ${S.d.prefs.snooze || 5} min</button></div></div></div>`;
 }
-function openSheet(kind, extra = {}) { S.sheet = { kind, ...extra }; renderSheet(); }
-function closeSheet() { if (S.sheet?.kind === 'ai') assistant.unmount(); S.sheet = null; renderSheet(); }
+// Botão Voltar do Android/navegador fecha a folha aberta (em vez de sair do app)
+function openSheet(kind, extra = {}) {
+  if (!S.sheet) { try { history.pushState({ sheet: 1 }, ''); S.histN = (S.histN || 0) + 1; } catch { /* sem histórico */ } }
+  S.sheet = { kind, ...extra }; renderSheet();
+}
+function closeSheet(fromPop = false) {
+  if (S.sheet?.kind === 'ai') assistant.unmount(); S.sheet = null; renderSheet();
+  if (!fromPop && S.histN > 0) { const n = S.histN; S.histN = 0; try { history.go(-n); } catch { /* ok */ } }
+}
+window.addEventListener('popstate', () => { if (S.sheet) { S.histN = Math.max(0, (S.histN || 0) - 1); closeSheet(true); } });
 function renderSheet() {
   const root = $('#sheetRoot'); const sh = S.sheet; if (!sh) { root.innerHTML = ''; root.dataset.kind = ''; document.body.style.overflow = ''; return; }
   document.body.style.overflow = 'hidden';
