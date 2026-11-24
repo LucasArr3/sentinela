@@ -25,14 +25,14 @@ export const defaultData = (name = '') => ({
   quarters: DEFAULT_QUARTERS.map((q) => ({ ...q })), posts: [...DEFAULT_POSTS], holidays: [],
   scale: defaultScale(today()),
   money: { diurna: 219, noturna: 219, h24: 438 },
-  prefs: { theme: 'dark', accent: '#3b82f6', speak: false, waPhone: '', waKind: 'completo', lastPost: '', reminders: true, lead: 15, sound: 'sirene', alvorada: true, wake: false, cellStyle: 'classic', ai: { provider: 'gemini', key: '', model: '' } },
+  prefs: { theme: 'dark', accent: '#e8e8ea', speak: false, waPhone: '', waKind: 'completo', lastPost: '', reminders: true, lead: 15, sound: 'sirene', alvorada: true, wake: false, cellStyle: 'classic', ai: { provider: 'gemini', key: '', model: '' } },
   events: [],
 });
 
 export const Store = {
   users: () => rd(`${K}:users`, []),
   currentId: () => ss.getItem(`${K}:sid`) || ls.getItem(`${K}:sid`),
-  load(id) { const d = rd(`${K}:data:${id}`, null); if (!d) return null; const b = defaultData(); return { ...b, ...d, profile: { ...b.profile, ...d.profile }, scale: { ...b.scale, ...d.scale }, money: { ...b.money, ...d.money }, prefs: { ...b.prefs, ...d.prefs, ai: { ...b.prefs.ai, ...(d.prefs || {}).ai } }, quarters: Array.isArray(d.quarters) && d.quarters.length ? d.quarters : b.quarters, posts: Array.isArray(d.posts) ? d.posts : b.posts, holidays: Array.isArray(d.holidays) ? d.holidays : [] }; },
+  load(id) { const d = rd(`${K}:data:${id}`, null); if (!d) return null; const b = defaultData(); return { ...b, ...d, profile: { ...b.profile, ...d.profile }, scale: { ...b.scale, ...d.scale }, money: { ...b.money, ...d.money }, prefs: { ...b.prefs, ...d.prefs, accent: (d.prefs || {}).accent && (d.prefs || {}).accent !== '#3b82f6' ? d.prefs.accent : b.prefs.accent, ai: { ...b.prefs.ai, ...(d.prefs || {}).ai } }, quarters: Array.isArray(d.quarters) && d.quarters.length ? d.quarters : b.quarters, posts: Array.isArray(d.posts) ? d.posts : b.posts, holidays: Array.isArray(d.holidays) ? d.holidays : [] }; },
   save(id, data) { return wr(`${K}:data:${id}`, data); },
   async register({ name, email, password, guest = false }) {
     const users = this.users(); email = (email || '').trim().toLowerCase();

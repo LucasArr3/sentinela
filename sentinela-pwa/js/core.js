@@ -35,14 +35,14 @@ export const scaleLabel = (sc) => (sc.preset !== 'custom' ? sc.preset : `${sc.wo
 
 // ---------- Eventos ----------
 export const TYPES = {
-  extra: { label: 'Extra', plural: 'Extras', color: '#22c55e', icon: 'bolt', emoji: '💰', range: false },
-  permuta: { label: 'Permuta', plural: 'Permutas', color: '#f59e0b', icon: 'swap', emoji: '🔁', range: false },
-  quarto: { label: 'Quarto de hora', plural: 'Quartos', color: '#38bdf8', icon: 'clock', emoji: '⏱️', range: false },
-  folga: { label: 'Folga', plural: 'Folgas', color: '#a78bfa', icon: 'moon', emoji: '🌙', range: true },
-  atestado: { label: 'Atestado médico', plural: 'Atestados', color: '#ef4444', icon: 'medical', emoji: '🏥', range: true },
-  ferias: { label: 'Férias', plural: 'Férias', color: '#14b8a6', icon: 'sun', emoji: '🏖️', range: true },
-  obs: { label: 'Observação', plural: 'Observações', color: '#94a3b8', icon: 'note', emoji: '📝', range: false },
-  ocorrencia: { label: 'Ocorrência', plural: 'Ocorrências', color: '#fb7185', icon: 'alert', emoji: '📒', range: false },
+  extra: { label: 'Extra', plural: 'Extras', color: '#66c08a', icon: 'coins', emoji: '💰', range: false },
+  permuta: { label: 'Permuta', plural: 'Permutas', color: '#d4a24c', icon: 'swap', emoji: '🔁', range: false },
+  quarto: { label: 'Quarto de hora', plural: 'Quartos', color: '#7aa8cf', icon: 'clock', emoji: '⏱️', range: false },
+  folga: { label: 'Folga', plural: 'Folgas', color: '#9b8fd1', icon: 'moon', emoji: '🌙', range: true },
+  atestado: { label: 'Atestado médico', plural: 'Atestados', color: '#d96b6b', icon: 'pulse', emoji: '🏥', range: true },
+  ferias: { label: 'Férias', plural: 'Férias', color: '#5fb8ad', icon: 'sun', emoji: '🏖️', range: true },
+  obs: { label: 'Observação', plural: 'Observações', color: '#8b8b92', icon: 'note', emoji: '📝', range: false },
+  ocorrencia: { label: 'Ocorrência', plural: 'Ocorrências', color: '#c9788a', icon: 'book', emoji: '📒', range: false },
 };
 
 // ---------- Quartos de hora e postos ----------
@@ -107,12 +107,12 @@ export function dayInfo(date, state) {
 }
 export const STATUS = {
   plantao: { label: 'Plantão', color: 'var(--accent)' },
-  extra: { label: 'Extra', color: '#22c55e' },
-  permuta_in: { label: 'Assumiu plantão (permuta)', color: '#f59e0b' },
-  permuta_out: { label: 'Passou plantão (permuta)', color: '#f59e0b' },
-  folga: { label: 'Folga abonada', color: '#a78bfa' },
-  atestado: { label: 'Atestado médico', color: '#ef4444' },
-  ferias: { label: 'Férias', color: '#14b8a6' },
+  extra: { label: 'Extra', color: '#66c08a' },
+  permuta_in: { label: 'Assumiu plantão (permuta)', color: '#d4a24c' },
+  permuta_out: { label: 'Passou plantão (permuta)', color: '#d4a24c' },
+  folga: { label: 'Folga abonada', color: '#9b8fd1' },
+  atestado: { label: 'Atestado médico', color: '#d96b6b' },
+  ferias: { label: 'Férias', color: '#5fb8ad' },
   livre: { label: 'Folga', color: 'var(--muted)' },
 };
 
@@ -204,6 +204,8 @@ export function nextShift(state, now = new Date()) {
 export const evDays = (e) => diffDays(evEnd(e), e.date) + 1;
 
 // ---------- Feriados (Brasil) ----------
+export const OC_PRIO = ['Normal', 'Atenção', 'Urgente'];
+export const OC_TPL = [{ t: 'Sem alteração', cat: 'Rotina' }, { t: 'Revista de rotina', cat: 'Segurança' }, { t: 'Contagem de presos', cat: 'Rotina' }, { t: 'Atendimento médico', cat: 'Saúde' }, { t: 'Visita', cat: 'Visita' }, { t: 'Ocorrência disciplinar', cat: 'Disciplinar' }];
 export const OC_CATS = ['Rotina', 'Segurança', 'Disciplinar', 'Saúde', 'Visita', 'Outros'];
 function easter(y) {
   const a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3);

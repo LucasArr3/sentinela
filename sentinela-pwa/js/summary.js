@@ -65,6 +65,8 @@ export function buildSummary(state, y, m, opts = {}) {
       const notes = [...s.obs, ...state.events.filter((e) => e.type !== 'obs' && e.note && e.date.startsWith(`${y}-${pad(m + 1)}`))];
       if (notes.length) L.push('📝 *OBSERVAÇÕES*', ...notes.map((e) => `▫️ ${fmtShort(e.date)} — ${e.note}`), '');
     }
+    const oc = state.events.filter((e) => e.type === 'ocorrencia' && e.date.startsWith(`${y}-${pad(m + 1)}`)).sort((a, b) => a.date.localeCompare(b.date) || (a.time || '').localeCompare(b.time || ''));
+    if (o.kind === 'completo' && oc.length) L.push(`📒 *OCORRÊNCIAS (${oc.length})*`, ...oc.map((e) => `▫️ ${fmtShort(e.date)}${e.time ? ' ' + e.time : ''} — ${e.title || 'Ocorrência'}${e.place ? ' (' + e.place + ')' : ''}${e.prio && e.prio !== 'Normal' ? ' ⚠️' : ''}`), '');
     L.push(`⏱️ Carga estimada: *${s.hours}h*`);
   }
   L.push(line, `_Gerado pelo Sentinela Tático · ${fmtBR(today())}_`);

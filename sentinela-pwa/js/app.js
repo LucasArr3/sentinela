@@ -8,8 +8,8 @@ import { startReminders, playSound, stopSound, SOUNDS, keepAwake, notify, askNot
 
 const nowD = new Date();
 const S = { uid: null, user: null, d: null, view: 'dashboard', cal: { y: nowD.getFullYear(), m: nowD.getMonth() }, fin: { y: nowD.getFullYear(), m: nowD.getMonth() }, sum: { y: nowD.getFullYear(), m: nowD.getMonth(), values: true, notes: true, calendar: true, custom: null }, sheet: null, qv: { y: nowD.getFullYear(), m: nowD.getMonth() }, liv: { y: nowD.getFullYear(), m: nowD.getMonth() }, roster: null, qsel: null, open: new Set(), livf: { q: '', cat: '' }, alarm: null, auth: { tab: 'login', err: '' }, ob: { step: 0, today: true }, draft: null };
-const ACCENTS = ['#3b82f6', '#22c55e', '#f59e0b', '#ec4899', '#8b5cf6', '#14b8a6', '#ef4444'];
-const VIEWS = { dashboard: ['Início', 'home'], calendar: ['Calendário', 'calendar'], quartos: ['Quartos', 'clock'], finance: ['Finanças', 'wallet'], summary: ['Resumos', 'chat'], livro: ['Ocorrências', 'alert'], more: ['Mais', 'menu'], settings: ['Ajustes', 'settings'] };
+const ACCENTS = ['#e8e8ea', '#d4a63a', '#7aa8cf', '#66c08a', '#d96b6b', '#9b8fd1'];
+const VIEWS = { dashboard: ['Início', 'home'], calendar: ['Calendário', 'calendar'], quartos: ['Quartos', 'clock'], finance: ['Finanças', 'wallet'], summary: ['Resumos', 'chat'], livro: ['Ocorrências', 'book'], more: ['Mais', 'menu'], settings: ['Ajustes', 'settings'] };
 const save = () => { if (S.uid && !Store.save(S.uid, S.d)) toast('Não foi possível salvar (armazenamento cheio?)', 'err'); };
 const typeColor = (t) => C.TYPES[t].color;
 const tint = (c, p = 18) => `color-mix(in srgb,${c} ${p}%,transparent)`;
@@ -18,7 +18,7 @@ function applyTheme() {
   const p = S.d?.prefs || { theme: 'dark', accent: ACCENTS[0] }; let th = p.theme;
   if (th === 'auto') th = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
   document.documentElement.dataset.theme = th; document.documentElement.style.setProperty('--accent', p.accent);
-  $('meta[name=theme-color]')?.setAttribute('content', th === 'light' ? '#eef2f8' : '#060a12');
+  $('meta[name=theme-color]')?.setAttribute('content', th === 'light' ? '#f4f4f5' : '#050505');
 }
 
 // ---------- títulos de eventos ----------
@@ -166,10 +166,10 @@ function quartosView() {
   return `<div class="calhead"><button class="ibtn" data-act="qv-prev" aria-label="Mês anterior">${ic('chevL')}</button><h2 style="text-align:center">${C.MONTHS[m]} <span class="muted" style="font-weight:600">${y}</span></h2><button class="ibtn" data-act="roster-open" data-date="${days.find((i) => i.date >= t)?.date || t}" aria-label="Foto da escala">${ic('camera')}</button><button class="ibtn" data-act="qv-next" aria-label="Próximo mês">${ic('chevR')}</button></div>
   <div class="muted sm" style="margin:-4px 4px 0">${total} quarto(s) marcado(s) neste mês</div><div class="list">${rows || '<div class="card empty">Nenhum plantão neste mês.</div>'}</div>`;
 }
-const OC_COLOR = { Rotina: '#94a3b8', 'Segurança': '#f59e0b', Disciplinar: '#ef4444', 'Saúde': '#22c55e', Visita: '#38bdf8', Outros: '#a78bfa' };
+const OC_COLOR = { Rotina: '#8b8b92', 'Segurança': '#d4a24c', Disciplinar: '#d96b6b', 'Saúde': '#66c08a', Visita: '#7aa8cf', Outros: '#9b8fd1' };
 const ocRow = (e) => {
-  const ph = e.photos || (e.photo ? [e.photo] : []); const col = OC_COLOR[e.cat] || '#94a3b8';
-  return `<div class="oc" role="button" tabindex="0" data-act="ev-edit" data-id="${e.id}"><div class="row"><span class="badge" style="background:${tint(col, 22)};color:${col}">${esc(e.cat || 'Rotina')}</span><span class="muted xs sp" style="text-align:right">${e.time ? esc(e.time) : ''}</span></div><div class="t">${esc(e.title || 'Ocorrência')}</div>${e.place ? `<div class="s">${esc(e.place)}</div>` : ''}${e.note ? `<div class="s clamp">${esc(e.note)}</div>` : ''}${ph.length ? `<div class="ths">${ph.slice(0, 4).map((u) => `<img src="${u}" alt="">`).join('')}</div>` : ''}</div>`;
+  const ph = e.photos || (e.photo ? [e.photo] : []); const col = OC_COLOR[e.cat] || '#8b8b92';
+  const pc = e.prio === 'Urgente' ? '#d96b6b' : e.prio === 'Atenção' ? '#d4a24c' : ''; return `<div class="oc" ${pc ? `style="border-left:3px solid ${pc}"` : ''} role="button" tabindex="0" data-act="ev-edit" data-id="${e.id}"><div class="row"><span class="badge" style="background:${tint(col, 22)};color:${col}">${esc(e.cat || 'Rotina')}</span>${e.prio && e.prio !== 'Normal' ? `<span class="badge" style="background:${tint(pc, 22)};color:${pc}">${e.prio}</span>` : ''}<span class="muted xs sp" style="text-align:right">${e.time ? esc(e.time) : ''}</span></div><div class="t">${esc(e.title || 'Ocorrência')}</div>${e.place ? `<div class="s">${esc(e.place)}</div>` : ''}${e.note ? `<div class="s clamp">${esc(e.note)}</div>` : ''}${ph.length ? `<div class="ths">${ph.slice(0, 4).map((u) => `<img src="${u}" alt="">`).join('')}</div>` : ''}</div>`;
 };
 function livList() {
   const { y, m } = S.liv; const key = C.ymKey(y, m); const q = S.livf.q.trim().toLowerCase();
@@ -186,7 +186,7 @@ function livroView() {
 }
 function moreView() {
   const row = (v, icn, t, sub) => `<button class="item" data-act="go" data-v="${v}"><div class="ico" style="background:${tint('var(--accent)', 18)};color:var(--accent)">${ic(icn)}</div><div class="sp"><div class="t">${t}</div><div class="s">${sub}</div></div>${ic('chevR')}</button>`;
-  return `<div class="list">${row('finance', 'wallet', 'Finanças', 'Extras, valores a receber e permutas')}${row('summary', 'chat', 'Resumos para WhatsApp', 'Escala, quartos e finanças do mês')}${row('livro', 'alert', 'Livro de ocorrências', 'Registros com hora e foto')}${row('settings', 'settings', 'Ajustes', 'Escala, quartos, postos, alarmes, IA e conta')}</div>`;
+  return `<div class="list">${row('finance', 'wallet', 'Finanças', 'Extras, valores a receber e permutas')}${row('summary', 'chat', 'Resumos para WhatsApp', 'Escala, quartos e finanças do mês')}${row('livro', 'book', 'Livro de ocorrências', 'Registros com hora e foto')}${row('settings', 'settings', 'Ajustes', 'Escala, quartos, postos, alarmes, IA e conta')}</div>`;
 }
 
 // ---------- CALENDÁRIO ----------
@@ -196,11 +196,11 @@ function calendar() {
   const cells = Array.from({ length: first }, () => '<div class="cell blank"></div>').join('') + C.monthDays(y, m).map((date) => {
     const i = C.dayInfo(date, S.d); const hol = C.holidayName(date, hols); const types = [...new Set(i.events.map((e) => e.type))].slice(0, 3);
     const ex = i.events.find((e) => e.type === 'extra'); const label = i.status === 'extra' && ex && ex.turno === 'h24' ? '24h' : tag[i.status];
-    const mark = hol ? `<span class="hn"><span class="${hol.length > 8 ? 'mv' : ''}" style="animation-duration:${5 + hol.length * 0.35}s">${esc(hol)}</span></span>` : `<span class="dots">${types.map((k) => `<i style="background:${typeColor(k)}"></i>`).join('')}</span>`;
-    return `<button class="cell ${date === t ? 'today' : ''} ${hol ? 'hol' : ''}" style="--sc:${i.status === 'livre' ? 'transparent' : C.STATUS[i.status].color}" data-st="${i.status}" data-act="day" data-date="${date}" aria-label="${C.dateLong(date)}${hol ? ', ' + hol : ''}: ${C.STATUS[i.status].label}"><span class="tg">${label}</span><span class="n">${+date.slice(8)}</span>${mark}</button>`;
+    const mark = `<span class="dots">${types.map((k) => `<i style="background:${typeColor(k)}"></i>`).join('')}</span>`;
+    return `<button class="cell ${date === t ? 'today' : ''} ${hol ? 'hol' : ''}" style="--sc:${i.status === 'livre' ? 'transparent' : C.STATUS[i.status].color}" data-st="${i.status}" data-act="day" data-date="${date}" aria-label="${C.dateLong(date)}${hol ? ', ' + hol : ''}: ${C.STATUS[i.status].label}"><span class="tg">${label}</span><span class="n">${+date.slice(8)}</span>${mark}${hol ? '<span class="hbar"></span>' : ''}</button>`;
   }).join('');
   const mh = C.monthHolidays(y, m, hols); const tk = mh.map((h) => `<span><b>${C.fmtShort(h.date)}</b> ${esc(h.name)}</span>`).join('');
-  const lg = [['var(--accent)', 'Plantão'], ['#22c55e', 'Extra'], ['#f59e0b', 'Permuta'], ['#a78bfa', 'Folga'], ['#ef4444', 'Atestado'], ['#14b8a6', 'Férias']];
+  const lg = [['var(--accent)', 'Plantão'], ['#66c08a', 'Extra'], ['#d4a24c', 'Permuta'], ['#9b8fd1', 'Folga'], ['#d96b6b', 'Atestado'], ['#5fb8ad', 'Férias']];
   return `<div class="calhead"><button class="ibtn" data-act="cal-prev" aria-label="Mês anterior">${ic('chevL')}</button><h2 style="text-align:center">${C.MONTHS[m]} <span class="muted" style="font-weight:600">${y}</span></h2><button class="btn sm" data-act="cal-today">Hoje</button><button class="ibtn" data-act="cal-next" aria-label="Próximo mês">${ic('chevR')}</button></div>
   ${mh.length ? `<div class="ticker" aria-label="Feriados do mês"><div class="tk"><div class="tkc">${tk}</div><div class="tkc" aria-hidden="true">${tk}</div></div></div>` : ''}
   <div class="dow">${C.WD3.map((x) => `<div>${x.charAt(0)}</div>`).join('')}</div><div class="cal" id="cal" data-cs="${S.d.prefs.cellStyle}">${cells}</div>
@@ -216,10 +216,10 @@ function finance() {
   <div class="hero" style="padding:18px"><span class="pill"><span class="dot" style="background:var(--ok)"></span>Extras do mês</span><h2 style="font-size:36px">${C.brl(ms.extrasTotal)}</h2><div class="bar"><i style="width:${pct}%"></i></div><div class="row sm"><span>✅ Recebido <b>${C.brl(ms.extrasPaid)}</b></span><span class="sp"></span><span>⏳ A receber <b>${C.brl(ms.extrasPending)}</b></span></div><div class="muted xs" style="margin-top:10px">Acumulado em ${y}: <b>${C.brl(year)}</b></div></div>
   <div class="card">${chart()}</div>
   <div class="row"><div class="h2 sp">Extras (${ms.extras.length})</div><button class="btn sm pri" data-act="ev-new" data-t="extra" data-date="${y === nowD.getFullYear() && m === nowD.getMonth() ? C.today() : `${y}-${C.pad(m + 1)}-01`}">${ic('plus')}Extra</button></div>
-  <div class="list">${ms.extras.map((e) => `<div class="item"><button class="ico" data-act="ev-paid" data-id="${e.id}" style="background:${tint(e.paid ? '#22c55e' : '#f59e0b', 20)};color:${e.paid ? '#22c55e' : '#f59e0b'}" aria-label="Alternar recebido">${ic(e.paid ? 'check' : 'clock')}</button><div class="sp"><div class="t">${C.WD3[C.weekday(e.date)]} ${C.fmtShort(e.date)} · ${C.brl(e.value)}</div><div class="s">${C.TURNOS[e.turno] || 'Extra'} · ${e.paid ? 'recebida' : 'a receber'}${e.note ? ' · ' + esc(e.note) : ''}</div></div><button class="ibtn" data-act="ev-edit" data-id="${e.id}">${ic('edit')}</button></div>`).join('') || '<div class="card empty">Nenhuma extra neste mês.</div>'}</div>
+  <div class="list">${ms.extras.map((e) => `<div class="item"><button class="ico" data-act="ev-paid" data-id="${e.id}" style="background:${tint(e.paid ? '#66c08a' : '#d4a24c', 20)};color:${e.paid ? '#66c08a' : '#d4a24c'}" aria-label="Alternar recebido">${ic(e.paid ? 'check' : 'clock')}</button><div class="sp"><div class="t">${C.WD3[C.weekday(e.date)]} ${C.fmtShort(e.date)} · ${C.brl(e.value)}</div><div class="s">${C.TURNOS[e.turno] || 'Extra'} · ${e.paid ? 'recebida' : 'a receber'}${e.note ? ' · ' + esc(e.note) : ''}</div></div><button class="ibtn" data-act="ev-edit" data-id="${e.id}">${ic('edit')}</button></div>`).join('') || '<div class="card empty">Nenhuma extra neste mês.</div>'}</div>
   <div class="row"><div class="h2 sp">Permutas em aberto</div><button class="btn sm" data-act="ev-new" data-t="permuta" data-date="${C.today()}">${ic('plus')}Permuta</button></div>
-  <div class="list">${led.map((r) => `<div class="item"><div class="ico" style="background:${tint('#f59e0b', 20)};color:#f59e0b">${ic('users')}</div><div class="sp"><div class="t">${esc(r.who)}</div><div class="s">${r.net > 0 ? `te deve ${r.net} plantão(ões)` : r.net < 0 ? `você deve ${-r.net} plantão(ões)` : 'equilibrado'} · ${r.open.length} em aberto</div></div><span class="badge" style="background:${tint(r.net >= 0 ? '#22c55e' : '#ef4444', 20)};color:${r.net >= 0 ? '#22c55e' : '#ef4444'}">${r.net > 0 ? '+' : ''}${r.net}</span></div>`).join('') || '<div class="card empty">Nenhuma permuta em aberto. ✅</div>'}</div>
-  ${perm.length ? `<div class="h2">Permutas de ${C.MONTHS[m]}</div><div class="list">${perm.map((e) => `<div class="item"><button class="ico" data-act="ev-settle" data-id="${e.id}" style="background:${tint(e.settled ? '#22c55e' : '#f59e0b', 20)};color:${e.settled ? '#22c55e' : '#f59e0b'}" aria-label="Quitar">${ic(e.settled ? 'check' : 'swap')}</button><div class="sp"><div class="t">${C.fmtShort(e.date)} · ${esc(evTitle(e))}</div><div class="s">${esc(evSub(e))}</div></div><button class="ibtn" data-act="ev-edit" data-id="${e.id}">${ic('edit')}</button></div>`).join('')}</div>` : ''}`;
+  <div class="list">${led.map((r) => `<div class="item"><div class="ico" style="background:${tint('#d4a24c', 20)};color:#d4a24c">${ic('users')}</div><div class="sp"><div class="t">${esc(r.who)}</div><div class="s">${r.net > 0 ? `te deve ${r.net} plantão(ões)` : r.net < 0 ? `você deve ${-r.net} plantão(ões)` : 'equilibrado'} · ${r.open.length} em aberto</div></div><span class="badge" style="background:${tint(r.net >= 0 ? '#66c08a' : '#d96b6b', 20)};color:${r.net >= 0 ? '#66c08a' : '#d96b6b'}">${r.net > 0 ? '+' : ''}${r.net}</span></div>`).join('') || '<div class="card empty">Nenhuma permuta em aberto. ✅</div>'}</div>
+  ${perm.length ? `<div class="h2">Permutas de ${C.MONTHS[m]}</div><div class="list">${perm.map((e) => `<div class="item"><button class="ico" data-act="ev-settle" data-id="${e.id}" style="background:${tint(e.settled ? '#66c08a' : '#d4a24c', 20)};color:${e.settled ? '#66c08a' : '#d4a24c'}" aria-label="Quitar">${ic(e.settled ? 'check' : 'swap')}</button><div class="sp"><div class="t">${C.fmtShort(e.date)} · ${esc(evTitle(e))}</div><div class="s">${esc(evSub(e))}</div></div><button class="ibtn" data-act="ev-edit" data-id="${e.id}">${ic('edit')}</button></div>`).join('')}</div>` : ''}`;
 }
 
 // ---------- RESUMOS (WhatsApp) ----------
@@ -260,16 +260,17 @@ function settings() {
 // ---------- SHEETS ----------
 function daySheet(date) {
   const i = C.dayInfo(date, S.d); const st = C.STATUS[i.status]; const hol = C.holidayName(date, S.d.holidays); const qs = C.quartosOn(S.d, date); const evs = i.events.filter((e) => e.type !== 'quarto');
-  const add = (k, label) => `<button class="add" data-act="ev-new" data-t="${k}" data-date="${date}"><i style="background:${tint(typeColor(k), 20)};color:${typeColor(k)}">${ic(C.TYPES[k].icon)}</i>${label}</button>`;
+  const add = (k, label, w) => `<button class="add ${w}" data-act="ev-new" data-t="${k}" data-date="${date}"><i style="background:${tint(typeColor(k), 20)};color:${typeColor(k)}">${ic(C.TYPES[k].icon)}</i>${label}</button>`;
   const qsum = qs.map((e) => { const q = S.d.quarters.find((x) => x.id === e.slot); return `${q ? C.qLabel(q) : e.slot}${e.post ? ' ' + e.post : ''}`; }).join(' · ');
   return `<div class="grab"></div><div class="row"><div class="sp"><div class="muted sm">${C.relDays(date)}</div><h3>${C.dateLong(date)}</h3></div><button class="ibtn" data-act="close">${ic('x')}</button></div>
-  <div class="row wrap" style="margin:10px 0 12px;gap:8px"><span class="badge" style="background:${tint(st.color, 20)};color:${st.color};font-size:12.5px;padding:6px 12px">${st.label}</span>${hol ? `<span class="badge" style="background:${tint('#f59e0b', 20)};color:#f59e0b;font-size:12.5px;padding:6px 12px">${esc(hol)}</span>` : ''}<span class="muted sm">${i.scheduled ? 'dia de plantão na escala' : 'folga na escala'}</span></div>
-  <div class="col" style="gap:8px">${i.works || qs.length ? `<button class="item" data-act="q-open" data-date="${date}"><div class="ico" style="background:${tint('#38bdf8', 20)};color:#38bdf8">${ic('clock')}</div><div class="sp" style="min-width:0"><div class="t">Quartos de hora</div><div class="s">${qs.length ? esc(qsum) : 'Toque para marcar'}</div></div>${ic('chevR')}</button>` : ''}${evs.map((e) => evRow(e)).join('')}</div>
-  <div class="h2" style="margin-top:16px">Adicionar</div><div class="adds">${add('extra', 'Extra')}${add('permuta', 'Permuta')}${add('folga', 'Folga')}${add('atestado', 'Atestado')}${add('ocorrencia', 'Ocorrência')}${add('obs', 'Nota')}</div>`;
+  <div class="row wrap" style="margin:10px 0 12px;gap:8px"><span class="badge" style="background:${tint(st.color, 20)};color:${st.color};font-size:12.5px;padding:6px 12px">${st.label}</span>${hol ? `<span class="badge" style="background:${tint('#d4a24c', 20)};color:#d4a24c;font-size:12.5px;padding:6px 12px">${esc(hol)}</span>` : ''}<span class="muted sm">${i.scheduled ? 'dia de plantão na escala' : 'folga na escala'}</span></div>
+  <div class="col" style="gap:8px">${i.works || qs.length ? `<button class="item" data-act="q-open" data-date="${date}"><div class="ico" style="background:${tint('#7aa8cf', 20)};color:#7aa8cf">${ic('clock')}</div><div class="sp" style="min-width:0"><div class="t">Quartos de hora</div><div class="s">${qs.length ? esc(qsum) : 'Toque para marcar'}</div></div>${ic('chevR')}</button>` : ''}${evs.map((e) => evRow(e)).join('')}</div>
+  <div class="h2" style="margin-top:16px">Adicionar</div><div class="adds">${add('extra', 'Extra', 'w2')}${add('permuta', 'Permuta', 'w2')}${add('folga', 'Folga', 'w2')}${add('atestado', 'Atestado', 'w3')}${add('ocorrencia', 'Ocorrência', 'w3')}</div>`;
 }
 function formSheet() {
+  if (S.draft.type === 'ocorrencia') return ocForm();
   const e = S.draft; const T = C.TYPES[e.type]; const isNew = !e.id; const range = T.range;
-  const typeChips = isNew ? `<div class="chips">${Object.entries(C.TYPES).filter(([k]) => k !== 'quarto').map(([k, v]) => `<button class="chip ${e.type === k ? 'on' : ''}" data-act="f-type" data-v="${k}">${v.label}</button>`).join('')}</div>` : '';
+  const typeChips = isNew && (e.type === 'folga' || e.type === 'ferias') ? `<div class="seg"><button type="button" class="${e.type === 'folga' ? 'on' : ''}" data-act="f-type" data-v="folga">Folga</button><button type="button" class="${e.type === 'ferias' ? 'on' : ''}" data-act="f-type" data-v="ferias">Férias</button></div>` : '';
   const f = (name, label, inner) => `<label class="f">${label}${inner}</label>`;
   const names = [...new Set(S.d.events.filter((x) => x.who).map((x) => x.who))];
   let fields = '';
@@ -278,14 +279,25 @@ function formSheet() {
   if (e.type === 'folga') fields = `${f('reason', 'Motivo', `<select data-f="reason">${['', 'Compensação', 'Banco de horas', 'Abono', 'Outro'].map((r) => `<option ${e.reason === r ? 'selected' : ''} value="${r}">${r || 'Selecione (opcional)'}</option>`).join('')}</select>`)}`;
   if (e.type === 'atestado') fields = f('cid', 'CID (opcional)', `<input data-f="cid" value="${esc(e.cid || '')}" placeholder="Ex.: J11">`);
   if (e.type === 'obs') fields = '';
-  if (e.type === 'ocorrencia') {
-    const ph = e.photos || []; const places = S.d.posts;
-    fields = `${f('time', 'Hora', `<input data-f="time" type="time" value="${e.time || ''}">`)}${f('title', 'Título', `<input data-f="title" value="${esc(e.title || '')}" placeholder="Ex.: Revista no pavilhão B">`)}<div class="chips">${C.OC_CATS.map((c) => `<button type="button" class="chip ${(e.cat || 'Rotina') === c ? 'on' : ''}" data-act="f-set" data-k="cat" data-v="${c}">${c}</button>`).join('')}</div>${f('place', 'Local', `<input data-f="place" list="places" value="${esc(e.place || '')}" placeholder="Ex.: Pavilhão B"><datalist id="places">${places.map((x) => `<option value="${esc(x)}">`).join('')}</datalist>`)}${f('people', 'Envolvidos (opcional)', `<input data-f="people" value="${esc(e.people || '')}" placeholder="Nomes ou matrículas">`)}<div class="f lbl">Fotos (até 4)</div><div class="pgrid">${ph.map((u, k) => `<div class="pth"><img src="${u}" alt="Foto ${k + 1}"><button type="button" data-act="photo-del" data-i="${k}" aria-label="Remover foto">${ic('x')}</button></div>`).join('')}${ph.length < 4 ? `<label class="btn sm">${ic('camera')}Câmera<input type="file" accept="image/*" capture="environment" data-photo class="hidden"></label><label class="btn sm">${ic('image')}Galeria<input type="file" accept="image/*" multiple data-photo class="hidden"></label>` : ''}</div>`;
-  }
   const days = range ? `${f('_days', 'Quantidade de dias', `<input data-f="_days" type="number" min="1" max="365" inputmode="numeric" value="${e._days || 1}">`)}<div class="muted xs" style="margin-top:-6px">${(+e._days || 1) > 1 ? `Até ${C.fmtBR(C.addDays(e.date || C.today(), (+e._days || 1) - 1))}` : ''}</div>` : '';
-  return `<div class="grab"></div><div class="row"><div class="ico" style="width:42px;height:42px;border-radius:14px;display:grid;place-items:center;background:${tint(T.color, 20)};color:${T.color}">${ic(T.icon)}</div><h3 class="sp">${isNew ? 'Novo lançamento' : 'Editar ' + T.label.toLowerCase()}</h3><button class="ibtn" data-act="f-cancel">${ic('x')}</button></div>
-  <form class="col" style="margin-top:14px" data-submit="ev-save">${typeChips}${f('date', 'Data', `<input data-f="date" type="date" required value="${e.date}">`)}${days}${fields}${f('note', e.type === 'obs' ? 'Observação' : e.type === 'ocorrencia' ? 'Descrição' : 'Observações (opcional)', `<textarea data-f="note" placeholder="${e.type === 'obs' ? 'Escreva sua anotação…' : 'Detalhes, local, motivo…'}">${esc(e.note || '')}</textarea>`)}
-  <div class="row"><button class="btn pri sp" type="submit">${ic('check')}Salvar</button>${e.type === 'ocorrencia' && e.id ? `<a class="btn" data-act="oc-share" data-native href="#" target="_blank" rel="noopener" aria-label="Enviar no WhatsApp">${ic('chat')}</a>` : ''}${isNew ? '' : `<button class="btn dng" type="button" data-act="ev-del" data-id="${e.id}">${ic('trash')}</button>`}</div></form>`;
+  return `<div class="grab"></div><div class="row"><div class="ico" style="width:42px;height:42px;border-radius:14px;display:grid;place-items:center;background:${tint(T.color, 20)};color:${T.color}">${ic(T.icon)}</div><h3 class="sp">${isNew ? T.label : 'Editar ' + T.label.toLowerCase()}</h3><button class="ibtn" data-act="f-cancel">${ic('x')}</button></div>
+  <form class="col" style="margin-top:14px" data-submit="ev-save">${typeChips}${f('date', 'Data', `<input data-f="date" type="date" required value="${e.date}">`)}${days}${fields}${f('note', e.type === 'obs' ? 'Observação' : 'Observações (opcional)', `<textarea data-f="note" placeholder="${e.type === 'obs' ? 'Escreva sua anotação…' : 'Detalhes, local, motivo…'}">${esc(e.note || '')}</textarea>`)}
+  <div class="row"><button class="btn pri sp" type="submit">${ic('check')}Salvar</button>${isNew ? '' : `<button class="btn dng" type="button" data-act="ev-del" data-id="${e.id}">${ic('trash')}</button>`}</div></form>`;
+}
+function ocForm() {
+  const e = S.draft; const isNew = !e.id; const ph = e.photos || []; const prio = e.prio || 'Normal';
+  const tpls = isNew ? `<div class="chips scrollx">${C.OC_TPL.map((t, i) => `<button type="button" class="chip" data-act="oc-tpl" data-i="${i}">${t.t}</button>`).join('')}</div>` : '';
+  return `<div class="grab"></div><div class="row"><h3 class="sp">${isNew ? 'Nova ocorrência' : 'Ocorrência'}</h3><button class="ibtn" data-act="f-cancel" aria-label="Fechar">${ic('x')}</button></div>
+  <form class="col" style="margin-top:14px" data-submit="ev-save">${tpls}
+   <label class="f">Título<input data-f="title" value="${esc(e.title || '')}" placeholder="O que aconteceu?"></label>
+   <div class="grid2"><label class="f">Data<input data-f="date" type="date" required value="${e.date}"></label><label class="f">Hora<input data-f="time" type="time" value="${e.time || ''}"></label></div>
+   <div class="f lbl" style="margin-bottom:-4px">Categoria e prioridade</div><div class="chips">${C.OC_CATS.map((c) => `<button type="button" class="chip ${(e.cat || 'Rotina') === c ? 'on' : ''}" data-act="f-set" data-k="cat" data-v="${c}">${c}</button>`).join('')}</div>
+   <div class="seg prio">${C.OC_PRIO.map((p) => `<button type="button" class="${prio === p ? 'on' : ''}" data-p="${p}" data-act="f-set" data-k="prio" data-v="${p}">${p}</button>`).join('')}</div>
+   <label class="f">Descrição<textarea data-f="note" placeholder="Descreva o fato com clareza…">${esc(e.note || '')}</textarea></label>
+   <button type="button" class="btn sm ${S.dict ? 'dng' : ''}" data-act="dictate">${ic('mic')}${S.dict ? 'Ouvindo… toque para parar' : 'Ditar a descrição'}</button>
+   <details class="sub" data-sec="ocmore" ${e.place || e.people || S.open.has('ocmore') ? 'open' : ''}><summary>Local e envolvidos</summary><div class="col" style="margin-top:10px"><label class="f">Local<input data-f="place" list="places" value="${esc(e.place || '')}" placeholder="Ex.: Pavilhão B"><datalist id="places">${S.d.posts.map((x) => `<option value="${esc(x)}">`).join('')}</datalist></label><label class="f">Envolvidos<input data-f="people" value="${esc(e.people || '')}" placeholder="Nomes ou matrículas"></label></div></details>
+   <div class="f lbl">Fotos (até 4)</div><div class="pgrid">${ph.map((u, k) => `<div class="pth"><img src="${u}" alt="Foto ${k + 1}"><button type="button" data-act="photo-del" data-i="${k}" aria-label="Remover foto">${ic('x')}</button></div>`).join('')}${ph.length < 4 ? `<label class="btn sm">${ic('camera')}Câmera<input type="file" accept="image/*" capture="environment" data-photo class="hidden"></label><label class="btn sm">${ic('image')}Galeria<input type="file" accept="image/*" multiple data-photo class="hidden"></label>` : ''}</div>
+   <div class="row"><button class="btn pri sp" type="submit">${ic('check')}Salvar</button>${isNew ? '' : `<a class="btn" data-act="oc-share" data-native href="#" target="_blank" rel="noopener" aria-label="Enviar no WhatsApp">${ic('chat')}</a><button class="btn dng" type="button" data-act="ev-del" data-id="${e.id}" aria-label="Excluir">${ic('trash')}</button>`}</div></form>`;
 }
 function rosterSheet() {
   const R = S.roster; const can = hasAI(S.d.prefs.ai); let body;
@@ -419,9 +431,19 @@ const A = {
   'snd-test': (el) => { const q = el.dataset.qi !== undefined ? S.d.quarters[+el.dataset.qi] : null; playSound((q && q.sound) || S.d.prefs.sound, 3500); },
   'hol-add': () => { const dt = $('#holDate').value; const nm = $('#holName').value.trim(); if (!dt || !nm) return toast('Informe a data e o nome', 'err'); S.d.holidays.push({ md: dt.slice(5), name: nm }); save(); renderView(); toast('Feriado adicionado ✅'); },
   'hol-del': (el) => { S.d.holidays.splice(+el.dataset.i, 1); save(); renderView(); },
+  'oc-tpl': (el) => { const t = C.OC_TPL[+el.dataset.i]; S.draft.title = t.t; S.draft.cat = t.cat; renderSheet(); },
+  dictate: () => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition; if (!SR) return toast('O ditado precisa de Chrome, Edge ou Safari', 'err');
+    if (S.dict) { S.dict.stop(); return; }
+    const r = new SR(); r.lang = 'pt-BR'; r.continuous = true; r.interimResults = false; S.dict = r;
+    r.onresult = (ev) => { let t = ''; for (let i = ev.resultIndex; i < ev.results.length; i++) if (ev.results[i].isFinal) t += ev.results[i][0].transcript; if (t) { S.draft.note = ((S.draft.note || '') + ' ' + t).trim(); const ta = $('[data-f=note]'); if (ta) ta.value = S.draft.note; } };
+    r.onerror = (e) => { S.dict = null; if (S.sheet?.kind === 'form') renderSheet(); toast(e.error === 'not-allowed' ? 'Permita o microfone no navegador' : 'Não consegui ouvir', 'err'); };
+    r.onend = () => { S.dict = null; if (S.sheet?.kind === 'form') renderSheet(); };
+    try { r.start(); renderSheet(); } catch { S.dict = null; }
+  },
   'photo-del': (el) => { S.draft.photos.splice(+el.dataset.i, 1); renderSheet(); },
   'oc-share': (el) => {
-    const e = S.draft; const L = [`📒 *OCORRÊNCIA* — ${C.dateLong(e.date)}`, `🕐 ${e.time || '--:--'} · ${e.cat || 'Rotina'}`, `*${e.title || 'Sem título'}*`]; if (e.place) L.push(`📍 ${e.place}`); if (e.people) L.push(`👥 ${e.people}`); if (e.note) L.push('', e.note); L.push('', `_Registrado no Sentinela Tático_`);
+    const e = S.draft; const L = [`📒 *OCORRÊNCIA${e.prio && e.prio !== 'Normal' ? ' · ' + e.prio.toUpperCase() : ''}* — ${C.dateLong(e.date)}`, `🕐 ${e.time || '--:--'} · ${e.cat || 'Rotina'}`, `*${e.title || 'Sem título'}*`]; if (e.place) L.push(`📍 ${e.place}`); if (e.people) L.push(`👥 ${e.people}`); if (e.note) L.push('', e.note); L.push('', `_Registrado no Sentinela Tático_`);
     el.href = waLink(L.join('\n'), '');
   },
   'q-add': () => { S.d.quarters.push({ id: C.uid(), start: '00:00', end: '02:00' }); save(); renderView(); },
