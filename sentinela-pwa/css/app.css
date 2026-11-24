@@ -1,4 +1,4 @@
-:root{--bg:#060a12;--bg2:#0b111d;--surface:rgba(255,255,255,.045);--surface2:rgba(255,255,255,.08);--line:rgba(255,255,255,.09);--text:#eaf0fb;--muted:#8b97ad;--accent:#3b82f6;--ok:#66c08a;--warn:#d4a24c;--danger:#d96b6b;--violet:#9b8fd1;--teal:#5fb8ad;--r:20px;--shadow:0 18px 50px -18px rgba(0,0,0,.7);color-scheme:dark}
+:root{--bg:#060a12;--bg2:#0b111d;--surface:rgba(255,255,255,.045);--surface2:rgba(255,255,255,.08);--line:rgba(255,255,255,.09);--text:#eaf0fb;--muted:#8b97ad;--accent:#3b82f6;--ok:#66c08a;--warn:#d4a24c;--danger:#d96b6b;--violet:#74b9c9;--teal:#e39ab8;--r:20px;--shadow:0 18px 50px -18px rgba(0,0,0,.7);color-scheme:dark}
 :root[data-theme=light]{--bg:#eef2f8;--bg2:#fff;--surface:#fff;--surface2:#f1f5fb;--line:rgba(15,23,42,.1);--text:#0f172a;--muted:#5b6880;--shadow:0 14px 40px -20px rgba(15,23,42,.25);color-scheme:light}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;min-height:100dvh}
@@ -239,7 +239,7 @@ input.sw2:checked{background:var(--accent);border-color:var(--accent)}input.sw2:
 .cal .cell.hol[data-st=livre] .n{color:var(--warn)}
 
 /* ===== Tema Polícia Penal: preto, sóbrio, um único destaque ===== */
-:root{--bg:#050505;--bg2:#0c0c0d;--surface:#111113;--surface2:#1a1a1d;--line:rgba(255,255,255,.09);--text:#ededee;--muted:#8b8b92;--accent:#e8e8ea;--on:#0a0a0a;--ok:#66c08a;--warn:#d4a24c;--danger:#d96b6b;--violet:#9b8fd1;--teal:#5fb8ad;--q:#7aa8cf;--shadow:0 18px 50px -22px rgba(0,0,0,.9)}
+:root{--bg:#050505;--bg2:#0c0c0d;--surface:#111113;--surface2:#1a1a1d;--line:rgba(255,255,255,.09);--text:#ededee;--muted:#8b8b92;--accent:#e8e8ea;--on:#0a0a0a;--ok:#66c08a;--warn:#d4a24c;--danger:#d96b6b;--violet:#74b9c9;--teal:#e39ab8;--q:#7aa8cf;--shadow:0 18px 50px -22px rgba(0,0,0,.9)}
 :root[data-theme=light]{--bg:#f4f4f5;--bg2:#ffffff;--surface:#ffffff;--surface2:#f0f0f2;--line:rgba(0,0,0,.1);--text:#111113;--muted:#66666d;--on:#ffffff;--accent:#18181b}
 body{background:radial-gradient(900px 420px at 85% -18%,rgba(255,255,255,.055),transparent 62%),var(--bg)}
 :root[data-theme=light] body{background:var(--bg)}
@@ -300,3 +300,40 @@ html[data-theme=night]{filter:sepia(.9) hue-rotate(-40deg) saturate(2.4) brightn
 .pbtns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .pbtn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:104px;border-radius:20px;background:var(--surface);border:1px solid var(--line);font-weight:700;font-size:15px}
 .pbtn .ic{width:28px;height:28px}.pbtn:active{transform:scale(.96)}
+
+/* ===== Temas ===== */
+:root{--tint:0%;--glow:6%}
+:root[data-theme=tatico]{--bg:#04070f;--bg2:#0a1020;--surface:#0d1526;--surface2:#16233f;--line:rgba(120,165,255,.16);--text:#e8eefc;--muted:#8393b2;--accent:#3b82ff;--on:#ffffff;--tint:20%;--glow:22%;color-scheme:dark}
+:root[data-theme=ouro]{--bg:#050505;--bg2:#0c0b08;--surface:#12110d;--surface2:#1c1a12;--line:rgba(212,166,58,.18);--text:#f1ece0;--muted:#9c9482;--accent:#d4a63a;--on:#0a0804;--tint:12%;--glow:12%;color-scheme:dark}
+:root[data-theme=oliva]{--bg:#070906;--bg2:#0d110b;--surface:#12170f;--surface2:#1b2217;--line:rgba(155,191,90,.17);--text:#e6ebdf;--muted:#8a9680;--accent:#9bbf5a;--on:#0a0f06;--tint:14%;--glow:12%;color-scheme:dark}
+body{background:radial-gradient(900px 420px at 85% -18%,color-mix(in srgb,var(--accent) var(--glow),transparent),transparent 62%),var(--bg)}
+:root[data-theme=light] body{background:var(--bg)}
+.hero{background:linear-gradient(150deg,color-mix(in srgb,var(--accent) var(--tint),var(--surface)),var(--surface))}
+.hero.on{background:linear-gradient(150deg,color-mix(in srgb,var(--ok) 14%,var(--surface)),var(--surface))}
+:root[data-theme=tatico] .top h1,:root[data-theme=tatico] .hero h2,:root[data-theme=tatico] .brand{font-style:italic;text-transform:uppercase;font-weight:900;letter-spacing:-.02em}
+:root[data-theme=tatico] .tab.on,:root[data-theme=oliva] .tab.on,:root[data-theme=ouro] .tab.on{color:var(--accent)}
+:root[data-theme=ouro] .card,:root[data-theme=ouro] .item,:root[data-theme=ouro] .hero{border-color:rgba(212,166,58,.22)}
+/* seletor de temas */
+.themes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.theme{display:flex;flex-direction:column;gap:6px;text-align:left;padding:10px;border-radius:16px;background:var(--surface2);border:2px solid transparent}
+.theme.on{border-color:var(--accent)}
+.theme .sw{position:relative;height:54px;border-radius:10px;border:1px solid var(--line);overflow:hidden;display:block}
+.theme .sw i{position:absolute;left:8px;right:8px;bottom:8px;height:24px;border-radius:7px}
+.theme .sw b{position:absolute;left:14px;top:9px;width:26px;height:8px;border-radius:4px}
+.theme .tn{font-weight:700;font-size:14px}.theme .td{font-size:11.5px;color:var(--muted)}
+.sw3{display:flex;gap:10px;flex-wrap:wrap}.sw3 button{width:38px;height:38px;border-radius:12px;border:3px solid transparent}.sw3 button.on{border-color:var(--text)}
+/* legenda do calendário: grade simétrica, só o que existe no mês */
+.legend{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 12px;padding:2px 4px}
+.legend span{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);white-space:nowrap}
+.legend i{width:12px;height:12px;border-radius:4px;flex:none}
+@media(min-width:700px){.legend{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}}
+/* calendário em círculos (moderno e limpo) */
+.cal[data-cs=circle] .cell{background:transparent!important;border-color:transparent!important;box-shadow:none!important;color:var(--text)}
+.cal[data-cs=circle] .cell .tg{display:none}
+.cal[data-cs=circle] .cell .n{width:36px;height:36px;display:grid;place-items:center;border-radius:50%;font-size:16px}
+.cal[data-cs=circle] .cell:not([data-st=livre]) .n{background:var(--sc);color:#0a0a0a}
+.cal[data-cs=circle] .cell[data-st=plantao] .n{color:var(--on)}
+.cal[data-cs=circle] .cell.today{outline:none}
+.cal[data-cs=circle] .cell.today .n{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--text)}
+.cal[data-cs=circle] .cell .dots{bottom:2px}
+.cal[data-cs=circle] .cell.hol[data-st=livre] .n{color:var(--warn)}

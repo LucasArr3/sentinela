@@ -61,9 +61,15 @@ export async function callLLM(ai, { prompt, image }) {
     return (j.content || []).map((c) => c.text || '').join('');
   }
   const parts = []; if (image) parts.push({ inlineData: { mimeType: 'image/jpeg', data: image.split(',')[1] } }); parts.push({ text: prompt });
-  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': ai.key.trim() }, body: JSON.stringify({ contents: [{ parts }], generationConfig: { responseMimeType: 'application/json', temperature: 0.1 } }) });
-  const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error?.message || `Erro ${r.status} no provedor de IA`);
-  return (j.candidates?.[0]?.content?.parts || []).map((p) => p.text || '').join('');
+  const gem = async (mdl) => {
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(mdl)}:generateContent`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': ai.key.trim() }, body: JSON.stringify({ contents: [{ parts }], generationConfig: { responseMimeType: 'application/json', temperature: 0.1 } }) });
+    const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error?.message || `Erro ${r.status} no provedor de IA`);
+    return (j.candidates?.[0]?.content?.parts || []).map((p) => p.text || '').join('');
+  };
+  try { return await gem(model); } catch (e) {
+    if (!/not found|404|no longer|not supported|deprecated|is not available/i.test(e.message || '')) throw e;
+    const m = await autoPickGeminiModel(ai.key); ai.model = m; return gem(m); // o modelo mudou: usa um que exista na conta
+  }
 }
 export async function readRoster(ai, image, ctx) { return parseRoster(await callLLM(ai, { prompt: buildPrompt(ctx.quarters, ctx.posts), image }), ctx); }
 
@@ -74,4 +80,15 @@ export function compressImage(file, max = 1280, q = 0.72) {
     img.onload = () => { const k = Math.min(1, max / Math.max(img.width, img.height)); const c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url); res(c.toDataURL('image/jpeg', q)); };
     img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('Não consegui abrir essa imagem.')); }; img.src = url;
   });
+}
+
+// Se o modelo salvo não existe mais, descobre na conta um modelo "flash" que aceite generateContent.
+export async function autoPickGeminiModel(key) {
+  const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200', { headers: { 'x-goog-api-key': key.trim() } });
+  const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error?.message || `Erro ${r.status} ao listar modelos`);
+  const ok = (j.models || []).filter((m) => (m.supportedGenerationMethods || []).includes('generateContent') && /flash/i.test(m.name) && !/lite|image|tts|live|audio|thinking|exp|preview/i.test(m.name)).map((m) => m.name.replace(/^models\//, ''));
+  const ver = (n) => { const m = n.match(/(\d+(?:\.\d+)?)/); return m ? parseFloat(m[1]) : 0; };
+  ok.sort((a, b) => ver(b) - ver(a) || a.length - b.length);
+  if (!ok.length) throw new Error('Nenhum modelo compatível encontrado nesta chave.');
+  return ok[0];
 }

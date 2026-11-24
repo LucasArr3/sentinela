@@ -52,6 +52,15 @@ export function alarmsBetween(state, from, to) {
       }
     }
   }
+  const mins = Number(p.shiftReminder) || 0;
+  if (mins > 0) {
+    const [sh, sm] = state.scale.start.split(':').map(Number);
+    for (let d = addDays(iso(from), -1); d <= addDays(iso(to), 1); d = addDays(d, 1)) {
+      const info = dayInfo(d, state); if (!info.works) continue;
+      const [y, m, dd] = d.split('-').map(Number); const at = new Date(y, m - 1, dd, sh, sm).getTime() - mins * 60000;
+      if (at >= f && at <= t) out.push({ id: hashId(`plt:${d}`), at, kind: 'plantao', title: `Plantão às ${state.scale.start}`, body: mins >= 120 ? `Faltam ${Math.round(mins / 60)} horas para o plantão` : `Faltam ${mins} minutos para o plantão`, sound: p.shiftSound || 'carrilhao' });
+    }
+  }
   return out.sort((a, b) => a.at - b.at);
 }
 export const buildAlarms = (state, now = new Date(), days = 14) => alarmsBetween(state, now, new Date(now.getTime() + days * 864e5));

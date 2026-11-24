@@ -63,7 +63,7 @@ Pedido: ${text}`;
     } else if (r.kind === 'query') say(answer(r.q, r));
     else if (r.kind === 'nav') { say(r.text); setTimeout(() => { api.close(); api.goto(r.to); }, 700); }
     else if (hasAI(api.data().prefs.ai)) viaLLM(text);
-    else say('Não consegui entender esse comando. Tente algo como:\n• “Extra noturna dia 30 valor 250”\n• “Atestado de 3 dias a partir de amanhã”\n• “Quando é meu próximo plantão?”');
+    else say('Não consegui entender esse comando. Tente algo como:\n• “Extra noturna dia 30 valor 250”\n• “Atestado de 3 dias a partir de amanhã”\n• “Quando é meu próximo plantão?”\n\nPara frases livres, ligue a IA em Ajustes → IA.');
   }
 
   let stopFn = null;
@@ -91,6 +91,7 @@ Pedido: ${text}`;
       root = el;
       root.innerHTML = `<div class="grab"></div><div class="row" style="margin-bottom:10px"><div class="logo" style="width:40px;height:40px;border-radius:14px">${ic('sparkles')}</div><div class="sp"><h3>Assistente IA</h3><div class="muted xs">Fale ou digite — tudo é processado no seu aparelho</div></div><button class="ibtn" data-ai="speak" title="Ler respostas em voz alta" style="${api.data().prefs.speak ? 'color:var(--accent)' : ''}">${ic('volume')}</button><button class="ibtn" data-ai="close">${ic('x')}</button></div>
       <div class="chat" id="aiChat"></div>
+      ${hasAI(api.data().prefs.ai) ? '' : `<div class="card" style="background:var(--surface2);padding:12px;margin:10px 0"><div class="b">Ligue a IA para frases livres e fotos</div><div class="muted xs" style="margin:4px 0 8px">Hoje funciona com comandos diretos. Com a chave gratuita do Gemini, o assistente entende qualquer frase e lê a foto da escala.</div><button class="btn sm pri" data-ai="setup">Ligar a IA</button></div>`}
       <div class="chips" style="margin:12px -18px;padding:0 18px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none">${EXAMPLES.map((x) => `<button class="chip" style="white-space:nowrap" data-ai="ex" data-t="${esc(x)}">${esc(x)}</button>`).join('')}</div>
       <div class="row"><button class="mic" id="aiMic" data-ai="mic" aria-label="Falar">${ic('mic')}</button><button class="ibtn" data-ai="photo" aria-label="Foto da escala de quartos" title="Foto da escala de quartos">${ic('camera')}</button><form class="row sp" id="aiForm" style="gap:8px"><input id="aiInput" placeholder="Ex.: extra diurna dia 28 valor 219" autocomplete="off"><button class="ibtn" style="background:var(--accent);color:#fff;border:0" aria-label="Enviar">${ic('send')}</button></form></div>
       <div class="muted xs" id="aiHint" style="text-align:center;margin-top:8px">Toque no microfone e fale</div>`;
@@ -101,6 +102,7 @@ Pedido: ${text}`;
         if (a === 'close') api.close(); else if (a === 'mic') toggleMic(); else if (a === 'ex') submit(b.dataset.t);
         else if (a === 'speak') { const d = api.data(); d.prefs.speak = !d.prefs.speak; api.save(); b.style.color = d.prefs.speak ? 'var(--accent)' : ''; if (d.prefs.speak) speak('Leitura em voz alta ativada.'); else speechSynthesis?.cancel(); }
         else if (a === 'photo') api.roster();
+        else if (a === 'setup') api.openAI();
         else { const m = msgs[+b.dataset.i]; if (!m?.pending && !m?.pendingQ) return;
           if (a === 'ok') { m.done = true; if (m.pendingQ) { api.addQuartos(m.pendingQ.date, m.pendingQ.ids, m.pendingQ.post); say('✅ Quartos marcados!'); } else { api.add(m.pending); say(`✅ Registrado! ${api.title(m.pending)} em ${C.fmtBR(m.pending.date)}.`); } }
           if (a === 'no') { m.done = true; say('Ok, cancelei.'); }

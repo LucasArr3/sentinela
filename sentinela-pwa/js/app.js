@@ -3,14 +3,23 @@ import { Store, defaultData } from './store.js';
 import { ic, esc, $, $$, toast, initials, fmtDur, greet, waHtml } from './ui.js';
 import { buildSummary, waLink } from './summary.js';
 import { createAssistant } from './ai.js';
-import { hasAI, readRoster, compressImage, callLLM, DEFAULT_MODELS } from './vision.js';
+import { hasAI, readRoster, compressImage, callLLM, DEFAULT_MODELS, autoPickGeminiModel } from './vision.js';
 import { startReminders, playSound, stopSound, SOUNDS, keepAwake, notify, askNotifyPermission, buildAlarms } from './reminders.js';
 import { SOUND_CATS, soundLabel, DEFAULT_SOUND, isBuiltin } from './sounds.js';
 import { NativeAlarm, isNative, startListening, canListen, APK_URL } from './native.js';
 
 const nowD = new Date();
 const S = { uid: null, user: null, d: null, view: 'dashboard', cal: { y: nowD.getFullYear(), m: nowD.getMonth() }, fin: { y: nowD.getFullYear(), m: nowD.getMonth() }, sum: { y: nowD.getFullYear(), m: nowD.getMonth(), values: true, notes: true, calendar: true, custom: null }, sheet: null, qv: { y: nowD.getFullYear(), m: nowD.getMonth() }, liv: { y: nowD.getFullYear(), m: nowD.getMonth() }, roster: null, qsel: null, open: new Set(), livf: { q: '', cat: '' }, alarm: null, auth: { tab: 'login', err: '' }, ob: { step: 0, today: true }, draft: null };
-const ACCENTS = ['#e8e8ea', '#d4a63a', '#7aa8cf', '#66c08a', '#d96b6b', '#9b8fd1'];
+const ACCENTS = ['', '#e8e8ea', '#4d8dff', '#d4a63a', '#9bbf5a', '#e07a7a', '#c08ae6'];
+const THEMES = [
+  { id: 'dark', name: 'Preto', desc: 'Grafite e branco, sóbrio', bg: '#050505', sf: '#111113', ac: '#e8e8ea' },
+  { id: 'tatico', name: 'Tático azul', desc: 'Estilo do app original', bg: '#04070f', sf: '#0d1526', ac: '#3b82ff' },
+  { id: 'ouro', name: 'Ouro', desc: 'Preto com dourado', bg: '#050505', sf: '#12110d', ac: '#d4a63a' },
+  { id: 'oliva', name: 'Verde oliva', desc: 'Tático militar', bg: '#070906', sf: '#12170f', ac: '#9bbf5a' },
+  { id: 'night', name: 'Noturno', desc: 'Vermelho, visão de madrugada', bg: '#000000', sf: '#0e0505', ac: '#ff6a55' },
+  { id: 'light', name: 'Claro', desc: 'Fundo branco', bg: '#f4f4f5', sf: '#ffffff', ac: '#18181b' },
+];
+const THEME_BG = { dark: '#050505', tatico: '#04070f', ouro: '#050505', oliva: '#070906', night: '#000000', light: '#f4f4f5' };
 const VIEWS = { dashboard: ['Início', 'home'], calendar: ['Calendário', 'calendar'], plantao: ['Plantão', 'shield'], quartos: ['Quartos', 'clock'], finance: ['Finanças', 'wallet'], summary: ['Resumos', 'chat'], livro: ['Ocorrências', 'book'], more: ['Mais', 'menu'], settings: ['Ajustes', 'settings'] };
 const save = () => { if (S.uid && !Store.save(S.uid, S.d)) toast('Não foi possível salvar (armazenamento cheio?)', 'err'); syncAlarmsSoon(); if (!S.warnedFull && Store.usage().pct > 90) { S.warnedFull = true; toast('Armazenamento quase cheio: exporte um backup e apague fotos antigas', 'err'); } };
 // ---- alarmes nativos (Android): reenvia a lista dos próximos 14 dias sempre que algo muda ----
@@ -26,12 +35,14 @@ const typeColor = (t) => C.TYPES[t].color;
 const tint = (c, p = 18) => `color-mix(in srgb,${c} ${p}%,transparent)`;
 
 function applyTheme() {
-  const p = S.d?.prefs || { theme: 'dark', accent: ACCENTS[0] }; let th = p.theme;
+  const p = S.d?.prefs || { theme: 'dark', accent: '' }; let th = p.theme;
   if (th === 'auto') th = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-  document.documentElement.dataset.theme = th; if (th === 'night') document.documentElement.style.removeProperty('--accent'); else document.documentElement.style.setProperty('--accent', p.accent);
-  document.documentElement.style.zoom = p.zoom && p.zoom !== 1 ? String(p.zoom) : '';
+  if (!THEME_BG[th]) th = 'dark';
+  const el = document.documentElement; el.dataset.theme = th;
+  if (p.accent && th !== 'night') { el.style.setProperty('--accent', p.accent); el.style.setProperty('--on', '#0a0a0a'); } else { el.style.removeProperty('--accent'); el.style.removeProperty('--on'); }
+  el.style.zoom = p.zoom && p.zoom !== 1 ? String(p.zoom) : '';
   C.PRIV.on = !!p.discreet;
-  $('meta[name=theme-color]')?.setAttribute('content', th === 'light' ? '#f4f4f5' : th === 'night' ? '#000000' : '#050505');
+  $('meta[name=theme-color]')?.setAttribute('content', THEME_BG[th]);
 }
 
 // ---------- títulos de eventos ----------
@@ -190,7 +201,7 @@ function quartosView() {
   return `<div class="calhead"><button class="ibtn" data-act="qv-prev" aria-label="Mês anterior">${ic('chevL')}</button><h2 style="text-align:center">${C.MONTHS[m]} <span class="muted" style="font-weight:600">${y}</span></h2><button class="ibtn" data-act="roster-open" data-date="${days.find((i) => i.date >= t)?.date || t}" aria-label="Foto da escala">${ic('camera')}</button><button class="ibtn" data-act="qv-next" aria-label="Próximo mês">${ic('chevR')}</button></div>
   <div class="muted sm" style="margin:-4px 4px 0">${total} quarto(s) marcado(s) neste mês</div><div class="list">${rows || '<div class="card empty">Nenhum plantão neste mês.</div>'}</div>`;
 }
-const OC_COLOR = { Rotina: '#8b8b92', 'Segurança': '#d4a24c', Disciplinar: '#d96b6b', 'Saúde': '#66c08a', Visita: '#7aa8cf', Outros: '#9b8fd1' };
+const OC_COLOR = { Rotina: '#8b8b92', 'Segurança': '#d4a24c', Disciplinar: '#d96b6b', 'Saúde': '#66c08a', Visita: '#7aa8cf', Outros: '#74b9c9' };
 const ocRow = (e) => {
   const ph = e.photos || (e.photo ? [e.photo] : []); const col = OC_COLOR[e.cat] || '#8b8b92';
   const pc = e.prio === 'Urgente' ? '#d96b6b' : e.prio === 'Atenção' ? '#d4a24c' : ''; return `<div class="oc" ${pc ? `style="border-left:3px solid ${pc}"` : ''} role="button" tabindex="0" data-act="ev-edit" data-id="${e.id}"><div class="row"><span class="badge" style="background:${tint(col, 22)};color:${col}">${esc(e.cat || 'Rotina')}</span>${e.prio && e.prio !== 'Normal' ? `<span class="badge" style="background:${tint(pc, 22)};color:${pc}">${e.prio}</span>` : ''}<span class="muted xs sp" style="text-align:right">${e.time ? esc(e.time) : ''}</span></div><div class="t">${esc(e.title || 'Ocorrência')}</div>${e.place ? `<div class="s">${esc(e.place)}</div>` : ''}${e.note ? `<div class="s clamp">${esc(e.note)}</div>` : ''}${ph.length ? `<div class="ths">${ph.slice(0, 4).map((u) => `<img src="${u}" alt="">`).join('')}</div>` : ''}</div>`;
@@ -221,10 +232,12 @@ function calendar() {
     const i = C.dayInfo(date, S.d); const hol = C.holidayName(date, hols); const types = [...new Set(i.events.map((e) => e.type))].slice(0, 3);
     const ex = i.events.find((e) => e.type === 'extra'); const label = i.status === 'extra' && ex && ex.turno === 'h24' ? '24h' : tag[i.status];
     const mark = `<span class="dots">${types.map((k) => `<i style="background:${typeColor(k)}"></i>`).join('')}</span>`;
-    return `<button class="cell ${date === t ? 'today' : ''} ${hol ? 'hol' : ''}" style="--sc:${i.status === 'livre' ? 'transparent' : C.STATUS[i.status].color}" data-st="${i.status}" data-act="day" data-date="${date}" aria-label="${C.dateLong(date)}${hol ? ', ' + hol : ''}: ${C.STATUS[i.status].label}"><span class="tg">${label}</span><span class="n">${+date.slice(8)}</span>${mark}${hol ? '<span class="hbar"></span>' : ''}</button>`;
+    return `<button class="cell ${date === t ? 'today' : ''} ${hol ? 'hol' : ''}" style="--sc:${i.status === 'livre' ? 'transparent' : (i.status === 'extra' && ex ? (ex.turno === 'noturna' ? C.EXTRA_N : C.EXTRA_D) : C.STATUS[i.status].color)}" data-st="${i.status}" data-act="day" data-date="${date}" aria-label="${C.dateLong(date)}${hol ? ', ' + hol : ''}: ${C.STATUS[i.status].label}"><span class="tg">${label}</span><span class="n">${+date.slice(8)}</span>${mark}${hol ? '<span class="hbar"></span>' : ''}</button>`;
   }).join('');
   const mh = C.monthHolidays(y, m, hols); const tk = mh.map((h) => `<span><b>${C.fmtShort(h.date)}</b> ${esc(h.name)}</span>`).join('');
-  const lg = [['var(--accent)', 'Plantão'], ['#66c08a', 'Extra'], ['#d4a24c', 'Permuta'], ['#9b8fd1', 'Folga'], ['#d96b6b', 'Atestado'], ['#5fb8ad', 'Férias']];
+  const ms = C.monthSummary(S.d, y, m); const exs = ms.extras;
+  const lgAll = [['var(--accent)', 'Plantão', ms.plantoes.length > 0], [C.EXTRA_D, 'Extra diurna', exs.some((e) => e.turno !== 'noturna')], [C.EXTRA_N, 'Extra noturna', exs.some((e) => e.turno === 'noturna')], ['#e0b25a', 'Permuta', ms.permutaIn.length + ms.permutaOut.length > 0], ['#74b9c9', 'Folga', ms.folgas.length > 0], ['#e07a7a', 'Atestado', ms.atestados.length > 0], ['#e39ab8', 'Férias', ms.ferias.length > 0]];
+  const lg = lgAll.filter((x) => x[2]);
   return `<div class="calhead"><button class="ibtn" data-act="cal-prev" aria-label="Mês anterior">${ic('chevL')}</button><h2 style="text-align:center">${C.MONTHS[m]} <span class="muted" style="font-weight:600">${y}</span></h2><button class="btn sm" data-act="cal-today">Hoje</button><button class="ibtn" data-act="cal-next" aria-label="Próximo mês">${ic('chevR')}</button></div>
   ${mh.length ? `<div class="ticker" aria-label="Feriados do mês"><div class="tk"><div class="tkc">${tk}</div><div class="tkc" aria-hidden="true">${tk}</div></div></div>` : ''}
   <div class="dow">${C.WD3.map((x) => `<div>${x.charAt(0)}</div>`).join('')}</div><div class="cal" id="cal" data-cs="${S.d.prefs.cellStyle}">${cells}</div>
@@ -280,18 +293,19 @@ function settings() {
   const meus = nat ? `<div class="b">Meus sons</div>${d.customSounds.map((x) => `<div class="row"><span class="sp sm">${esc(x.name)}</span><button class="ibtn" data-act="snd-test" data-sid="${esc(x.id)}" aria-label="Ouvir">${ic('volume')}</button><button class="ibtn" data-act="sound-del" data-sid="${esc(x.id)}" aria-label="Remover">${ic('trash')}</button></div>`).join('')}<button class="btn sm" data-act="sound-import">${ic('plus')}Importar um som do aparelho</button>` : '';
   const alarmes = `${natPanel}<label class="tgl"><span><div class="b">Alarmes de quarto</div><div class="muted xs">Tocam antes do início de cada quarto marcado</div></span><input type="checkbox" data-bind="prefs.reminders" ${pr.reminders ? 'checked' : ''}></label><div class="grid2"><label class="f">Avisar antes (min)<input type="number" min="0" max="120" inputmode="numeric" data-bind="prefs.lead" data-num value="${pr.lead}"></label><label class="f">Som padrão<select data-bind="prefs.sound">${sndOpts(pr.sound)}</select></label></div><button class="btn sm" data-act="snd-test">${ic('volume')}Ouvir o som padrão</button>${meus}
   <label class="tgl"><span><div class="b">Alvorada</div><div class="muted xs">Alarme na hora da Alvorada quando estiver de plantão de 24 h</div></span><input type="checkbox" data-bind="prefs.alvorada" ${pr.alvorada ? 'checked' : ''}></label>
+  <label class="f">Lembrete antes do plantão<select data-bind="prefs.shiftReminder" data-numstr>${[[0, 'Desligado'], [60, '1 hora antes'], [120, '2 horas antes'], [180, '3 horas antes'], [720, '12 horas antes']].map(([v, l]) => `<option value="${v}" ${(pr.shiftReminder || 0) === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
   <label class="tgl"><span><div class="b">Volume crescente</div><div class="muted xs">Começa baixo e sobe em ~10 s, sem susto</div></span><input type="checkbox" data-bind="prefs.ramp" ${pr.ramp ? 'checked' : ''}></label>
   <div class="grid2"><label class="f">Soneca (min)<input type="number" min="1" max="30" inputmode="numeric" data-bind="prefs.snooze" data-num value="${pr.snooze}"></label><label class="f">Parar sozinho (min)<input type="number" min="1" max="30" inputmode="numeric" data-bind="prefs.autostop" data-num value="${pr.autostop}"></label></div>
   ${nat ? '' : `<label class="tgl"><span><div class="b">Manter a tela ligada</div><div class="muted xs">Evita o celular apagar durante o plantão, para o alarme tocar</div></span><input type="checkbox" data-bind="prefs.wake" ${pr.wake ? 'checked' : ''}></label>`}
   <details class="sub" data-sec="alq" ${S.open.has('alq') ? 'open' : ''}><summary>Ajustar quarto a quarto</summary><div class="col" style="margin-top:10px">${alq}</div></details>${nat ? '' : `<div class="grid2"><button class="btn sm" data-act="alarm-test">${ic('alert')}Testar alarme</button><button class="btn sm" data-act="notify">Permitir notificações</button></div>`}`;
   const feriados = `<div class="muted sm">Os feriados nacionais (com Carnaval, Páscoa e Corpus Christi) já estão no calendário. Cadastre aqui os da sua cidade ou estado.</div>${(d.holidays || []).map((h, i) => `<div class="row"><span class="chip on" style="flex:none">${h.md.slice(3)}/${h.md.slice(0, 2)}</span><span class="sp">${esc(h.name)}</span><button class="ibtn" data-act="hol-del" data-i="${i}" aria-label="Excluir feriado">${ic('trash')}</button></div>`).join('')}<div class="grid2"><input type="date" id="holDate" aria-label="Data"><input id="holName" placeholder="Nome do feriado"></div><button class="btn sm" data-act="hol-add">${ic('plus')}Adicionar feriado</button>`;
   const ia = `<div class="seg"><button class="${ai.provider === 'gemini' ? 'on' : ''}" data-act="ai-provider" data-v="gemini">Gemini (Google)</button><button class="${ai.provider === 'anthropic' ? 'on' : ''}" data-act="ai-provider" data-v="anthropic">Claude</button></div><label class="f">Chave da API<input type="password" data-bind="prefs.ai.key" value="${esc(ai.key)}" placeholder="Cole sua chave aqui" autocomplete="off"></label><label class="f">Modelo (opcional)<input data-bind="prefs.ai.model" value="${esc(ai.model)}" placeholder="${DEFAULT_MODELS[ai.provider]}"></label><button class="btn sm" data-act="ai-test">${ic('check')}Testar conexão</button><div class="muted xs">${ai.provider === 'gemini' ? 'Chave gratuita em aistudio.google.com/app/apikey.' : 'Chave em console.anthropic.com.'} Fica salva só neste aparelho e vai direto dele ao provedor. Sem chave, tudo funciona; você marca os quartos tocando.</div>`;
-  const aparencia = `<div class="seg">${[['dark', 'Escuro'], ['night', 'Noturno'], ['light', 'Claro'], ['auto', 'Auto']].map(([v, l]) => `<button class="${pr.theme === v ? 'on' : ''}" data-act="theme" data-v="${v}">${l}</button>`).join('')}</div><div class="muted xs">Noturno: tudo em tons de vermelho, para não ofuscar a visão de madrugada.</div><div class="b" style="margin-top:4px">Tamanho do texto</div><div class="seg">${[[1, 'Normal'], [1.12, 'Grande'], [1.25, 'Muito grande']].map(([v, l]) => `<button class="${(pr.zoom || 1) === v ? 'on' : ''}" data-act="zoom" data-v="${v}">${l}</button>`).join('')}</div><div class="sw">${ACCENTS.map((c) => `<button class="${pr.accent === c ? 'on' : ''}" style="background:${c}" data-act="accent" data-v="${c}" aria-label="Cor ${c}"></button>`).join('')}</div><div class="b" style="margin-top:4px">Estilo das células do calendário</div><div class="seg">${[['classic', 'Clássico'], ['solid', 'Cheio'], ['clean', 'Limpo']].map(([v, l]) => `<button class="${pr.cellStyle === v ? 'on' : ''}" data-act="cell-style" data-v="${v}">${l}</button>`).join('')}</div><label class="tgl"><span><div class="b">Ler respostas em voz alta</div><div class="muted xs">O assistente fala as respostas</div></span><input type="checkbox" data-bind="prefs.speak" ${pr.speak ? 'checked' : ''}></label>`;
+  const aparencia = `<div class="b">Tema</div><div class="themes">${THEMES.map((t) => `<button class="theme ${pr.theme === t.id ? 'on' : ''}" data-act="theme" data-v="${t.id}" aria-label="Tema ${t.name}"><span class="sw" style="background:${t.bg}"><i style="background:${t.sf}"></i><b style="background:${t.ac}"></b></span><span class="tn">${t.name}</span><span class="td">${t.desc}</span></button>`).join('')}<button class="theme ${pr.theme === 'auto' ? 'on' : ''}" data-act="theme" data-v="auto"><span class="sw" style="background:linear-gradient(90deg,#050505 50%,#f4f4f5 50%)"></span><span class="tn">Automático</span><span class="td">Segue o celular</span></button></div><div class="b" style="margin-top:6px">Cor de destaque</div><div class="sw3">${ACCENTS.map((c) => `<button class="${(pr.accent || '') === c ? 'on' : ''}" style="${c ? `background:${c}` : 'background:conic-gradient(#e8e8ea,#4d8dff,#d4a63a,#9bbf5a,#e8e8ea)'}" data-act="accent" data-v="${c}" aria-label="${c ? 'Cor ' + c : 'Cor do tema'}"></button>`).join('')}</div><div class="muted xs">A primeira bolinha usa a cor própria do tema.</div><div class="b" style="margin-top:6px">Tamanho do texto</div><div class="seg">${[[1, 'Normal'], [1.12, 'Grande'], [1.25, 'Muito grande']].map(([v, l]) => `<button class="${(pr.zoom || 1) === v ? 'on' : ''}" data-act="zoom" data-v="${v}">${l}</button>`).join('')}</div><div class="b" style="margin-top:4px">Estilo do calendário</div><div class="seg">${[['classic', 'Clássico'], ['circle', 'Círculos'], ['solid', 'Cheio'], ['clean', 'Limpo']].map(([v, l]) => `<button class="${pr.cellStyle === v ? 'on' : ''}" data-act="cell-style" data-v="${v}">${l}</button>`).join('')}</div><label class="tgl"><span><div class="b">Ler respostas em voz alta</div><div class="muted xs">O assistente fala as respostas</div></span><input type="checkbox" data-bind="prefs.speak" ${pr.speak ? 'checked' : ''}></label>`;
   const seguranca = `${pr.pin ? `<div class="grid2"><button class="btn" data-act="pin-new">${ic('lock')}Alterar PIN</button><button class="btn dng" data-act="pin-off">Remover PIN</button></div><label class="f">Bloquear automaticamente<select data-bind="prefs.lockAfter" data-numstr>${[[0, 'Ao sair do app'], [1, 'Depois de 1 minuto'], [5, 'Depois de 5 minutos'], [-1, 'Só ao abrir o app']].map(([v, l]) => `<option value="${v}" ${(pr.lockAfter ?? 1) === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>` : `<div class="muted sm">Peça um PIN para abrir o app. Protege suas ocorrências e dados contra quem pegar o seu celular.</div><button class="btn pri" data-act="pin-new">${ic('lock')}Criar PIN</button>`}<label class="tgl"><span><div class="b">Modo discreto</div><div class="muted xs">Esconde os valores em R$ na tela</div></span><input type="checkbox" data-bind="prefs.discreet" ${pr.discreet ? 'checked' : ''}></label><div class="muted xs">O PIN não criptografa os dados guardados. No modo sem cadastro não há recuperação do PIN: guarde-o e exporte um backup.</div>`;
   const dados = `${storageMeter()}<div class="muted sm">Seus dados ficam somente neste aparelho. Faça backup para guardar ou levar para outro celular.</div><div class="grid2"><button class="btn" data-act="export">${ic('download')}Exportar</button><button class="btn" data-act="import">${ic('upload')}Importar</button></div><input type="file" id="impFile" accept="application/json,.json" class="hidden">${window._bip ? `<button class="btn pri" data-act="install">${ic('download')}Instalar app no aparelho</button>` : `<div class="muted xs">Para instalar: no Chrome use “Adicionar à tela inicial”; no iPhone, Compartilhar → “Adicionar à Tela de Início”.</div>`}<button class="btn dng" data-act="clear-events">${ic('trash')}Apagar todos os lançamentos</button>`;
   const conta = `${S.user.guest ? '<div class="muted sm">Você está no modo sem cadastro. Crie uma conta para proteger os dados com senha.</div>' : `<button class="btn" data-act="pw">${ic('lock')}Alterar senha</button>`}<button class="btn" data-act="logout">${ic('logout')}Sair</button><button class="btn dng" data-act="delete-account">${ic('trash')}Excluir conta e dados</button>`;
   return `<div class="card row"><div class="avatar">${esc(initials(p.name))}</div><div class="sp"><div class="b">${esc(p.name || 'Policial')}</div><div class="muted sm">${esc(S.user.guest ? 'Modo sem cadastro' : S.user.email)}</div></div></div>
-  ${sec('perfil', 'user', 'Perfil', p.name || 'Seu nome e cargo', perfil)}${sec('escala', 'calendar', 'Escala de plantão', `${C.scaleLabel(d.scale)} · entrada ${d.scale.start}`, scaleEditor())}${sec('quartos', 'clock', 'Quartos e postos', `${d.quarters.length} quartos · ${d.posts.length} postos`, quartos)}${sec('alarmes', 'alert', 'Alarmes', pr.reminders ? `${pr.lead} min antes · ${soundLabel(pr.sound, d.customSounds)}` : 'Desligados', alarmes)}${sec('feriados', 'sun', 'Feriados da minha cidade', `${(d.holidays || []).length} cadastrado(s)`, feriados)}${sec('valores', 'wallet', 'Valores das extras', `Diurna ${C.brl(d.money.diurna)}`, `${moneyFields()}<div class="muted xs">O valor é sugerido ao lançar uma extra e pode ser alterado em cada lançamento.</div>`)}${sec('ia', 'sparkles', 'IA para ler fotos', hasAI(ai) ? 'Conectada' : 'Opcional', ia)}${sec('aparencia', 'eye', 'Aparência', pr.theme === 'dark' ? 'Escuro' : pr.theme === 'night' ? 'Noturno' : pr.theme === 'light' ? 'Claro' : 'Automático', aparencia)}${sec('seguranca', 'lock', 'Segurança e privacidade', pr.pin ? 'PIN ativo' : 'Sem PIN', seguranca)}${sec('dados', 'download', 'Dados e backup', 'Exportar, importar, instalar', dados)}${sec('conta', 'lock', 'Conta', S.user.guest ? 'Sem cadastro' : S.user.email, conta)}
+  ${sec('perfil', 'user', 'Perfil', p.name || 'Seu nome e cargo', perfil)}${sec('escala', 'calendar', 'Escala de plantão', `${C.scaleLabel(d.scale)} · entrada ${d.scale.start}`, scaleEditor())}${sec('quartos', 'clock', 'Quartos e postos', `${d.quarters.length} quartos · ${d.posts.length} postos`, quartos)}${sec('alarmes', 'alert', 'Alarmes', pr.reminders ? `${pr.lead} min antes · ${soundLabel(pr.sound, d.customSounds)}` : 'Desligados', alarmes)}${sec('feriados', 'sun', 'Feriados da minha cidade', `${(d.holidays || []).length} cadastrado(s)`, feriados)}${sec('valores', 'wallet', 'Valores das extras', `Diurna ${C.brl(d.money.diurna)}`, `${moneyFields()}<div class="muted xs">O valor é sugerido ao lançar uma extra e pode ser alterado em cada lançamento.</div>`)}${sec('ia', 'sparkles', 'IA para ler fotos', hasAI(ai) ? 'Conectada' : 'Opcional', ia)}${sec('aparencia', 'eye', 'Aparência', (THEMES.find((t) => t.id === pr.theme) || { name: 'Automático' }).name, aparencia)}${sec('seguranca', 'lock', 'Segurança e privacidade', pr.pin ? 'PIN ativo' : 'Sem PIN', seguranca)}${sec('dados', 'download', 'Dados e backup', 'Exportar, importar, instalar', dados)}${sec('conta', 'lock', 'Conta', S.user.guest ? 'Sem cadastro' : S.user.email, conta)}
   <p class="muted xs" style="text-align:center">Sentinela Tático · versão 1.1 · feito para Policiais Penais</p>`;
 }
 
@@ -358,6 +372,7 @@ const assistant = createAssistant({
   ctx: () => ({ quarters: S.d.quarters, posts: S.d.posts }),
   addQuartos: (date, ids, post) => { ids.forEach((id) => setQuarto(date, id, post, true)); save(); render(); },
   roster: () => { assistant.unmount(); S.sheet = null; A['roster-open']({ dataset: { date: C.today() } }); },
+  openAI: () => { assistant.unmount(); S.sheet = null; renderSheet(); S.open.add('ia'); go('settings'); setTimeout(() => $('details[data-sec=ia]')?.scrollIntoView({ block: 'start' }), 150); },
 });
 const setQuarto = (date, slot, post, force = false) => { const e = S.d.events.find((x) => x.type === 'quarto' && x.date === date && x.slot === slot); if (e) { if (force) e.post = post || ''; } else S.d.events.push({ id: C.uid(), type: 'quarto', date, slot, post: post || '' }); };
 const refreshQ = () => { save(); render(); if (S.sheet) renderSheet(); };
@@ -448,7 +463,7 @@ const A = {
   'ob-back': () => { S.ob.step--; render(); }, 'ob-today': (el) => { S.ob.today = el.dataset.v === '1'; if (S.ob.today) S.d.scale.anchor = C.today(); render(); },
   preset: (el) => { const k = el.dataset.v, p = C.PRESETS[k]; const sc = S.d.scale; sc.preset = k; if (k !== 'custom') { sc.work = p.work; sc.off = p.off; sc.hours = p.hours; if (k === '12x36' && sc.start === '07:00') sc.start = '07:00'; } save(); render(); },
   'anchor-today': () => { S.d.scale.anchor = C.today(); save(); render(); toast('Hoje agora é dia de plantão ✅'); },
-  theme: (el) => { S.d.prefs.theme = el.dataset.v; save(); render(); }, accent: (el) => { S.d.prefs.accent = el.dataset.v; save(); render(); },
+  theme: (el) => { S.d.prefs.theme = el.dataset.v; save(); render(); },
   // calendário / nav mensal
   'cal-prev': () => { shiftMonth(S.cal, -1); render(); }, 'cal-next': () => { shiftMonth(S.cal, 1); render(); }, 'cal-today': () => { S.cal = { y: nowD.getFullYear(), m: nowD.getMonth() }; render(); },
   'fin-prev': () => { shiftMonth(S.fin, -1); render(); }, 'fin-next': () => { shiftMonth(S.fin, 1); render(); },
@@ -521,7 +536,7 @@ const A = {
   'post-add': () => { const v = $('#postNew').value.trim(); if (!v) return; if (!S.d.posts.includes(v)) S.d.posts.push(v); save(); renderView(); },
   'post-del': (el) => { S.d.posts.splice(+el.dataset.i, 1); save(); renderView(); },
   'ai-provider': (el) => { S.d.prefs.ai.provider = el.dataset.v; save(); renderView(); },
-  'ai-test': async () => { try { toast('Testando…'); const r = await callLLM(S.d.prefs.ai, { prompt: 'Responda apenas com a palavra OK.' }); toast(/ok/i.test(r) ? 'IA conectada ✅' : 'A IA respondeu, mas de forma inesperada'); } catch (e) { toast('Falhou: ' + (e.message || 'erro'), 'err'); } },
+  'ai-test': async () => { try { toast('Testando…'); const before = S.d.prefs.ai.model; const r = await callLLM(S.d.prefs.ai, { prompt: 'Responda apenas com a palavra OK.' }); if (S.d.prefs.ai.model !== before) save(); renderView(); toast(/ok/i.test(r) ? `IA conectada ✅${S.d.prefs.ai.model && S.d.prefs.ai.model !== before ? ' (modelo ' + S.d.prefs.ai.model + ')' : ''}` : 'A IA respondeu, mas de forma inesperada'); } catch (e) { toast('Falhou: ' + (e.message || 'erro'), 'err'); } },
   notify: async () => { const r = await askNotifyPermission(); toast(r === 'granted' ? 'Notificações liberadas ✅' : 'Notificações bloqueadas no navegador', r === 'granted' ? '' : 'err'); },
   'alarm-test': () => showAlarm({ title: 'Teste de alarme', body: 'É assim que o aviso do quarto vai tocar.', sound: S.d.prefs.sound }),
   'alarm-off': () => { stopSound(); $('#alarmRoot').innerHTML = ''; S.alarm = null; },
@@ -654,12 +669,31 @@ window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); wind
 setInterval(() => { if (S.view === 'plantao' && !S.sheet && !S.locked) { const el = $('#plClock'); if (el) el.textContent = new Date().toTimeString().slice(0, 8); } }, 1000);
 setInterval(() => { if (S.uid && S.d?.onboarded && (S.view === 'dashboard' || S.view === 'plantao') && !S.sheet && !document.activeElement?.closest('input,textarea')) renderView(); }, 30000);
 
+// ---------- MODO DEMONSTRAÇÃO (galeria de estilos: #demo=tema&view=calendar&cell=circle) ----------
+function demoData(theme, cell) {
+  const d = defaultData('Lucas Silva Santos'); d.onboarded = true; d.profile.unit = 'Penitenciária Estadual'; d.prefs.theme = theme; d.prefs.cellStyle = cell || 'classic';
+  const t = C.today(); d.scale = C.defaultScale(C.addDays(t, -1));
+  const y = Number(t.slice(0, 4)), m = Number(t.slice(5, 7)) - 1; const days = C.monthDays(y, m);
+  const shifts = days.filter((x) => C.isScheduled(x, d.scale)); const free = days.filter((x) => !C.isScheduled(x, d.scale));
+  const pk = (a, i) => a[Math.min(i, a.length - 1)]; const ev = (o) => d.events.push({ id: C.uid(), note: '', ...o });
+  ev({ type: 'extra', date: pk(free, 1), turno: 'diurna', value: 219, paid: true }); ev({ type: 'extra', date: pk(free, 5), turno: 'noturna', value: 219 });
+  ev({ type: 'permuta', dir: 'passei', who: 'João', date: pk(shifts, 2) }); ev({ type: 'permuta', dir: 'assumi', who: 'Maria', date: pk(free, 8) });
+  ev({ type: 'folga', date: pk(free, 11), end: C.addDays(pk(free, 11), 1), reason: 'Compensação' }); ev({ type: 'atestado', date: pk(free, 14), end: C.addDays(pk(free, 14), 2) });
+  const ns = shifts.find((x) => x >= t) || shifts[0];
+  [['22-00', 'Pavilhão A'], ['00-02', 'Muralha'], ['04-06', 'Portaria']].forEach(([slot, post]) => ev({ type: 'quarto', date: ns, slot, post }));
+  ev({ type: 'ocorrencia', date: ns, time: '14:30', title: 'Revista de rotina', cat: 'Segurança', prio: 'Atenção', place: 'Pavilhão B', note: 'Sem alterações. 1 item apreendido.' });
+  ev({ type: 'ocorrencia', date: ns, time: '09:10', title: 'Contagem de presos', cat: 'Rotina', prio: 'Normal', place: 'Pavilhão A', note: 'Contagem conferida.' });
+  return d;
+}
+
 // ---------- BOOT ----------
 (function boot() {
   const id = Store.currentId(); if (id && Store.user(id)) { S.uid = id; S.user = Store.user(id); S.d = Store.load(id); if (!S.d) { S.uid = null; Store.endSession(); } }
+  const hp = new URLSearchParams((location.hash || '').slice(1));
+  if (hp.has('demo')) { S.uid = 'demo'; S.user = { id: 'demo', name: 'Lucas Silva', guest: true, email: '' }; S.d = demoData(hp.get('demo') || 'dark', hp.get('cell')); S.view = hp.get('view') || 'calendar'; }
   const root = document.createElement('div'); root.id = 'root'; const sr = document.createElement('div'); sr.id = 'sheetRoot'; document.body.append(root, sr);
   render();
-  if ('serviceWorker' in navigator && location.protocol.startsWith('http') && !isNative()) navigator.serviceWorker.register('./sw.js').catch(() => {});
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http') && !isNative() && !hp.has('demo')) navigator.serviceWorker.register('./sw.js').catch(() => {});
   if (S.d?.prefs.pin) lockNow();
   if (S.d?.prefs.wake) keepAwake(true);
   if (isNative()) { loadAlarmStatus(); syncAlarms(); setInterval(syncAlarms, 6 * 3600e3); document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { loadAlarmStatus(); syncAlarms(); } }); }

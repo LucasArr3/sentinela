@@ -36,12 +36,12 @@ export const scaleLabel = (sc) => (sc.preset !== 'custom' ? sc.preset : `${sc.wo
 
 // ---------- Eventos ----------
 export const TYPES = {
-  extra: { label: 'Extra', plural: 'Extras', color: '#66c08a', icon: 'coins', emoji: '💰', range: false },
-  permuta: { label: 'Permuta', plural: 'Permutas', color: '#d4a24c', icon: 'swap', emoji: '🔁', range: false },
+  extra: { label: 'Extra', plural: 'Extras', color: '#6fcf97', icon: 'coins', emoji: '💰', range: false },
+  permuta: { label: 'Permuta', plural: 'Permutas', color: '#e0b25a', icon: 'swap', emoji: '🔁', range: false },
   quarto: { label: 'Quarto de hora', plural: 'Quartos', color: '#7aa8cf', icon: 'clock', emoji: '⏱️', range: false },
-  folga: { label: 'Folga', plural: 'Folgas', color: '#9b8fd1', icon: 'moon', emoji: '🌙', range: true },
-  atestado: { label: 'Atestado médico', plural: 'Atestados', color: '#d96b6b', icon: 'pulse', emoji: '🏥', range: true },
-  ferias: { label: 'Férias', plural: 'Férias', color: '#5fb8ad', icon: 'sun', emoji: '🏖️', range: true },
+  folga: { label: 'Folga', plural: 'Folgas', color: '#74b9c9', icon: 'moon', emoji: '🌙', range: true },
+  atestado: { label: 'Atestado médico', plural: 'Atestados', color: '#e07a7a', icon: 'pulse', emoji: '🏥', range: true },
+  ferias: { label: 'Férias', plural: 'Férias', color: '#e39ab8', icon: 'sun', emoji: '🏖️', range: true },
   obs: { label: 'Observação', plural: 'Observações', color: '#8b8b92', icon: 'note', emoji: '📝', range: false },
   ocorrencia: { label: 'Ocorrência', plural: 'Ocorrências', color: '#c9788a', icon: 'book', emoji: '📒', range: false },
 };
@@ -74,6 +74,9 @@ export function nextQuarto(state, now = new Date()) {
   }
   return best;
 }
+// Cores do calendário: mesma luminosidade para tudo combinar
+export const EXTRA_D = '#6fcf97';
+export const EXTRA_N = '#8da2f2';
 export const TURNOS = { diurna: 'Extra diurna (12h)', noturna: 'Extra noturna (12h)', h24: 'Extra 24h' };
 export const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
 export const evEnd = (e) => e.end || e.date;
@@ -108,12 +111,12 @@ export function dayInfo(date, state) {
 }
 export const STATUS = {
   plantao: { label: 'Plantão', color: 'var(--accent)' },
-  extra: { label: 'Extra', color: '#66c08a' },
-  permuta_in: { label: 'Assumiu plantão (permuta)', color: '#d4a24c' },
-  permuta_out: { label: 'Passou plantão (permuta)', color: '#d4a24c' },
-  folga: { label: 'Folga abonada', color: '#9b8fd1' },
-  atestado: { label: 'Atestado médico', color: '#d96b6b' },
-  ferias: { label: 'Férias', color: '#5fb8ad' },
+  extra: { label: 'Extra', color: '#6fcf97' },
+  permuta_in: { label: 'Assumiu plantão (permuta)', color: '#e0b25a' },
+  permuta_out: { label: 'Passou plantão (permuta)', color: '#e0b25a' },
+  folga: { label: 'Folga abonada', color: '#74b9c9' },
+  atestado: { label: 'Atestado médico', color: '#e07a7a' },
+  ferias: { label: 'Férias', color: '#e39ab8' },
   livre: { label: 'Folga', color: 'var(--muted)' },
 };
 

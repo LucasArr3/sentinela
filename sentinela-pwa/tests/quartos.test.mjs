@@ -87,3 +87,11 @@ test('catálogo de sons e migração dos ids antigos', () => {
   assert.equal(SOUND_LIST.length, 13); assert.equal(migrateSound('sirene'), 'sirene_lamento'); assert.equal(migrateSound('alvorada'), 'clarim'); assert.equal(migrateSound('klaxon'), 'klaxon');
   assert.ok(isBuiltin('radio')); assert.ok(!isBuiltin('custom:abc')); assert.notEqual(hashId('a'), hashId('b'));
 });
+
+test('lembrete antes do plantão (opcional) e extras com cores distintas', () => {
+  const s = st(); const now = new Date(2026, 10, 23, 0, 0);
+  assert.equal(buildAlarms(s, now, 3).filter((x) => x.kind === 'plantao').length, 0); // desligado por padrão
+  const on = { ...s, prefs: { ...s.prefs, shiftReminder: 120 } };
+  const a = buildAlarms(on, now, 3).filter((x) => x.kind === 'plantao'); assert.equal(a.length, 1);
+  assert.equal(new Date(a[0].at).getHours(), 5); assert.match(a[0].body, /2 horas/); assert.equal(a[0].sound, 'carrilhao');
+});
