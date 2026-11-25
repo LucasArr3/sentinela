@@ -3,7 +3,7 @@
 const CFG = { apiKey: "AIzaSyC1ZF-ko4YQ3lgowtXzkJlTvz7ts_wy8ik", projectId: "gen-lang-client-0373115522", db: "ai-studio-5b655d85-8635-4b7a-955d-c700dc9af2e1" }; // chave web do projeto (pública por natureza; a segurança está nas regras)
 
 // ID do cliente Web (OAuth) do Google, criado ao ativar o provedor Google no Firebase. Vazio = botão do Google mostra o aviso de configuração.
-export const GOOGLE_WEB_CLIENT_ID = '';
+export const GOOGLE_WEB_CLIENT_ID = '317973810069-n9pr1h2mmsfu3mjpogto4m95e7qa9p98.apps.googleusercontent.com';
 
 export const CHUNK = 600000; // caracteres por documento (limite do Firestore: ~1 MB)
 const J = async (url, opts) => {
