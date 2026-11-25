@@ -399,3 +399,6 @@ body{background:radial-gradient(900px 420px at 85% -18%,color-mix(in srgb,var(--
 .cdot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:3px;vertical-align:middle}
 details[data-sec=daymore] .add{flex-direction:row;justify-content:flex-start;padding:9px 12px;gap:10px;font-size:13.5px}
 details[data-sec=daymore] .add i{width:30px;height:30px;border-radius:10px}
+
+.tiles.one{grid-template-columns:1fr}
+.drow.past{opacity:.75}

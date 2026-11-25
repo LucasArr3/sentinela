@@ -22,13 +22,13 @@ export function buildSummary(state, y, m, opts = {}) {
   const s = monthSummary(state, y, m); const p = state.profile; const L = [];
   const title = { escala: 'ESCALA', financeiro: 'RESUMO FINANCEIRO', completo: 'RESUMO DO MÊS', proximos: 'PRÓXIMOS PLANTÕES' }[o.kind];
   if (o.kind === 'proximos') {
-    L.push(`🛡️ *${title}*`, `👮 *${p.name || 'Servidor'}*${p.rank ? ` · ${p.rank}` : ''}`, `🔁 Escala ${scaleLabel(state.scale)}`, line);
+    L.push(`🛡️ *${title}*`, `👤 *${p.name || 'Servidor'}*${p.rank ? ` · ${p.rank}` : ''}`, `🔁 Escala ${scaleLabel(state.scale)}`, line);
     const up = upcoming(state, 8);
     L.push(...up.map((d) => `▫️ *${dow(d.date)} ${fmtShort(d.date)}* — ${d.status === 'extra' ? 'Extra' : d.status === 'permuta_in' ? 'Permuta (assumi)' : 'Plantão ' + state.scale.hours + 'h'}`));
     L.push(line, `_Gerado pelo Sentinela Tático_`); return L.join('\n');
   }
   L.push(`🛡️ *${title} — ${MONTHS[m].toUpperCase()}/${y}*`);
-  L.push(`👮 *${p.name || 'Servidor'}*${p.rank ? ` · ${p.rank}` : ''}`);
+  L.push(`👤 *${p.name || 'Servidor'}*${p.rank ? ` · ${p.rank}` : ''}`);
   if (p.unit) L.push(`📍 ${p.unit}`);
   L.push(`🔁 Escala ${scaleLabel(state.scale)} · início ${state.scale.start}`, line);
 
