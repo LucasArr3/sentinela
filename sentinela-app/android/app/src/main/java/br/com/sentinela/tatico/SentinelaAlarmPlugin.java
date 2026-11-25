@@ -23,6 +23,15 @@ import androidx.core.app.NotificationManagerCompat;
 import androidx.biometric.BiometricManager;
 import androidx.biometric.BiometricPrompt;
 import androidx.core.content.ContextCompat;
+import androidx.credentials.CredentialManager;
+import androidx.credentials.CredentialManagerCallback;
+import androidx.credentials.CustomCredential;
+import androidx.credentials.GetCredentialRequest;
+import androidx.credentials.GetCredentialResponse;
+import androidx.credentials.exceptions.GetCredentialCancellationException;
+import androidx.credentials.exceptions.GetCredentialException;
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption;
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
 import androidx.fragment.app.FragmentActivity;
 
 import com.getcapacitor.JSArray;
@@ -175,6 +184,50 @@ public class SentinelaAlarmPlugin extends Plugin {
             call.resolve();
         } catch (Exception e) {
             call.reject("não foi possível abrir");
+        }
+    }
+
+    // ---------------- login com Google (Credential Manager) ----------------
+    @PluginMethod
+    public void googleSignIn(PluginCall call) {
+        final Activity a = getActivity();
+        final String clientId = call.getString("clientId", "");
+        if (a == null || clientId.isEmpty()) { call.reject("config"); return; }
+        try {
+            GetGoogleIdOption opt = new GetGoogleIdOption.Builder()
+                    .setFilterByAuthorizedAccounts(false)
+                    .setServerClientId(clientId)
+                    .build();
+            GetCredentialRequest req = new GetCredentialRequest.Builder().addCredentialOption(opt).build();
+            CredentialManager.create(a).getCredentialAsync(a, req, null, ContextCompat.getMainExecutor(a),
+                    new CredentialManagerCallback<GetCredentialResponse, GetCredentialException>() {
+                        @Override
+                        public void onResult(GetCredentialResponse result) {
+                            try {
+                                if (result.getCredential() instanceof CustomCredential
+                                        && GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL.equals(result.getCredential().getType())) {
+                                    GoogleIdTokenCredential c = GoogleIdTokenCredential.createFrom(result.getCredential().getData());
+                                    JSObject r = new JSObject();
+                                    r.put("idToken", c.getIdToken());
+                                    r.put("name", c.getDisplayName() == null ? "" : c.getDisplayName());
+                                    r.put("email", c.getId());
+                                    call.resolve(r);
+                                } else {
+                                    call.reject("tipo de credencial inesperado");
+                                }
+                            } catch (Exception e) {
+                                call.reject("falha: " + e.getMessage());
+                            }
+                        }
+
+                        @Override
+                        public void onError(GetCredentialException e) {
+                            if (e instanceof GetCredentialCancellationException) call.reject("cancelado");
+                            else call.reject("falha: " + e.getType() + " " + e.getMessage());
+                        }
+                    });
+        } catch (Exception e) {
+            call.reject("falha: " + e.getMessage());
         }
     }
 

@@ -2,6 +2,9 @@
 // Os dados ficam em users/{uid}/backup/* e só o próprio usuário pode ler/gravar (veja firebase/firestore.rules).
 const CFG = { apiKey: "AIzaSyC1ZF-ko4YQ3lgowtXzkJlTvz7ts_wy8ik", projectId: "gen-lang-client-0373115522", db: "ai-studio-5b655d85-8635-4b7a-955d-c700dc9af2e1" }; // chave web do projeto (pública por natureza; a segurança está nas regras)
 
+// ID do cliente Web (OAuth) do Google, criado ao ativar o provedor Google no Firebase. Vazio = botão do Google mostra o aviso de configuração.
+export const GOOGLE_WEB_CLIENT_ID = '';
+
 export const CHUNK = 600000; // caracteres por documento (limite do Firestore: ~1 MB)
 const J = async (url, opts) => {
   const r = await fetch(url, opts); const j = await r.json().catch(() => ({}));
@@ -10,6 +13,7 @@ const J = async (url, opts) => {
 };
 export function explain(e) {
   const m = String((e && (e.code || e.message)) || '');
+  if (/ID_TOKEN|INVALID_IDP_RESPONSE|OPERATION_NOT_ALLOWED : Sign.in provider disabled|CREDENTIAL_TOO_OLD/i.test(m)) return 'O login com Google ainda não foi ativado no Firebase (veja o guia da nuvem).';
   if (/EMAIL_EXISTS/.test(m)) return 'Este e-mail já tem conta na nuvem. Use "Entrar".';
   if (/INVALID_LOGIN_CREDENTIALS|INVALID_PASSWORD|EMAIL_NOT_FOUND|INVALID_EMAIL|MISSING_PASSWORD/.test(m)) return 'E-mail ou senha incorretos.';
   if (/WEAK_PASSWORD/.test(m)) return 'Senha fraca: use pelo menos 6 caracteres.';
@@ -25,9 +29,20 @@ export function explain(e) {
 // ---------- login (Identity Toolkit REST) ----------
 const AUTH = 'https://identitytoolkit.googleapis.com/v1/accounts';
 const post = (path, body) => J(`${AUTH}:${path}?key=${CFG.apiKey}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
-const sess = (r, email) => ({ email, uid: r.localId, refreshToken: r.refreshToken, idToken: r.idToken, exp: Date.now() + (Number(r.expiresIn) || 3600) * 1000 });
-export const signUp = async (email, password) => sess(await post('signUp', { email, password, returnSecureToken: true }), email);
-export const signIn = async (email, password) => sess(await post('signInWithPassword', { email, password, returnSecureToken: true }), email);
+const sess = (r, email, extra = {}) => ({ email, uid: r.localId, refreshToken: r.refreshToken, idToken: r.idToken, exp: Date.now() + (Number(r.expiresIn) || 3600) * 1000, verified: false, ...extra });
+export const signUp = async (email, password) => { const s = sess(await post('signUp', { email, password, returnSecureToken: true }), email); try { await sendVerify(s); s.verifySent = true; } catch { /* reenvio manual */ } return s; };
+export const signIn = async (email, password) => { const s = sess(await post('signInWithPassword', { email, password, returnSecureToken: true }), email); await refreshVerified(s).catch(() => {}); return s; };
+// Login com Google: recebe o ID token do Google (obtido pelo app Android) e troca por uma sessão do Firebase.
+export async function signInGoogle(googleIdToken) {
+  const r = await post('signInWithIdp', { postBody: `id_token=${googleIdToken}&providerId=google.com`, requestUri: 'http://localhost', returnSecureToken: true, returnIdpCredential: true });
+  return sess(r, r.email || '', { verified: true, google: true, name: r.displayName || '', photo: r.photoUrl || '', isNew: !!r.isNewUser });
+}
+// Confirmação de e-mail (e-mail enviado pelo Firebase com um link)
+export const sendVerify = (s) => post('sendOobCode', { requestType: 'VERIFY_EMAIL', idToken: s.idToken });
+export async function refreshVerified(s) {
+  await freshToken(s); const r = await post('lookup', { idToken: s.idToken }); const u = (r.users || [])[0] || {};
+  s.verified = !!u.emailVerified || !!s.google; return s.verified;
+}
 export const resetPassword = (email) => post('sendOobCode', { requestType: 'PASSWORD_RESET', email });
 export async function freshToken(s) {
   if (s.idToken && s.exp - 60000 > Date.now()) return s;

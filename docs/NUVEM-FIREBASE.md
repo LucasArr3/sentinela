@@ -54,3 +54,40 @@ Com o Firebase CLI (se um dia preferir): `cd firebase && firebase deploy --only 
 - **Nunca** vão para a nuvem: a chave de IA e o PIN.
 - Backup automático ~25 s depois de você mexer nos dados (pode desligar). Restaurar sempre pergunta antes de trocar os dados do aparelho.
 - Se aparecer erro, o app diz o que falta (login desativado, regras, chave bloqueada).
+
+
+## Login com Google (app Android)
+O app já tem o botão "Continuar com o Google". Falta ligar no Firebase e me devolver **um código** (o ID do cliente Web).
+
+**SHA-1 da assinatura do app** (a mesma de todo APK que o GitHub gera):
+`11:36:BD:EC:1A:A6:AE:9C:02:E3:7C:3B:6F:95:4E:AC:AE:3C:AD:09`
+Nome do pacote: `br.com.sentinela.tatico`
+
+### Prompt para o assistente com navegador
+```
+Configure o login com Google do app "Sentinela Tático" no Firebase. Use o navegador logado na minha conta Google. Não apague nada. No final, liste o que alterou.
+
+Projeto: gen-lang-client-0373115522
+
+PASSO 1 — Ativar o provedor Google
+https://console.firebase.google.com/project/gen-lang-client-0373115522/authentication/providers
+Clique em "Google", ative, escolha meu e-mail como "E-mail de suporte do projeto" e salve.
+Depois abra o Google de novo e copie o "ID do cliente da Web" (Web client ID, termina em .apps.googleusercontent.com), em "Configuração do SDK da Web" ou em Credenciais do Google Cloud ("Web client (auto created by Google Service)").
+
+PASSO 2 — Registrar o app Android
+https://console.firebase.google.com/project/gen-lang-client-0373115522/settings/general
+Em "Seus apps", adicione um app Android com o nome do pacote br.com.sentinela.tatico e a impressão digital SHA-1 11:36:BD:EC:1A:A6:AE:9C:02:E3:7C:3B:6F:95:4E:AC:AE:3C:AD:09 (não precisa baixar o google-services.json). Se o app já existir, só confirme que o SHA-1 está na lista.
+Confirme em https://console.cloud.google.com/apis/credentials?project=gen-lang-client-0373115522 que existe um "ID do cliente OAuth" do tipo Android com esse pacote e SHA-1.
+
+PASSO 3 — Modelo do e-mail de confirmação (opcional)
+https://console.firebase.google.com/project/gen-lang-client-0373115522/authentication/emails
+Em "Verificação de endereço de e-mail", mude o idioma para Português (Brasil) e salve.
+
+No final, me mostre o ID do cliente da Web (Web client ID) completo.
+```
+
+### Depois
+Cole aqui o **ID do cliente da Web** que o assistente devolveu. Ele vai em `GOOGLE_WEB_CLIENT_ID` (`sentinela-pwa/js/cloud.js`) e o botão passa a funcionar na próxima versão do app.
+
+## Confirmação de e-mail
+Quem cria conta com e-mail e senha recebe um link do Firebase por e-mail. O backup só libera depois de confirmar (o app tem os botões "Já confirmei" e "Reenviar"). Contas Google já entram confirmadas.

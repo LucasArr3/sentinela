@@ -356,3 +356,14 @@ body{background:radial-gradient(900px 420px at 85% -18%,color-mix(in srgb,var(--
 .trio div{display:flex;flex-direction:column;gap:2px}.trio b{font-size:22px;font-weight:800;letter-spacing:-.03em}.trio span{font-size:12px;color:var(--muted)}
 .trio div+div{border-left:1px solid var(--line)}
 .avatar{overflow:hidden}.avatar img{width:100%;height:100%;object-fit:cover;display:block}
+
+.grp{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:800;margin:16px 4px 2px}
+.chip[data-act=day]{padding:7px 12px;font-size:12.5px}
+
+.quick{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px}
+.qk{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:13px 14px;border-radius:16px;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--qc,var(--accent));text-align:left;transition:transform .12s}
+.qk b{font-size:14px}.qk small{color:var(--muted);font-size:12px}.qk:active{transform:scale(.96)}
+.add.w6{grid-column:span 6;flex-direction:row;justify-content:center}
+.sheet{animation:sheetUp .22s cubic-bezier(.2,.8,.2,1)}@keyframes sheetUp{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
+
+.sec>summary{padding:10px 12px;gap:10px}.sec>summary .ico{width:32px;height:32px;border-radius:10px}.sec>summary b{font-size:14.5px}.sec>summary small{font-size:11.5px}

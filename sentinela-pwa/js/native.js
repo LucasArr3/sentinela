@@ -26,6 +26,7 @@ export const NativeAlarm = {
   widget: (data) => call('SentinelaAlarm', 'widget', { data }),
   bioStatus: () => call('SentinelaAlarm', 'bioStatus'),
   bioAuth: (title) => call('SentinelaAlarm', 'bioAuth', { title }),
+  googleSignIn: (clientId) => call('SentinelaAlarm', 'googleSignIn', { clientId }),
   appVersion: () => call('SentinelaAlarm', 'appVersion'),
   openUrl: (url) => call('SentinelaAlarm', 'openUrl', { url }),
   preview: (sound) => call('SentinelaAlarm', 'preview', { sound }),
