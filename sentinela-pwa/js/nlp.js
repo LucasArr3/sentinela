@@ -102,7 +102,7 @@ export function parseCommand(input, ref = today(), ctx = { quarters: [], posts: 
   const dur = t.match(/(\d{1,3})\s*dias?\b/);
 
   if (type === 'extra') {
-    ev.turno = has('noturn', 'noite') ? 'noturna' : has('24 ?h', '24 horas', 'vinte e quatro', 'dia inteiro') ? 'h24' : 'diurna';
+    ev.turno = has('noturn', 'noite') ? 'noturna' : 'diurna';
   }
   if (type === 'permuta') {
     ev.dir = has('assumi', 'assumir', 'cobri', 'cobrir', 'peguei', 'fiquei no lugar', 'no lugar d') ? 'assumi' : 'passei';

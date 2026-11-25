@@ -1,6 +1,6 @@
 # 🛡️ Sentinela Tático
 
-Calendário tático de plantão para **Policiais Penais**: escala 24x72 (e outras), extras com valores, permutas, folgas, atestados, **quartos de hora e postos**, livro de ocorrências, resumos para WhatsApp, assistente de voz/IA e **alarme de verdade no Android**.
+Calendário tático de plantão para **servidores em regime de plantão**: escala 24x72 (e outras), extras com valores, permutas, folgas, atestados, **quartos de hora e postos**, livro de ocorrências, resumos para WhatsApp, assistente de voz/IA e **alarme de verdade no Android**.
 
 | Pasta | O que é |
 |---|---|

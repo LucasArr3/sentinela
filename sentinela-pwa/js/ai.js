@@ -35,7 +35,7 @@ export function createAssistant(api) {
   async function viaLLM(text) {
     const d = api.data(); const ai = d.prefs.ai; msgs.push({ who: 'bot', text: 'Pensando…', tmp: true }); draw();
     try {
-      const prompt = `Você é o assistente do app Sentinela (calendário de plantão de policiais penais, escala ${C.scaleLabel(d.scale)}). Hoje é ${C.today()}. Faixas de quarto: ${d.quarters.map((q) => q.id).join(', ')}. Postos: ${d.posts.join(', ') || 'nenhum'}.
+      const prompt = `Você é o assistente do app Sentinela (calendário de plantão de servidores em regime de escala (policiais, agentes penitenciários e similares), escala ${C.scaleLabel(d.scale)}). Hoje é ${C.today()}. Faixas de quarto: ${d.quarters.map((q) => q.id).join(', ')}. Postos: ${d.posts.join(', ') || 'nenhum'}.
 Interprete o pedido e responda SOMENTE JSON, em um destes formatos:
 {"action":"create","event":{"type":"extra|permuta|folga|atestado|ferias|obs","date":"YYYY-MM-DD","end":"YYYY-MM-DD (opcional)","turno":"diurna|noturna|h24","value":0,"dir":"passei|assumi","who":"","note":""}}
 {"action":"quartos","date":"YYYY-MM-DD","slots":["22-00"],"post":""}

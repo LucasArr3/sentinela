@@ -23,11 +23,11 @@ async function hashPw(pw, salt, iter) {
 
 export const defaultData = (name = '') => ({
   v: 1, onboarded: false,
-  profile: { name, rank: 'Policial Penal', matricula: '', unit: '', phone: '', alias: '' },
+  profile: { name, rank: '', matricula: '', unit: '', phone: '', alias: '' },
   quarters: DEFAULT_QUARTERS.map((q) => ({ ...q })), posts: [...DEFAULT_POSTS], holidays: [], customSounds: [],
   scale: defaultScale(today()),
-  money: { diurna: 219, noturna: 219, h24: 438 },
-  prefs: { theme: 'dark', accent: '', speak: false, waPhone: '', waKind: 'completo', lastPost: '', reminders: true, lead: 15, sound: DEFAULT_SOUND, shiftReminder: 0, shiftSound: 'carrilhao', snooze: 5, ramp: true, autostop: 5, alvorada: true, wake: false, cellStyle: 'classic', ai: { provider: 'gemini', key: '', model: '' } },
+  money: { diurna: 219, noturna: 219 },
+  prefs: { theme: 'dark', accent: '', speak: false, waPhone: '', waKind: 'completo', lastPost: '', reminders: true, lead: 15, sound: DEFAULT_SOUND, shiftReminder: 0, shiftSound: 'carrilhao', snooze: 5, ramp: true, autostop: 5, alvorada: true, wake: false, cellStyle: 'classic', colors: {}, ai: { provider: 'gemini', key: '', model: '' } },
   events: [],
 });
 

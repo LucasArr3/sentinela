@@ -76,9 +76,22 @@ export function nextQuarto(state, now = new Date()) {
   return best;
 }
 // Cores do calendário: mesma luminosidade para tudo combinar
-export const EXTRA_D = '#6fcf97';
-export const EXTRA_N = '#8da2f2';
-export const TURNOS = { diurna: 'Extra diurna (12h)', noturna: 'Extra noturna (12h)', h24: 'Extra 24h' };
+export let EXTRA_D = '#6fcf97';
+export let EXTRA_N = '#8da2f2';
+// Cores padrão e personalização (prefs.colors). Chaves: extraD, extraN, permuta, folga, atestado, ferias, quarto
+export const DEFAULT_COLORS = { extraD: '#6fcf97', extraN: '#8da2f2', permuta: '#e0b25a', folga: '#74b9c9', atestado: '#e07a7a', ferias: '#e39ab8', quarto: '#7aa8cf' };
+export const COLOR_LABELS = { extraD: 'Extra diurna', extraN: 'Extra noturna', permuta: 'Permuta', folga: 'Folga', atestado: 'Atestado', ferias: 'Férias', quarto: 'Quarto de hora' };
+export function applyColors(custom) {
+  const c = { ...DEFAULT_COLORS, ...(custom || {}) }; const ok = (v) => /^#[0-9a-f]{6}$/i.test(v);
+  for (const k of Object.keys(DEFAULT_COLORS)) if (!ok(c[k])) c[k] = DEFAULT_COLORS[k];
+  EXTRA_D = c.extraD; EXTRA_N = c.extraN;
+  TYPES.extra.color = c.extraD; STATUS.extra.color = c.extraD;
+  TYPES.permuta.color = c.permuta; STATUS.permuta_in.color = c.permuta; STATUS.permuta_out.color = c.permuta;
+  TYPES.folga.color = c.folga; STATUS.folga.color = c.folga;
+  TYPES.atestado.color = c.atestado; STATUS.atestado.color = c.atestado;
+  TYPES.ferias.color = c.ferias; STATUS.ferias.color = c.ferias; TYPES.quarto.color = c.quarto;
+}
+export const TURNOS = { diurna: 'Extra diurna (12h)', noturna: 'Extra noturna (12h)' };
 export const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
 export const evEnd = (e) => e.end || e.date;
 export const covers = (e, date) => date >= e.date && date <= evEnd(e);

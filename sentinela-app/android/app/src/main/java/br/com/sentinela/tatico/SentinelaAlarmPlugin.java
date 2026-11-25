@@ -211,6 +211,7 @@ public class SentinelaAlarmPlugin extends Plugin {
                                     r.put("idToken", c.getIdToken());
                                     r.put("name", c.getDisplayName() == null ? "" : c.getDisplayName());
                                     r.put("email", c.getId());
+                                    r.put("photo", c.getProfilePictureUri() == null ? "" : c.getProfilePictureUri().toString());
                                     call.resolve(r);
                                 } else {
                                     call.reject("tipo de credencial inesperado");

@@ -33,7 +33,7 @@ export function matchPost(text, posts) {
 }
 
 export function buildPrompt(quarters, posts, ref = today()) {
-  return `Você lê fotos de escalas de "quarto de hora" (revezamento de postos noturnos) de policiais penais, enviadas em grupos de WhatsApp.
+  return `Você lê fotos de escalas de "quarto de hora" (revezamento de postos noturnos) de servidores de plantão, enviadas em grupos de WhatsApp.
 Extraia TODAS as linhas legíveis. Responda SOMENTE com JSON, sem texto extra, neste formato:
 {"date":"YYYY-MM-DD ou null","entries":[{"name":"nome como escrito","slot":"faixa como escrita, ex: 22h às 00h","post":"posto/local como escrito ou vazio"}]}
 Faixas usadas: ${quarters.map((q) => `${q.start}-${q.end}${q.name ? ' (' + q.name + ')' : ''}`).join(', ')}.
