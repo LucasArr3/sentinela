@@ -15,6 +15,8 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 12
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -43,7 +45,15 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          {
+            echo "Versão 1.0.${GITHUB_RUN_NUMBER}"
+            echo
+            echo "Novidades:"
+            git log -1 --format=%B | sed '/^Co-Authored-By/d;/^Claude-Session/d'
+            echo
+            echo "Anteriores:"
+            git log --format='- %s' -n 8 --skip=1
+          } > notes.txt
           gh release delete apk-latest --cleanup-tag --yes || true
           gh release create apk-latest sentinela-tatico.apk --prerelease --target "$GITHUB_SHA" \
-            --title "App Android Sentinela Tático (última versão)" \
-            --notes "APK gerado automaticamente a partir do commit ${GITHUB_SHA::7}. Instale no celular Android."
+            --title "Sentinela Tático 1.0.${GITHUB_RUN_NUMBER}" --notes-file notes.txt

@@ -26,6 +26,8 @@ export const NativeAlarm = {
   widget: (data) => call('SentinelaAlarm', 'widget', { data }),
   bioStatus: () => call('SentinelaAlarm', 'bioStatus'),
   bioAuth: (title) => call('SentinelaAlarm', 'bioAuth', { title }),
+  appVersion: () => call('SentinelaAlarm', 'appVersion'),
+  openUrl: (url) => call('SentinelaAlarm', 'openUrl', { url }),
   preview: (sound) => call('SentinelaAlarm', 'preview', { sound }),
   stopPreview: () => call('SentinelaAlarm', 'stopPreview'),
 };
@@ -55,3 +57,19 @@ export function startListening({ lang = 'pt-BR', onText, onEnd, onError, prompt 
   try { rec.start(); } catch (e) { onError && onError(e); }
   return () => { try { rec.stop(); } catch { /* */ } };
 }
+
+// ---------- atualização do app (consulta o release público no GitHub) ----------
+const RELEASE_API = 'https://api.github.com/repos/LucasArr3/sentinela/releases/tags/apk-latest';
+const verNum = (t) => { const m = /(?:vers[aã]o|v)\s*1\.0\.(\d+)/i.exec(t || ''); return m ? Number(m[1]) : 0; };
+// Devolve { installed, latest, newer, notes, history[] }
+export async function checkUpdate() {
+  let installed = 0, installedName = '';
+  if (isNative()) { try { const v = await NativeAlarm.appVersion(); installedName = v.name || ''; installed = verNum('v' + installedName); } catch { /* */ } }
+  const r = await fetch(RELEASE_API, { headers: { Accept: 'application/vnd.github+json' }, cache: 'no-store' });
+  if (!r.ok) throw new Error(r.status === 404 ? 'Nenhuma versão publicada ainda' : 'Não consegui consultar (código ' + r.status + ')');
+  const j = await r.json(); const body = String(j.body || ''); const latest = verNum(body) || verNum(j.name);
+  const parts = body.split(/\n+Anteriores:\n/); const notes = parts[0].replace(/^vers[aã]o[^\n]*\n+/i, '').replace(/^Novidades:\s*/i, '').trim();
+  const history = (parts[1] || '').split('\n').map((x) => x.replace(/^[-•]\s*/, '').trim()).filter(Boolean);
+  return { installed, installedName, latest, newer: latest > 0 && installed > 0 && latest > installed, notes, history, date: j.published_at || j.created_at || '' };
+}
+export function openApkDownload() { return isNative() ? NativeAlarm.openUrl(APK_URL) : (window.open(APK_URL, '_blank', 'noopener'), Promise.resolve()); }

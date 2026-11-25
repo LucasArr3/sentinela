@@ -149,6 +149,35 @@ public class SentinelaAlarmPlugin extends Plugin {
         call.resolve();
     }
 
+    // ---------------- versão instalada e atualização ----------------
+    @PluginMethod
+    public void appVersion(PluginCall call) {
+        try {
+            android.content.pm.PackageInfo pi = getContext().getPackageManager().getPackageInfo(getContext().getPackageName(), 0);
+            JSObject r = new JSObject();
+            r.put("name", pi.versionName);
+            r.put("code", Build.VERSION.SDK_INT >= 28 ? pi.getLongVersionCode() : pi.versionCode);
+            call.resolve(r);
+        } catch (Exception e) {
+            call.reject("sem versão");
+        }
+    }
+
+    // Abre o link no navegador do celular (o download do APK é feito por ele).
+    @PluginMethod
+    public void openUrl(PluginCall call) {
+        String url = call.getString("url", "");
+        if (!url.startsWith("https://")) { call.reject("link inválido"); return; }
+        try {
+            Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getContext().startActivity(i);
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("não foi possível abrir");
+        }
+    }
+
     // ---------------- biometria (digital/rosto) ----------------
     @PluginMethod
     public void bioStatus(PluginCall call) {
