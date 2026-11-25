@@ -367,3 +367,8 @@ body{background:radial-gradient(900px 420px at 85% -18%,color-mix(in srgb,var(--
 .sheet{animation:sheetUp .22s cubic-bezier(.2,.8,.2,1)}@keyframes sheetUp{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
 
 .sec>summary{padding:10px 12px;gap:10px}.sec>summary .ico{width:32px;height:32px;border-radius:10px}.sec>summary b{font-size:14.5px}.sec>summary small{font-size:11.5px}
+
+.cal.slide-l{animation:calL .26s cubic-bezier(.2,.8,.2,1)}.cal.slide-r{animation:calR .26s cubic-bezier(.2,.8,.2,1)}
+@keyframes calL{from{transform:translateX(34px);opacity:0}to{transform:none;opacity:1}}@keyframes calR{from{transform:translateX(-34px);opacity:0}to{transform:none;opacity:1}}
+.fab-today{position:fixed;right:16px;bottom:calc(96px + env(safe-area-inset-bottom,0px));z-index:30;display:flex;align-items:center;gap:6px;padding:11px 16px;border-radius:99px;background:var(--accent);color:var(--on,#000);font-weight:800;font-size:13.5px;box-shadow:0 10px 24px -8px rgba(0,0,0,.6)}
+.fab-today svg{width:16px;height:16px}

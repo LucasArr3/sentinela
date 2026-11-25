@@ -302,7 +302,7 @@ function calendar() {
   const lg = lgAll.filter((x) => x[2]);
   return `<div class="calhead"><button class="ibtn" data-act="cal-prev" aria-label="Mês anterior">${ic('chevL')}</button><h2 style="text-align:center">${C.MONTHS[m]} <span class="muted" style="font-weight:600">${y}</span></h2><button class="btn sm" data-act="cal-today">Hoje</button><button class="ibtn" data-act="cal-next" aria-label="Próximo mês">${ic('chevR')}</button></div>
   ${mh.length ? `<div class="ticker" aria-label="Feriados do mês"><div class="tk"><div class="tkc">${tk}</div><div class="tkc" aria-hidden="true">${tk}</div></div></div>` : ''}
-  <div class="dow">${C.WD3.map((x) => `<div>${x.charAt(0)}</div>`).join('')}</div><div class="cal" id="cal" data-cs="${S.d.prefs.cellStyle}">${cells}</div>
+  <div class="dow">${C.WD3.map((x) => `<div>${x.charAt(0)}</div>`).join('')}</div><div class="cal ${S.calDir ? 'slide-' + S.calDir : ''}" id="cal" data-cs="${S.d.prefs.cellStyle}">${cells}</div>${(S.cal.y !== nowD.getFullYear() || S.cal.m !== nowD.getMonth()) ? `<button class="fab-today" data-act="cal-today">${ic('calendar')}Hoje</button>` : ''}
   <div class="legend">${lg.map(([c, l]) => `<span><i style="background:${c}"></i>${l}</span>`).join('')}</div>`;
 }
 
@@ -533,7 +533,7 @@ const A = {
   'anchor-today': () => { S.d.scale.anchor = C.today(); save(); render(); toast('Hoje agora é dia de plantão ✅'); },
   theme: (el) => { S.d.prefs.theme = el.dataset.v; save(); render(); },
   // calendário / nav mensal
-  'cal-prev': () => { shiftMonth(S.cal, -1); render(); }, 'cal-next': () => { shiftMonth(S.cal, 1); render(); }, 'cal-today': () => { S.cal = { y: nowD.getFullYear(), m: nowD.getMonth() }; render(); },
+  'cal-prev': () => { shiftMonth(S.cal, -1); S.calDir = 'r'; render(); S.calDir = ''; }, 'cal-next': () => { shiftMonth(S.cal, 1); S.calDir = 'l'; render(); S.calDir = ''; }, 'cal-today': () => { S.calDir = (S.cal.y * 12 + S.cal.m) > (nowD.getFullYear() * 12 + nowD.getMonth()) ? 'r' : 'l'; S.cal = { y: nowD.getFullYear(), m: nowD.getMonth() }; render(); S.calDir = ''; },
   'fin-prev': () => { shiftMonth(S.fin, -1); render(); }, 'fin-next': () => { shiftMonth(S.fin, 1); render(); },
   'sum-prev': () => { shiftMonth(S.sum, -1); S.sum.custom = null; render(); }, 'sum-next': () => { shiftMonth(S.sum, 1); S.sum.custom = null; render(); },
   'sum-kind': (el) => { S.d.prefs.waKind = el.dataset.v; S.sum.custom = null; S.sum.editing = false; save(); render(); },
@@ -773,8 +773,8 @@ document.addEventListener('visibilitychange', () => {
 });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && S.sheet) closeSheet(); });
 // gestos: deslizar no calendário troca o mês
-let tx = 0; document.addEventListener('touchstart', (e) => { if (e.target.closest('#cal')) tx = e.touches[0].clientX; else tx = 0; }, { passive: true });
-document.addEventListener('touchend', (e) => { if (!tx) return; const dx = e.changedTouches[0].clientX - tx; if (Math.abs(dx) > 70) { shiftMonth(S.cal, dx < 0 ? 1 : -1); render(); } tx = 0; }, { passive: true });
+let tx = 0, ty = 0; document.addEventListener('touchstart', (e) => { if (e.target.closest('#cal')) { tx = e.touches[0].clientX; ty = e.touches[0].clientY; } else tx = 0; }, { passive: true });
+document.addEventListener('touchend', (e) => { if (!tx) return; const dx = e.changedTouches[0].clientX - tx, dy = e.changedTouches[0].clientY - ty; tx = 0; if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) { shiftMonth(S.cal, dx < 0 ? 1 : -1); S.calDir = dx < 0 ? 'l' : 'r'; render(); S.calDir = ''; } }, { passive: true });
 window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); window._bip = e; if (S.view === 'settings') renderView(); });
 setInterval(() => { if (S.view === 'plantao' && !S.sheet && !S.locked) { const el = $('#plClock'); if (el) el.textContent = new Date().toTimeString().slice(0, 8); } }, 1000);
 setInterval(() => { if (S.uid && S.d?.onboarded && (S.view === 'dashboard' || S.view === 'plantao') && !S.sheet && !document.activeElement?.closest('input,textarea')) renderView(); }, 30000);
