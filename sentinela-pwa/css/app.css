@@ -422,3 +422,15 @@ details[data-sec=daymore] .add i{width:30px;height:30px;border-radius:10px}
 .hero{padding:16px 18px}.hero h2{margin-top:8px}
 .hero-go{position:absolute;right:14px;bottom:14px;z-index:2}
 .tile{padding:12px 14px}
+
+.dsum{margin-top:12px;padding:10px 12px;border-radius:16px;border:1px solid var(--line);background:transparent;display:flex;flex-direction:column;gap:8px;cursor:pointer}
+.dsh{font-size:12px;font-weight:700;color:var(--muted)}.dsh b{color:var(--text)}
+.dsum .qmini{grid-template-columns:repeat(3,1fr)}
+.qsec{margin-top:14px}.qsec:first-child{margin-top:0}
+.qh{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}.qh b{font-size:14px}
+.nxs{display:flex;gap:8px}
+.nxs button{flex:1;display:flex;flex-direction:column;align-items:center;padding:7px 4px;border-radius:14px;background:var(--surface);border:1px solid var(--line);min-width:0}
+.nxs b{font-size:13px}.nxs small{font-size:10.5px;color:var(--muted);white-space:nowrap}
+.scrollx::-webkit-scrollbar{display:none}
+
+.dchips{gap:6px}.dchips .chip{padding:7px 12px;font-size:12.5px}

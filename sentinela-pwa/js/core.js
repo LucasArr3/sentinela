@@ -38,6 +38,7 @@ export const scaleLabel = (sc) => (sc.preset !== 'custom' ? sc.preset : `${sc.wo
 export const TYPES = {
   extra: { label: 'Extra', plural: 'Extras', color: '#6fcf97', icon: 'coins', emoji: '💰', range: false },
   permuta: { label: 'Permuta', plural: 'Permutas', color: '#e0b25a', icon: 'swap', emoji: '🔁', range: false },
+  posto: { label: 'Posto do dia', plural: 'Postos do dia', color: '#7aa8cf', icon: 'shield', emoji: '🛡️', range: false },
   quarto: { label: 'Quarto de hora', plural: 'Quartos', color: '#7aa8cf', icon: 'clock', emoji: '⏱️', range: false },
   folga: { label: 'Folga', plural: 'Folgas', color: '#74b9c9', icon: 'moon', emoji: '🌙', range: true },
   atestado: { label: 'Atestado médico', plural: 'Atestados', color: '#e07a7a', icon: 'pulse', emoji: '🏥', range: true },
@@ -90,7 +91,7 @@ export function applyColors(custom) {
   TYPES.permuta.color = c.permuta; STATUS.permuta_in.color = c.permuta; STATUS.permuta_out.color = c.permuta;
   TYPES.folga.color = c.folga; STATUS.folga.color = c.folga;
   TYPES.atestado.color = c.atestado; STATUS.atestado.color = c.atestado;
-  TYPES.ferias.color = c.ferias; STATUS.ferias.color = c.ferias; TYPES.quarto.color = c.quarto;
+  TYPES.ferias.color = c.ferias; STATUS.ferias.color = c.ferias; TYPES.quarto.color = c.quarto; TYPES.posto.color = c.quarto;
 }
 export const TURNOS = { diurna: 'Extra diurna (12h)', noturna: 'Extra noturna (12h)' };
 export const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);

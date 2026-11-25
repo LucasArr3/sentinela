@@ -119,6 +119,7 @@ export function evTitle(e) {
     case 'folga': return `Folga${n > 1 ? ` · ${n} dias` : ''}${e.reason ? ' · ' + e.reason : ''}`;
     case 'atestado': return `Atestado médico · ${n} dia${n > 1 ? 's' : ''}`;
     case 'ferias': return `Férias · ${n} dias`;
+    case 'posto': return `Posto do dia · ${e.post || '—'}`;
     case 'quarto': { const q = S.d.quarters.find((x) => x.id === e.slot); return `${q ? C.qLabel(q) : e.slot}${e.post ? ' · ' + e.post : ''}`; }
     case 'ocorrencia': return `${e.time ? e.time + ' · ' : ''}${e.title || 'Ocorrência'}`;
     default: return (e.note || 'Observação').slice(0, 60);
@@ -224,8 +225,8 @@ function dashboard() {
   const hm0 = d.prefs.home || {}; const showEx = hm0.extras !== false, showQ = hm0.quartos !== false, showUp = hm0.proximos !== false, showNum = hm0.numeros === true;
   return `<div class="hero ${du.on ? 'on' : ''}"><span class="pill"><span class="dot"></span>${pill}</span><h2>${h}</h2><div class="muted">${sub}</div>${extra}<div class="muted xs" style="margin-top:14px">Escala ${C.scaleLabel(sc)} · dia ${pos + 1} de ${c}${hol ? ` · Feriado: ${esc(hol)}` : ''}</div>${du.on ? `<button class="ibtn hero-go" data-act="go" data-v="plantao" aria-label="Abrir Modo Plantão">${ic('shield')}</button>` : ''}</div>
   <div class="tiles ${showEx ? '' : 'one'}">${nextTile}${showEx ? `<button class="tile" data-act="go" data-v="finance"><span class="tl">Extras do mês</span><span class="tv">${C.brl(ms.extrasTotal)}</span><span class="ts">${ms.extrasPending > 0 ? C.brl(ms.extrasPending) + ' a receber' : ms.extras.length + ' extra(s)'}</span></button>` : ''}</div>
-  ${!showQ ? '' : `<div class="card col" style="gap:12px"><div class="row"><div class="sp"><div class="b">Quartos de hora</div><div class="muted xs">${qs.length ? C.dateLong(qDate) : (nq ? 'Nenhum neste plantão' : '')}</div></div><button class="ibtn" data-act="roster-open" data-date="${qDate}" aria-label="Foto da escala">${ic('camera')}</button><button class="ibtn" data-act="q-open" data-date="${qDate}" aria-label="Editar quartos">${ic('edit')}</button></div>${qgrid || nextLine || `<button class="btn sm blk" data-act="q-open" data-date="${qDate}">${ic('plus')}Marcar meus quartos</button>`}</div>`}
-  ${!showUp ? '' : `<div class="col" style="gap:6px"><span class="muted xs" style="font-weight:700">Próximos plantões</span><div class="chips scrollx" style="flex-wrap:nowrap">${up.map((x) => `<button class="chip" data-act="day" data-date="${x.date}">${C.WD3[C.weekday(x.date)]} ${+x.date.slice(8)} · ${C.relDays(x.date)}</button>`).join('')}</div></div>`}
+  ${!showQ ? '' : `<div class="card col" style="gap:12px"><div class="row"><div class="sp"><div class="b">Quartos de hora</div><div class="muted xs">${postoDia(qDate) ? 'Dia: <b>' + esc(postoDia(qDate).post) + '</b>' : (qs.length ? C.dateLong(qDate) : (nq ? 'Nenhum neste plantão' : ''))}</div></div><button class="ibtn" data-act="roster-open" data-date="${qDate}" aria-label="Foto da escala">${ic('camera')}</button><button class="ibtn" data-act="q-open" data-date="${qDate}" aria-label="Editar quartos">${ic('edit')}</button></div>${qgrid || nextLine || `<button class="btn sm blk" data-act="q-open" data-date="${qDate}">${ic('plus')}Marcar meus quartos</button>`}</div>`}
+  ${!showUp ? '' : `<div class="col" style="gap:6px"><span class="muted xs" style="font-weight:700">Próximos plantões</span><div class="nxs">${up.map((x) => `<button data-act="day" data-date="${x.date}"><b>${C.WD3[C.weekday(x.date)]} ${+x.date.slice(8)}</b><small>${C.relDays(x.date)}</small></button>`).join('')}</div></div>`}
   ${!showNum ? '' : `<div class="card col" style="gap:10px"><div class="b">${C.MONTHS[now.getMonth()]} em números</div><div class="trio"><div><b>${ms.plantoes.length + ms.permutaIn.length}</b><span>plantões</span></div><div><b>${ms.extras.length}</b><span>extras</span></div><div><b>${ms.permutas.length}</b><span>permutas</span></div></div></div>`}`;
 }
 function plantaoView() {
@@ -249,14 +250,12 @@ function chart() {
 
 // ---------- QUARTOS DE HORA ----------
 function qEditor(date) {
-  const by = Object.fromEntries(C.quartosOn(S.d, date).map((e) => [e.slot, e])); const sel = S.qsel && S.qsel.date === date ? S.qsel.slot : null; const n = Object.keys(by).length;
-  const grid = `<div class="qgrid">${S.d.quarters.map((q) => { const e = by[q.id]; return `<button class="qchip ${e ? 'on' : ''} ${sel === q.id ? 'sel' : ''}" data-act="q-slot" data-date="${date}" data-q="${q.id}" aria-pressed="${!!e}"><b>${esc(q.alvorada ? 'Alvorada' : C.qLabel(q))}</b><small>${e ? (e.post ? esc(e.post) : '✓') : q.alvorada ? C.qLabel(q) : '&nbsp;'}</small></button>`; }).join('')}</div>`;
-  let picker = '';
-  if (sel) {
-    const all = sel === '*'; const q = S.d.quarters.find((x) => x.id === sel); const e = by[sel]; const cur = e ? e.post : null;
-    picker = `<div class="qpick"><div class="row"><div class="b sp">${all ? 'Todos os quartos' : esc(q.alvorada ? 'Alvorada' : C.qLabel(q))} · em qual posto?</div><button class="ibtn" style="width:32px;height:32px" data-act="q-close" aria-label="Fechar">${ic('x')}</button></div><div class="pgrid3">${S.d.posts.map((p) => `<button class="chip ${cur === p ? 'on' : ''}" data-act="q-pick" data-v="${esc(p)}">${esc(p)}</button>`).join('')}<button class="chip ${cur === '' ? 'on' : ''}" data-act="q-pick" data-v="">Sem posto</button></div><div class="row">${e && !all ? `<button class="btn sm dng" data-act="q-remove">Remover quarto</button>` : ''}<span class="sp"></span><button class="link" data-act="q-posts">Editar lista de postos</button></div></div>`;
-  }
-  return `<div class="row" style="margin-bottom:8px"><span class="muted xs sp">${n ? n + ' marcado(s)' : 'Toque no quarto para marcar'}</span><span class="qt"><button data-act="q-all" data-date="${date}">Todos</button><button data-act="q-none" data-date="${date}">Limpar</button></span></div>${grid}${picker}`;
+  const by = Object.fromEntries(C.quartosOn(S.d, date).map((e) => [e.slot, e])); const n = Object.keys(by).length; const act = activePost(); const dp = postoDia(date);
+  const posts = S.d.posts;
+  const dayRow = posts.length ? `<div class="qsec"><div class="qh"><b>Durante o dia</b><span class="muted xs">${dp ? esc(dp.post) : 'toque no posto'}</span></div><div class="chips dchips">${posts.map((p) => `<button class="chip ${dp && dp.post === p ? 'on' : ''}" data-act="q-daypost" data-date="${date}" data-v="${esc(p)}">${esc(p)}</button>`).join('')}</div></div>` : '';
+  const postPick = posts.length ? `<div class="pgrid3">${posts.map((p) => `<button class="chip ${act === p ? 'on' : ''}" data-act="q-setpost" data-v="${esc(p)}">${esc(p)}</button>`).join('')}<button class="chip ${act === '' ? 'on' : ''}" data-act="q-setpost" data-v="">Sem posto</button></div>` : '';
+  const grid = `<div class="qgrid">${S.d.quarters.map((q) => { const e = by[q.id]; return `<button class="qchip ${e ? 'on' : ''}" data-act="q-slot" data-date="${date}" data-q="${q.id}" aria-pressed="${!!e}"><b>${esc(q.alvorada ? 'Alvorada' : C.qLabel(q))}</b><small>${e ? (e.post ? esc(e.post) : '✓') : q.alvorada ? C.qLabel(q) : '&nbsp;'}</small></button>`; }).join('')}</div>`;
+  return `${dayRow}<div class="qsec"><div class="qh"><b>À noite · quartos de hora</b><span class="qt"><button data-act="q-all" data-date="${date}">Todos</button><button data-act="q-none" data-date="${date}">Limpar</button></span></div>${posts.length ? `<div class="muted xs" style="margin:-2px 0 8px">1º escolha o posto, 2º toque nos horários que você vai ficar nele.</div>${postPick}` : ''}<div class="muted xs" style="margin:10px 0 6px">${n ? n + ' marcado(s)' : 'Nenhum marcado'}</div>${grid}${posts.length ? `<button class="link" style="margin-top:10px" data-act="q-posts">Editar lista de postos</button>` : ''}</div>`;
 }
 function quartosSheet(date) {
   const back = S.sheet && S.sheet.back;
@@ -299,13 +298,13 @@ function moreView() {
 
 // ---------- CALENDÁRIO ----------
 function daySummary(date) {
-  if (!date) return '<div class="muted xs" style="text-align:center;margin-top:4px">Toque num dia para ver o resumo</div>';
-  const d = S.d; const i = C.dayInfo(date, d); const st = C.STATUS[i.status]; const hol = C.holidayName(date, d.holidays);
-  const qs = C.quartosOn(d, date); const evs = i.events.filter((e) => e.type !== 'quarto');
-  const qh = qs.length ? `<div class="dsr"><span class="dsl">Quartos</span><div class="qmini">${qs.map((e) => { const q = d.quarters.find((x) => x.id === e.slot); return `<span class="qm"><b>${q ? esc(q.alvorada ? 'Alvorada' : C.qLabel(q)) : esc(e.slot)}</b><small>${e.post ? esc(e.post) : '—'}</small></span>`; }).join('')}</div></div>` : '';
-  const rows = evs.map((e) => { const T = C.TYPES[e.type]; const sub = e.type === 'ocorrencia' ? [e.time, e.cat, e.place].filter(Boolean).join(' · ') : evSub(e); return `<div class="dsr"><i class="dsd" style="background:${T.color}"></i><div class="sp" style="min-width:0"><div class="t">${esc(evTitle(e))}</div>${sub ? `<div class="muted xs" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(sub)}</div>` : ''}</div></div>`; }).join('');
-  const empty = !qh && !rows;
-  return `<div class="card dsum" style="margin-top:12px"><div class="row" style="gap:8px"><div class="sp" style="min-width:0"><div class="b">${C.WD3[C.weekday(date)]}, ${C.fmtShort(date)}</div><div class="row wrap" style="gap:6px;margin-top:4px"><span class="badge" style="background:${tint(st.color, 20)};color:${st.color}">${st.label}</span>${hol ? `<span class="badge" style="background:${tint('#d4a24c', 20)};color:#d4a24c">${esc(hol)}</span>` : ''}</div></div><button class="btn sm pri" data-act="day" data-date="${date}">${ic('edit')}Registrar</button></div>${empty ? '<div class="muted xs" style="margin-top:8px">Nada registrado neste dia.</div>' : `<div class="col" style="gap:8px;margin-top:10px">${qh}${rows}</div>`}</div>`;
+  if (!date) return '';
+  const d = S.d; const qs = C.quartosOn(d, date); const dp = postoDia(date);
+  const evs = C.dayInfo(date, d).events.filter((e) => !['quarto', 'posto'].includes(e.type) && !(['folga', 'atestado', 'ferias'].includes(e.type) && !e.note && !e.cid));
+  if (!qs.length && !dp && !evs.length) return '';
+  const qh = qs.length ? `<div class="qmini">${qs.map((e) => { const q = d.quarters.find((x) => x.id === e.slot); return `<span class="qm"><b>${q ? esc(q.alvorada ? 'Alvorada' : C.qLabel(q)) : esc(e.slot)}</b><small>${e.post ? esc(e.post) : '—'}</small></span>`; }).join('')}</div>` : '';
+  const rows = evs.map((e) => { const T = C.TYPES[e.type]; const sub = e.type === 'ocorrencia' ? [e.cat, e.place].filter(Boolean).join(' · ') : evSub(e); return `<div class="dsr"><i class="dsd" style="background:${T.color}"></i><div class="sp" style="min-width:0"><div class="t">${esc(evTitle(e))}</div>${sub ? `<div class="muted xs" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(sub)}</div>` : ''}</div></div>`; }).join('');
+  return `<div class="dsum" role="button" tabindex="0" data-act="day" data-date="${date}"><div class="dsh">${C.WD3[C.weekday(date)]}, ${C.fmtShort(date)}${dp ? ` · <b>Dia: ${esc(dp.post)}</b>` : ''}</div>${qh}${rows}</div>`;
 }
 function calendar() {
   const selDay = (S.calSel && S.calSel.startsWith(C.ymKey(S.cal.y, S.cal.m))) ? S.calSel : (C.today().startsWith(C.ymKey(S.cal.y, S.cal.m)) ? C.today() : null);
@@ -404,7 +403,7 @@ function settings() {
 // ---------- SHEETS ----------
 function daySheet(date) {
   const i = C.dayInfo(date, S.d); const st = C.STATUS[i.status]; const hol = C.holidayName(date, S.d.holidays); const qs = C.quartosOn(S.d, date); const evs = i.events.filter((e) => e.type !== 'quarto');
-  const extra = evs.find((e) => e.type === 'extra'); const others = evs.filter((e) => e.type !== 'extra'); const hasFolga = others.some((e) => e.type === 'folga');
+  const extra = evs.find((e) => e.type === 'extra'); const others = evs.filter((e) => e.type !== 'extra' && e.type !== 'posto'); const dpost = postoDia(date); const hasFolga = others.some((e) => e.type === 'folga');
   const qsum = qs.map((e) => { const q = S.d.quarters.find((x) => x.id === e.slot); return `${q ? C.qLabel(q) : e.slot}${e.post ? ' ' + e.post : ''}`; }).join(' · ');
   const big = (k, small, label, color) => `<button class="qk" data-act="ev-quick" data-k="${k}" data-date="${date}" style="--qc:${color}"><small>${small}</small><b>${label}</b></button>`;
   const main = extra
@@ -416,7 +415,7 @@ function daySheet(date) {
   <div class="row wrap" style="margin:8px 0 14px;gap:6px"><span class="badge" style="background:${tint(st.color, 20)};color:${st.color}">${st.label}</span>${hol ? `<span class="badge" style="background:${tint('#d4a24c', 20)};color:#d4a24c">${esc(hol)}</span>` : ''}</div>
   ${main}
   ${others.length ? `<div class="col" style="gap:6px;margin-top:10px">${others.map(mini).join('')}</div>` : ''}
-  ${i.works || qs.length ? `<button class="item slim" data-act="q-open" data-date="${date}"><div class="ico" style="background:${tint(C.TYPES.quarto.color, 20)};color:${C.TYPES.quarto.color}">${ic('clock')}</div><div class="sp" style="min-width:0"><div class="t">Quartos de hora</div><div class="s">${qs.length ? esc(qsum) : 'Toque para marcar'}</div></div>${ic('chevR')}</button>` : ''}
+  ${i.works || qs.length || dpost ? `<button class="item slim" data-act="q-open" data-date="${date}"><div class="ico" style="background:${tint(C.TYPES.quarto.color, 20)};color:${C.TYPES.quarto.color}">${ic('clock')}</div><div class="sp" style="min-width:0"><div class="t">Postos e quartos</div><div class="s">${dpost || qs.length ? esc([dpost ? 'Dia: ' + dpost.post : '', qsum].filter(Boolean).join(' · ')) : 'Toque para marcar'}</div></div>${ic('chevR')}</button>` : ''}
   <details class="sub" data-sec="daymore" ${S.open.has('daymore') ? 'open' : ''} style="margin-top:12px"><summary>Mais opções</summary><div class="adds" style="margin-top:10px">${add('permuta', 'Permuta')}${add('atestado', 'Atestado')}${add('ferias', 'Férias')}${add('ocorrencia', 'Ocorrência')}</div></details>`;
 }
 function formSheet() {
@@ -475,6 +474,8 @@ const assistant = createAssistant({
   openAI: () => { assistant.unmount(); S.sheet = null; renderSheet(); S.open.add('ia'); go('settings'); setTimeout(() => $('details[data-sec=ia]')?.scrollIntoView({ block: 'start' }), 150); },
 });
 const setQuarto = (date, slot, post, force = false) => { const e = S.d.events.find((x) => x.type === 'quarto' && x.date === date && x.slot === slot); if (e) { if (force) e.post = post || ''; } else S.d.events.push({ id: C.uid(), type: 'quarto', date, slot, post: post || '' }); };
+const postoDia = (date) => S.d.events.find((x) => x.type === 'posto' && x.date === date);
+const activePost = () => { const l = S.qpost !== undefined ? S.qpost : S.d.prefs.lastPost; return S.d.posts.includes(l) ? l : (S.qpost === '' ? '' : (S.d.posts[0] || '')); };
 const refreshQ = () => { save(); render(); if (S.sheet) renderSheet(); };
 function showAlarm(a) {
   S.alarm = a; playSound(a.sound, { ramp: S.d.prefs.ramp }); notify(a); clearTimeout(S.alarmT); S.alarmT = setTimeout(() => { if (S.alarm === a) A['alarm-off'](); }, (S.d.prefs.autostop || 5) * 60000); let r = $('#alarmRoot'); if (!r) { r = document.createElement('div'); r.id = 'alarmRoot'; document.body.appendChild(r); }
@@ -566,7 +567,7 @@ const A = {
   'anchor-today': () => { S.d.scale.anchor = C.today(); save(); render(); toast('Hoje agora é dia de plantão ✅'); },
   theme: (el) => { S.d.prefs.theme = el.dataset.v; save(); render(); },
   // calendário / nav mensal
-  'cal-pick': (el) => { const dt = el.dataset.date; const cur = (S.calSel && S.calSel.startsWith(C.ymKey(S.cal.y, S.cal.m))) ? S.calSel : (C.today().startsWith(C.ymKey(S.cal.y, S.cal.m)) ? C.today() : null); if (cur === dt && S.calTapped === dt) { S.calTapped = null; return openSheet('day', { date: dt }); } S.calSel = dt; S.calTapped = dt; render(); },
+  'cal-pick': (el) => { S.calSel = el.dataset.date; render(); openSheet('day', { date: S.calSel }); },
   'cal-prev': () => { shiftMonth(S.cal, -1); S.calDir = 'r'; render(); S.calDir = ''; }, 'cal-next': () => { shiftMonth(S.cal, 1); S.calDir = 'l'; render(); S.calDir = ''; }, 'cal-today': () => { S.calDir = (S.cal.y * 12 + S.cal.m) > (nowD.getFullYear() * 12 + nowD.getMonth()) ? 'r' : 'l'; S.cal = { y: nowD.getFullYear(), m: nowD.getMonth() }; render(); S.calDir = ''; },
   'fin-prev': () => { shiftMonth(S.fin, -1); render(); }, 'fin-next': () => { shiftMonth(S.fin, 1); render(); },
   'sum-prev': () => { shiftMonth(S.sum, -1); S.sum.custom = null; render(); }, 'sum-next': () => { shiftMonth(S.sum, 1); S.sum.custom = null; render(); },
@@ -602,19 +603,20 @@ const A = {
   'q-open': (el) => { const date = el.dataset.date; const back = S.sheet?.kind === 'day' ? date : null; S.qsel = null; S.sheet = null; openSheet('quartos', { date, back }); },
   'q-back': () => { const d = S.sheet.date; S.qsel = null; openSheet('day', { date: d }); },
   'q-slot': (el) => {
-    const { date, q } = el.dataset; S.qsel = null;
-    if (!S.d.posts.length) { const e = S.d.events.find((x) => x.type === 'quarto' && x.date === date && x.slot === q); if (e) S.d.events = S.d.events.filter((x) => x !== e); else setQuarto(date, q, ''); return refreshQ(); }
-    S.qsel = { date, slot: q }; renderSheet();
+    const { date, q } = el.dataset; const post = activePost(); const e = S.d.events.find((x) => x.type === 'quarto' && x.date === date && x.slot === q);
+    if (!e) { setQuarto(date, q, post, true); if (post) askNotifyPermission(); }
+    else if ((e.post || '') === post) S.d.events = S.d.events.filter((x) => x !== e);
+    else e.post = post;
+    refreshQ();
   },
-  'q-pick': (el) => {
-    const { date, slot } = S.qsel; const post = el.dataset.v;
-    if (slot === '*') S.d.quarters.forEach((q) => setQuarto(date, q.id, post, true)); else setQuarto(date, slot, post, true);
-    if (post) askNotifyPermission(); S.qsel = null; refreshQ();
+  'q-setpost': (el) => { S.qpost = el.dataset.v; S.d.prefs.lastPost = S.qpost; save(); renderSheet(); },
+  'q-daypost': (el) => {
+    const { date, v } = el.dataset; const cur = postoDia(date);
+    if (cur && cur.post === v) S.d.events = S.d.events.filter((x) => x !== cur); else if (cur) cur.post = v; else S.d.events.push({ id: C.uid(), type: 'posto', date, post: v });
+    refreshQ();
   },
-  'q-remove': () => { const { date, slot } = S.qsel; S.d.events = S.d.events.filter((x) => !(x.type === 'quarto' && x.date === date && x.slot === slot)); S.qsel = null; refreshQ(); },
-  'q-close': () => { S.qsel = null; renderSheet(); },
-  'q-all': (el) => { if (S.d.posts.length) { S.qsel = { date: el.dataset.date, slot: '*' }; renderSheet(); } else { S.d.quarters.forEach((q) => setQuarto(el.dataset.date, q.id, '')); refreshQ(); } },
-  'q-none': (el) => { S.d.events = S.d.events.filter((x) => !(x.type === 'quarto' && x.date === el.dataset.date)); S.qsel = null; refreshQ(); },
+  'q-all': (el) => { const post = activePost(); S.d.quarters.forEach((q) => setQuarto(el.dataset.date, q.id, post, true)); if (post) askNotifyPermission(); refreshQ(); },
+  'q-none': (el) => { S.d.events = S.d.events.filter((x) => !(x.type === 'quarto' && x.date === el.dataset.date)); refreshQ(); },
   'q-posts': () => { S.open.add('quartos'); S.qsel = null; closeSheet(); go('settings'); setTimeout(() => $('#cfg-postos')?.scrollIntoView({ block: 'start' }), 120); },
   'liv-cat': (el) => { S.livf.cat = el.dataset.v; renderView(); },
   zoom: (el) => { S.d.prefs.zoom = Number(el.dataset.v); save(); render(); },
