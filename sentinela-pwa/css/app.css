@@ -387,3 +387,15 @@ body{background:radial-gradient(900px 420px at 85% -18%,color-mix(in srgb,var(--
 .pe-btns{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;width:100%}
 .pe-btns button{padding:9px 4px;border-radius:12px;background:var(--surface2);border:1px solid var(--line);font-size:12px;font-weight:700}
 .pe-act{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%}
+
+.quick3{display:flex;gap:8px;margin-top:2px}
+.quick3 .qk{flex:1;align-items:center;text-align:center;padding:14px 4px;gap:1px}
+.quick3 .qk small{font-size:11px;letter-spacing:.04em;text-transform:uppercase}.quick3 .qk b{font-size:15.5px}
+.exrow{display:flex;gap:8px;align-items:center}.exrow .seg{display:flex}.exrow .seg button{flex:1;padding:12px 6px}
+.mini{display:flex;align-items:center;gap:10px;padding:4px 4px 4px 12px;border-radius:14px;background:var(--surface);border:1px solid var(--line)}
+.mini i{width:8px;height:8px;border-radius:50%;flex:none}.mini .sp{text-align:left;font-weight:700;font-size:14px;padding:8px 0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item.slim{margin-top:10px}
+.tundo{margin-left:14px;background:none;border:0;color:var(--bg);font-weight:800;text-decoration:underline;font-size:14px;padding:0}
+.cdot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:3px;vertical-align:middle}
+details[data-sec=daymore] .add{flex-direction:row;justify-content:flex-start;padding:9px 12px;gap:10px;font-size:13.5px}
+details[data-sec=daymore] .add i{width:30px;height:30px;border-radius:10px}

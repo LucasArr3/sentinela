@@ -20,6 +20,7 @@ const P = {
   copy: '<rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
   share: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/>',
   logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>',
+  palette: '<circle cx="13.5" cy="6.5" r=".5"/><circle cx="17.5" cy="10.5" r=".5"/><circle cx="8.5" cy="7.5" r=".5"/><circle cx="6.5" cy="12.5" r=".5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.9 0 1.5-.7 1.5-1.5 0-.4-.2-.8-.4-1.1-.3-.3-.4-.7-.4-1.1 0-.8.7-1.5 1.5-1.5H16c3 0 5.5-2.5 5.5-5.5C21.5 6 17.5 2 12 2z"/>',
   download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>',
   upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>',
   user: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
@@ -48,9 +49,11 @@ export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&a
 export const $ = (s, r = document) => r.querySelector(s);
 export const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 let tt;
-export function toast(msg, kind = '') {
+export function toast(msg, kind = '', undo = null) {
   let el = $('#toast'); if (!el) { el = document.createElement('div'); el.id = 'toast'; document.body.appendChild(el); }
-  el.className = `toast show ${kind}`; el.textContent = msg; clearTimeout(tt); tt = setTimeout(() => el.classList.remove('show'), 2600);
+  el.className = `toast show ${kind}`; el.textContent = msg; el.style.pointerEvents = undo ? 'auto' : '';
+  if (undo) { const b = document.createElement('button'); b.type = 'button'; b.className = 'tundo'; b.textContent = 'Desfazer'; b.onclick = () => { clearTimeout(tt); el.classList.remove('show'); el.style.pointerEvents = ''; undo(); }; el.appendChild(b); }
+  clearTimeout(tt); tt = setTimeout(() => { el.classList.remove('show'); el.style.pointerEvents = ''; }, undo ? 5500 : 2600);
 }
 export const initials = (n) => (n || '?').trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
 export const fmtDur = (ms) => { const m = Math.max(0, Math.round(ms / 60000)); const d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60), mi = m % 60; return d ? `${d}d ${h}h` : h ? `${h}h ${String(mi).padStart(2, '0')}min` : `${mi}min`; };
