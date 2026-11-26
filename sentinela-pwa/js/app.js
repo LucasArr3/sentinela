@@ -362,23 +362,87 @@ function daySummary(date) {
   if (infoStyle() !== 'cartoes') { const its = renderItems(dayItems(date), infoStyle()); const meta = [hol, i.status === 'plantao' ? `Plantão ${d.scale.hours}h · ${d.scale.start}` : (i.status === 'extra' ? (i.events.find((e) => e.type === 'extra')?.turno === 'noturna' ? 'Extra noturna' : 'Extra diurna') : '')].filter(Boolean).join(' · '); const rws = evs.filter((e) => e.type !== 'extra').map((e) => `<div class="ir ev"><b>${esc(evTitle(e))}</b><span>${esc(e.type === 'ocorrencia' ? [e.cat, e.place].filter(Boolean).join(' · ') : evSub(e))}</span></div>`).join(''); return `<div class="dplain" role="button" tabindex="0" data-act="day" data-date="${date}"><div class="dch"><div class="sp" style="min-width:0"><div class="dct">${C.dateLong(date)}</div>${meta ? `<div class="dcs">${esc(meta)}</div>` : ''}</div><span class="dgear" aria-hidden="true">${ic('settings')}</span></div>${its}${rws ? `<div class="ilist">${rws}</div>` : ''}</div>`; }
   return `<div class="dcard" role="button" tabindex="0" data-act="day" data-date="${date}"><div class="dch"><div class="sp" style="min-width:0"><div class="dct">${C.dateLong(date)}</div><div class="dcs">Resumo do dia</div></div><span class="dgear" aria-hidden="true">${ic('settings')}</span></div>${chips.length ? `<div class="row wrap" style="gap:6px">${chips.join('')}</div>` : ''}${tm}${qh}${rows}</div>`;
 }
-function calendar() {
-  const selDay = (S.calSel && S.calSel.startsWith(C.ymKey(S.cal.y, S.cal.m))) ? S.calSel : (C.today().startsWith(C.ymKey(S.cal.y, S.cal.m)) ? C.today() : null);
-  const { y, m } = S.cal; const first = new Date(y, m, 1).getDay(); const t = C.today(); const hols = S.d.holidays; const sc = S.d.scale;
-  const tag = { plantao: sc.hours + 'h', extra: '12h', permuta_in: 'PERMUTA', permuta_out: 'PASSOU', folga: 'FOLGA', atestado: 'ATEST.', ferias: 'FÉRIAS', livre: '' };
-  const cells = Array.from({ length: first }, () => '<div class="cell blank"></div>').join('') + C.monthDays(y, m).map((date) => {
-    const i = C.dayInfo(date, S.d); const hol = C.holidayName(date, hols); const types = [...new Set(i.events.map((e) => e.type))].slice(0, 3);
-    const ex = i.events.find((e) => e.type === 'extra'); const label = i.status === 'extra' && ex && ex.turno === 'h24' ? '24h' : tag[i.status];
-    const mark = '';
-    return `<button class="cell ${date === t ? 'today' : ''} ${hol ? 'hol' : ''} ${date === selDay ? 'sel' : ''}" style="--sc:${i.status === 'livre' ? 'transparent' : (i.status === 'extra' && ex ? (ex.turno === 'noturna' ? C.EXTRA_N : C.EXTRA_D) : C.STATUS[i.status].color)}" data-st="${i.status}" data-act="cal-pick" data-date="${date}" aria-label="${C.dateLong(date)}${hol ? ', ' + hol : ''}: ${C.STATUS[i.status].label}"><span class="tg">${label}</span><span class="n">${+date.slice(8)}</span>${mark}${hol ? '<span class="hbar"></span>' : ''}</button>`;
-  }).join('');
-  const mh = C.monthHolidays(y, m, hols); const tk = mh.map((h) => `<span><b>${C.fmtShort(h.date)}</b> ${esc(h.name)}</span>`).join('');
+// ---------- formatos do calendário (mesmas funções, jeitos diferentes) ----------
+const CAL_MODES = [['padrao', 'Padrão'], ['circulos', 'Círculos'], ['cheio', 'Cheio'], ['limpo', 'Limpo'], ['solto', 'Solto'], ['postos', 'Com postos'], ['semanas', 'Semanas'], ['faixa', 'Faixa'], ['agenda', 'Agenda'], ['ano', 'Ano']];
+const calMode = (pr) => { if (['postos', 'semanas', 'faixa', 'agenda', 'ano'].includes(pr.calView)) return pr.calView; if (pr.calCard === false) return 'solto'; return ({ circle: 'circulos', solid: 'cheio', clean: 'limpo' })[pr.cellStyle] || 'padrao'; };
+function applyCalMode(pr, v) {
+  pr.calView = v;
+  if (v === 'padrao') { pr.cellStyle = 'classic'; pr.calCard = true; } else if (v === 'circulos') { pr.cellStyle = 'circle'; pr.calCard = true; } else if (v === 'cheio') { pr.cellStyle = 'solid'; pr.calCard = true; } else if (v === 'limpo') { pr.cellStyle = 'clean'; pr.calCard = true; } else if (v === 'solto') { pr.cellStyle = 'classic'; pr.calCard = false; }
+}
+function calIcon(m) {
+  const R = (x, y, w, h, r = 2, o = 1) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" opacity="${o}"/>`; const K = (x, y, r, o = 1) => `<circle cx="${x}" cy="${y}" r="${r}" opacity="${o}"/>`;
+  const grid = (fn, rows = 3) => { let o = ''; for (let r = 0; r < rows; r++) for (let c = 0; c < 5; c++) o += fn(6 + c * 8, 5 + r * 9, r * 5 + c); return o; };
+  const frame = '<rect x="1.5" y="1.5" width="45" height="31" rx="5" fill="none" stroke="currentColor" opacity=".45"/>';
+  const body = {
+    padrao: frame + grid((x, y, i) => R(x, y, 6, 6, 1.5, i % 4 === 0 ? 1 : .35)),
+    circulos: frame + grid((x, y, i) => K(x + 3, y + 3, 3, i % 4 === 0 ? 1 : .35)),
+    cheio: frame + grid((x, y, i) => R(x, y, 6, 6, 2, i % 3 === 0 ? 1 : .22)),
+    limpo: frame + grid((x, y, i) => R(x + 1, y + 2, 4, 2, 1, i % 4 === 0 ? 1 : .35)),
+    solto: grid((x, y, i) => R(x - 1, y - 1, 7, 7, 2, i % 3 === 0 ? 1 : .4)),
+    postos: [0, 1, 2, 3, 4].map((c) => [0, 1].map((r) => R(4 + c * 8.6, 3 + r * 15, 7, 13, 2, (c + r) % 3 === 0 ? 1 : .35) + R(5.5 + c * 8.6, 11 + r * 15, 4, 1.4, .7, .9)).join('')).join(''),
+    semanas: [0, 1, 2].map((r) => `<rect x="2" y="${2 + r * 11}" width="44" height="9.5" rx="3" fill="none" stroke="currentColor" opacity=".45"/>` + [0, 1, 2, 3, 4, 5, 6].map((c) => R(4 + c * 6, 4 + r * 11, 4.5, 5.5, 1.2, (c + r) % 3 === 0 ? 1 : .35)).join('')).join(''),
+    faixa: [0, 1, 2, 3, 4].map((c) => R(3 + c * 9, 3, 7, 11, 3, c === 2 ? 1 : .35)).join('') + R(3, 18, 42, 13, 3, .55),
+    agenda: [0, 1, 2, 3].map((r) => R(3, 3 + r * 8, 5, 5, 1.5, r === 1 ? 1 : .45) + R(11, 4.5 + r * 8, 28 - r * 3, 2, 1, .6)).join(''),
+    ano: [0, 1].map((r) => [0, 1].map((c) => [0, 1, 2].map((rr) => [0, 1, 2, 3].map((cc) => R(3 + c * 23 + cc * 4.6, 3 + r * 15.5 + rr * 4.2, 3.2, 3, .6, (cc + rr + c + r) % 4 === 0 ? 1 : .3)).join('')).join('')).join('')).join('')
+  }[m];
+  return `<svg viewBox="0 0 48 34" width="48" height="34" fill="currentColor" aria-hidden="true">${body}</svg>`;
+}
+const shortPost = (p) => String(p || '').replace(/^Bloco /, 'Bl ').replace('Calibre', 'Cal').replace('Chefe de bloco', 'Chefe').replace('Monitoramento', 'Monit.').replace('Superior', 'Super.').replace('Hospital', 'Hosp.');
+function calCommon() {
+  const { y, m } = S.cal; const t = C.today(); const key = C.ymKey(y, m); const selDay = (S.calSel && S.calSel.startsWith(key)) ? S.calSel : (t.startsWith(key) ? t : null);
+  const hols = S.d.holidays; const mh = C.monthHolidays(y, m, hols); const tk = mh.map((h) => `<span><b>${C.fmtShort(h.date)}</b> ${esc(h.name)}</span>`).join('');
   const ms = C.monthSummary(S.d, y, m); const exs = ms.extras;
-  const lgAll = [[C.STATUS.plantao.color, 'Plantão', ms.plantoes.length > 0], [C.EXTRA_D, 'Extra diurna', exs.some((e) => e.turno !== 'noturna')], [C.EXTRA_N, 'Extra noturna', exs.some((e) => e.turno === 'noturna')], [C.TYPES.permuta.color, 'Permuta', ms.permutaIn.length + ms.permutaOut.length > 0], [C.TYPES.folga.color, 'Folga', ms.folgas.length > 0], [C.TYPES.atestado.color, 'Atestado', ms.atestados.length > 0], [C.TYPES.ferias.color, 'Férias', ms.ferias.length > 0]];
-  const lg = lgAll.filter((x) => x[2]);
-  return `<div class="${S.d.prefs.calCard === false ? 'cwrap' : 'ccard'}"><div class="calhead"><button class="ibtn" data-act="cal-prev" aria-label="Mês anterior">${ic('chevL')}</button><h2 style="text-align:center">${C.MONTHS[m]} <span class="muted" style="font-weight:600">${y}</span></h2><button class="btn sm" data-act="cal-today">Hoje</button><button class="ibtn" data-act="cal-next" aria-label="Próximo mês">${ic('chevR')}</button></div>
-  ${mh.length ? `<div class="ticker" aria-label="Feriados do mês"><div class="tk"><div class="tkc">${tk}</div><div class="tkc" aria-hidden="true">${tk}</div></div></div>` : ''}
-  <div class="dow">${C.WD3.map((x) => `<div>${x.charAt(0)}</div>`).join('')}</div><div class="cal ${S.calDir ? 'slide-' + S.calDir : ''}" id="cal" data-cs="${S.d.prefs.cellStyle}">${cells}</div><div class="legend">${lg.map(([c, l]) => `<span><i style="background:${c}"></i>${l}</span>`).join('')}</div></div>${(S.cal.y !== nowD.getFullYear() || S.cal.m !== nowD.getMonth()) ? `<button class="fab-today" data-act="cal-today">${ic('calendar')}Hoje</button>` : ''}${daySummary(selDay)}`;
+  const lg = [[C.STATUS.plantao.color, 'Plantão', ms.plantoes.length > 0], [C.EXTRA_D, 'Extra diurna', exs.some((e) => e.turno !== 'noturna')], [C.EXTRA_N, 'Extra noturna', exs.some((e) => e.turno === 'noturna')], [C.TYPES.permuta.color, 'Permuta', ms.permutaIn.length + ms.permutaOut.length > 0], [C.TYPES.folga.color, 'Folga', ms.folgas.length > 0], [C.TYPES.atestado.color, 'Atestado', ms.atestados.length > 0], [C.TYPES.ferias.color, 'Férias', ms.ferias.length > 0]].filter((x) => x[2]);
+  return { y, m, t, selDay, hols, mh, tk, lg, sc: S.d.scale };
+}
+const calLegend = (x) => `<div class="legend">${x.lg.map(([c, l]) => `<span><i style="background:${c}"></i>${l}</span>`).join('')}</div>`;
+const calTicker = (x) => (x.mh.length ? `<div class="ticker" aria-label="Feriados do mês"><div class="tk"><div class="tkc">${x.tk}</div><div class="tkc" aria-hidden="true">${x.tk}</div></div></div>` : '');
+const calHead = (x) => `<div class="calhead"><button class="ibtn" data-act="cal-prev" aria-label="Mês anterior">${ic('chevL')}</button><h2 style="text-align:center">${C.MONTHS[x.m]} <span class="muted" style="font-weight:600">${x.y}</span></h2><button class="btn sm" data-act="cal-today">Hoje</button><button class="ibtn" data-act="cal-next" aria-label="Próximo mês">${ic('chevR')}</button></div>`;
+const calFab = () => ((S.cal.y !== nowD.getFullYear() || S.cal.m !== nowD.getMonth()) ? `<button class="fab-today" data-act="cal-today">${ic('calendar')}Hoje</button>` : '');
+const cellColor = (i) => { if (i.status === 'livre') return 'transparent'; const ex = i.events.find((e) => e.type === 'extra'); return i.status === 'extra' && ex ? (ex.turno === 'noturna' ? C.EXTRA_N : C.EXTRA_D) : C.STATUS[i.status].color; };
+function calCell(date, x, withPost) {
+  const i = C.dayInfo(date, S.d); const hol = C.holidayName(date, x.hols); const tag = { plantao: x.sc.hours + 'h', extra: '12h', permuta_in: 'PERMUTA', permuta_out: 'PASSOU', folga: 'FOLGA', atestado: 'ATEST.', ferias: 'FÉRIAS', livre: '' };
+  const ex = i.events.find((e) => e.type === 'extra'); const label = i.status === 'extra' && ex && ex.turno === 'h24' ? '24h' : tag[i.status];
+  let post = ''; if (withPost) { const dps = postosDia(date).sort((p, q) => (p.from || '').localeCompare(q.from || '')); const dp = dps[0]; const ng = qGroups(date)[0]; const a = dp ? shortPost(dp.post) + (dps.length > 1 ? '+' : '') : ''; const b = ng ? '☾' + (ng.posts[0] ? shortPost(ng.posts[0]) : '') : ''; post = (a ? `<span class="cp">${esc(a)}</span>` : '') + (b ? `<span class="cp n">${esc(b)}</span>` : ''); }
+  return `<button class="cell ${date === x.t ? 'today' : ''} ${hol ? 'hol' : ''} ${date === x.selDay ? 'sel' : ''}" style="--sc:${cellColor(i)}" data-st="${i.status}" data-act="cal-pick" data-date="${date}" aria-label="${C.dateLong(date)}${hol ? ', ' + hol : ''}: ${C.STATUS[i.status].label}"><span class="tg">${label}</span><span class="n">${+date.slice(8)}</span>${post}${hol ? '<span class="hbar"></span>' : ''}</button>`;
+}
+function calGrade(x, withPost) {
+  const first = new Date(x.y, x.m, 1).getDay(); const cells = Array.from({ length: first }, () => '<div class="cell blank"></div>').join('') + C.monthDays(x.y, x.m).map((d) => calCell(d, x, withPost)).join('');
+  return `<div class="${S.d.prefs.calCard === false ? 'cwrap' : 'ccard'}">${calHead(x)}${calTicker(x)}<div class="dow">${C.WD3.map((w) => `<div>${w.charAt(0)}</div>`).join('')}</div><div class="cal ${withPost ? 'cal-postos' : ''} ${S.calDir ? 'slide-' + S.calDir : ''}" id="cal" data-cs="${S.d.prefs.cellStyle}">${cells}</div>${calLegend(x)}</div>${calFab()}${daySummary(x.selDay)}`;
+}
+function calSemanas(x) {
+  const days = C.monthDays(x.y, x.m); const first = new Date(x.y, x.m, 1).getDay(); const weeks = []; let cur = Array(first).fill(null);
+  days.forEach((d) => { cur.push(d); if (cur.length === 7) { weeks.push(cur); cur = []; } }); if (cur.length) { while (cur.length < 7) cur.push(null); weeks.push(cur); }
+  const cards = weeks.map((w, k) => { const real = w.filter(Boolean); const n = real.filter((d) => ['plantao', 'permuta_in'].includes(C.dayInfo(d, S.d).status)).length; return `<div class="wkcard"><div class="wkh"><b>Semana ${k + 1}</b><span>${C.fmtShort(real[0])} – ${C.fmtShort(real[real.length - 1])}</span><em>${n ? `${n} ${n === 1 ? 'plantão' : 'plantões'} · ${n * x.sc.hours}h` : 'sem plantão'}</em></div><div class="cal wk" data-cs="${S.d.prefs.cellStyle}">${w.map((d) => (d ? calCell(d, x, false) : '<div class="cell blank"></div>')).join('')}</div></div>`; }).join('');
+  return `${calHead(x)}${calTicker(x)}<div class="dow">${C.WD3.map((w) => `<div>${w.charAt(0)}</div>`).join('')}</div><div id="cal" class="wks ${S.calDir ? 'slide-' + S.calDir : ''}">${cards}</div>${calLegend(x)}${calFab()}${daySummary(x.selDay)}`;
+}
+function calFaixa(x) {
+  const strip = C.monthDays(x.y, x.m).map((d) => { const i = C.dayInfo(d, S.d); return `<button class="sd ${d === x.t ? 'today' : ''} ${d === x.selDay ? 'sel' : ''}" style="--sc:${cellColor(i)}" data-st="${i.status}" data-act="cal-pick" data-date="${d}"><small>${C.WD3[C.weekday(d)]}</small><b>${+d.slice(8)}</b><i></i></button>`; }).join('');
+  return `${calHead(x)}${calTicker(x)}<div class="strip ${S.calDir ? 'slide-' + S.calDir : ''}" id="cal">${strip}</div>${daySummary(x.selDay) || '<div class="muted sm" style="text-align:center;margin-top:8px">Toque num dia</div>'}${calLegend(x)}${calFab()}`;
+}
+function calAgenda(x) {
+  const rel = (d) => { const i = C.dayInfo(d, S.d); return i.status !== 'livre' || i.events.length || C.holidayName(d, x.hols); };
+  const days = C.monthDays(x.y, x.m).filter((d) => S.agAll || rel(d) || d === x.t);
+  const rows = days.map((d) => { const i = C.dayInfo(d, S.d); const hol = C.holidayName(d, x.hols); const night = qGroups(d).map((g) => g.posts.join('+') || '—').join(' · ');
+    const res = [diaResumo(d), night ? '☾ ' + night : ''].filter(Boolean).join('   ');
+    return `<button class="agr ${d === x.t ? 'today' : ''} ${d === x.selDay ? 'sel' : ''}" style="--sc:${cellColor(i)}" data-act="cal-pick" data-date="${d}"><div class="agd"><b>${+d.slice(8)}</b><span>${C.WD3[C.weekday(d)]}</span></div><div class="agi"><div class="agt"><i></i>${esc(C.STATUS[i.status].label)}${hol ? ` · ${esc(hol)}` : ''}</div>${res ? `<div class="ags">${esc(res)}</div>` : ''}</div></button>${d === x.selDay ? daySummary(d) : ''}`; }).join('');
+  return `${calHead(x)}${calTicker(x)}<div class="agl ${S.calDir ? 'slide-' + S.calDir : ''}" id="cal">${rows || '<div class="card empty">Nada registrado neste mês.</div>'}</div><button class="btn sm blk" data-act="ag-all" style="margin-top:8px">${S.agAll ? 'Mostrar só dias com registro' : 'Mostrar todos os dias'}</button>${calFab()}`;
+}
+function calAno() {
+  const y = S.cal.y; const t = C.today(); const sel = (S.calSel && S.calSel.startsWith(String(y))) ? S.calSel : (t.startsWith(String(y)) ? t : null); const hols = S.d.holidays;
+  const mos = Array.from({ length: 12 }, (_, m) => { const first = new Date(y, m, 1).getDay(); const cells = Array.from({ length: first }, () => '<i class="yb"></i>').join('') + C.monthDays(y, m).map((d) => { const i = C.dayInfo(d, S.d); return `<button class="yd ${d === t ? 'today' : ''} ${d === sel ? 'sel' : ''}" style="--sc:${cellColor(i)}" data-st="${i.status}" data-act="cal-pick" data-date="${d}" aria-label="${C.dateLong(d)}"><span>${+d.slice(8)}</span></button>`; }).join('');
+    return `<div class="ymo"><button class="ymn" data-act="cal-month" data-y="${y}" data-m="${m}">${C.MONTHS[m].slice(0, 3)}</button><div class="yg">${cells}</div></div>`; }).join('');
+  const lg = [[C.STATUS.plantao.color, 'Plantão'], [C.EXTRA_D, 'Extra diurna'], [C.EXTRA_N, 'Extra noturna'], [C.TYPES.permuta.color, 'Permuta'], [C.TYPES.folga.color, 'Folga'], [C.TYPES.atestado.color, 'Atestado'], [C.TYPES.ferias.color, 'Férias']];
+  return `<div class="calhead"><button class="ibtn" data-act="cal-yprev" aria-label="Ano anterior">${ic('chevL')}</button><h2 style="text-align:center">${y}</h2><button class="btn sm" data-act="cal-today">Hoje</button><button class="ibtn" data-act="cal-ynext" aria-label="Próximo ano">${ic('chevR')}</button></div><div class="yr" id="cal">${mos}</div><div class="legend" style="margin-top:10px">${lg.map(([c, l]) => `<span><i style="background:${c}"></i>${l}</span>`).join('')}</div><div class="muted xs" style="text-align:center;margin-top:4px">Toque no nome do mês para abri-lo.</div>${daySummary(sel)}`;
+}
+function calendar() {
+  const mode = calMode(S.d.prefs);
+  if (mode === 'ano') return calAno();
+  const x = calCommon();
+  if (mode === 'semanas') return calSemanas(x);
+  if (mode === 'faixa') return calFaixa(x);
+  if (mode === 'agenda') return calAgenda(x);
+  return calGrade(x, mode === 'postos');
 }
 
 // ---------- FINANÇAS ----------
@@ -442,11 +506,10 @@ function settings() {
   const VIS = ['dark', 'obsidiana', 'tatico', 'night', 'light'];
   const segB = (act, items, cur) => `<div class="seg">${items.map(([v, l]) => `<button class="${String(cur) === String(v) ? 'on' : ''}" data-act="${act}" data-v="${v}">${l}</button>`).join('')}</div>`;
   const aparencia = `<div class="b">Tema</div><div class="layg">${PRESETS.map((t) => `<button class="layc ${presetOf(pr).id === t.id ? 'on' : ''}" data-act="preset" data-v="${t.id}" aria-label="Tema ${t.name}"><span style="background:${t.sw}"></span><small>${t.name}</small></button>`).join('')}</div>
+  <div class="b" style="margin-top:14px">Calendário</div><div class="calg">${CAL_MODES.map(([v, n]) => `<button class="calc ${calMode(pr) === v ? 'on' : ''}" data-act="cal-view" data-v="${v}" aria-label="Calendário ${n}">${calIcon(v)}<small>${n}</small></button>`).join('')}</div>
   <details class="sub" data-sec="apmore" ${S.open.has('apmore') ? 'open' : ''}><summary>Mais opções</summary><div class="col" style="margin-top:12px">
    <div class="b">Cor de destaque</div><div class="sw3">${ACCENTS.map((c) => `<button class="${(pr.accent || '') === c ? 'on' : ''}" style="${c ? `background:${c}` : 'background:conic-gradient(#e8e8ea,#4d8dff,#d4a63a,#9bbf5a,#e8e8ea)'}" data-act="accent" data-v="${c}" aria-label="${c ? 'Cor ' + c : 'Cor do tema'}"></button>`).join('')}</div>
    <div class="b">Tamanho do texto</div>${segB('zoom', [[1, 'Normal'], [1.12, 'Grande'], [1.25, 'Muito grande']], pr.zoom || 1)}
-   <div class="b">Calendário</div>${segB('cal-card', [[true, 'Em card'], [false, 'Solto']], pr.calCard !== false)}
-   <div class="b">Estilo dos dias</div>${segB('cell-style', [['classic', 'Clássico'], ['circle', 'Círculos'], ['solid', 'Cheio'], ['clean', 'Limpo']], pr.cellStyle || 'classic')}
    <label class="tgl"><span><div class="b">Ler respostas em voz alta</div><div class="muted xs">O assistente fala as respostas</div></span><input type="checkbox" data-bind="prefs.speak" ${pr.speak ? 'checked' : ''}></label>
   </div></details>`;
   const seguranca = `${pr.pin ? `<div class="grid2"><button class="btn" data-act="pin-new">${ic('lock')}Alterar PIN</button><button class="btn dng" data-act="pin-off">Remover PIN</button></div><label class="f">Bloquear automaticamente<select data-bind="prefs.lockAfter" data-numstr>${[[0, 'Ao sair do app'], [1, 'Depois de 1 minuto'], [5, 'Depois de 5 minutos'], [-1, 'Só ao abrir o app']].map(([v, l]) => `<option value="${v}" ${(pr.lockAfter ?? 1) === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>` : `<div class="muted sm">Peça um PIN para abrir o app. Protege suas ocorrências e dados contra quem pegar o seu celular.</div><button class="btn pri" data-act="pin-new">${ic('lock')}Criar PIN</button>`}${isNative() && pr.pin && S.bioOk ? `<label class="tgl"><span><div class="b">Desbloquear com biometria</div><div class="muted xs">Digital ou rosto; o PIN continua como alternativa</div></span><input type="checkbox" data-bind="prefs.bio" ${pr.bio ? 'checked' : ''}></label>` : ''}<label class="tgl"><span><div class="b">Modo discreto</div><div class="muted xs">Esconde os valores em R$ na tela</div></span><input type="checkbox" data-bind="prefs.discreet" ${pr.discreet ? 'checked' : ''}></label><div class="muted xs">O PIN não criptografa os dados guardados. No modo sem cadastro não há recuperação do PIN: guarde-o e exporte um backup.</div>`;
@@ -670,6 +733,7 @@ function renderView() {
   const el = $('#view'); if (!el) return;
   el.innerHTML = { dashboard, report: reportView, plantao: plantaoView, calendar, quartos: quartosView, finance, summary, livro: livroView, more: moreView, settings }[S.view]();
   el.classList.toggle('enter', !!S.anim); S.anim = false;
+  const st = $('.strip'); if (st) { const c = $('.sd.sel', st) || $('.sd.today', st); if (c) st.scrollLeft = c.offsetLeft - st.clientWidth / 2 + c.clientWidth / 2; }
 }
 function render() {
   C.applyColors(S.d && S.d.prefs && S.d.prefs.colors);
@@ -723,7 +787,7 @@ const A = {
   'layout': (el) => { const v = el.dataset.v; S.d.prefs.layout = v; if (v === 'aurora' && !['light', 'dark'].includes(S.d.prefs.theme)) S.d.prefs.theme = 'light'; save(); render(); toast('Estilo ' + (LAYOUTS.find((x) => x[0] === v) || [0, 'Padrão'])[1]); },
   accent: (el) => { S.d.prefs.accent = el.dataset.v; save(); render(); },
   // calendário / nav mensal
-  'cal-pick': (el) => { const dt = el.dataset.date; if (S.calTapped === dt) { S.calTapped = null; return openSheet('day', { date: dt }); } S.calSel = dt; S.calTapped = dt; render(); },
+  'cal-pick': (el) => { const dt = el.dataset.date; if (S.calTapped === dt) { S.calTapped = null; return openSheet('day', { date: dt }); } S.calSel = dt; S.calTapped = dt; if (+dt.slice(0, 4) !== S.cal.y || +dt.slice(5, 7) - 1 !== S.cal.m) S.cal = { y: +dt.slice(0, 4), m: +dt.slice(5, 7) - 1 }; render(); },
   'cal-prev': () => { S.calTapped = null; shiftMonth(S.cal, -1); S.calDir = 'r'; render(); S.calDir = ''; }, 'cal-next': () => { S.calTapped = null; shiftMonth(S.cal, 1); S.calDir = 'l'; render(); S.calDir = ''; }, 'cal-today': () => { S.calDir = (S.cal.y * 12 + S.cal.m) > (nowD.getFullYear() * 12 + nowD.getMonth()) ? 'r' : 'l'; S.cal = { y: nowD.getFullYear(), m: nowD.getMonth() }; render(); S.calDir = ''; },
   'fin-prev': () => { shiftMonth(S.fin, -1); render(); }, 'fin-next': () => { shiftMonth(S.fin, 1); render(); },
   'sum-prev': () => { shiftMonth(S.sum, -1); S.sum.custom = null; render(); }, 'sum-next': () => { shiftMonth(S.sum, 1); S.sum.custom = null; render(); },
@@ -859,6 +923,10 @@ const A = {
   'q-posts': () => { S.open.add('quartos'); S.qsel = null; closeSheet(); go('settings'); setTimeout(() => $('#cfg-postos')?.scrollIntoView({ block: 'start' }), 120); },
   'liv-cat': (el) => { S.livf.cat = el.dataset.v; renderView(); },
   zoom: (el) => { S.d.prefs.zoom = Number(el.dataset.v); save(); render(); },
+  'cal-view': (el) => { const pr = S.d.prefs; const cur = calMode(pr); const v = el.dataset.v; if (v === 'ano' && cur !== 'ano') pr.calPrevView = cur; applyCalMode(pr, v); save(); render(); toast('Calendário: ' + CAL_MODES.find((q) => q[0] === v)[1]); },
+  'cal-yprev': () => { S.cal.y--; S.calTapped = null; renderView(); }, 'cal-ynext': () => { S.cal.y++; S.calTapped = null; renderView(); },
+  'cal-month': (el) => { S.cal = { y: +el.dataset.y, m: +el.dataset.m }; S.calTapped = null; applyCalMode(S.d.prefs, S.d.prefs.calPrevView && S.d.prefs.calPrevView !== 'ano' ? S.d.prefs.calPrevView : 'padrao'); save(); render(); },
+  'ag-all': () => { S.agAll = !S.agAll; renderView(); },
   'cal-card': (el) => { S.d.prefs.calCard = el.dataset.v === 'true'; save(); render(); toast(S.d.prefs.calCard ? 'Calendário dentro de um card' : 'Calendário solto'); },
   'info-style': (el) => { S.d.prefs.infoStyle = el.dataset.v; save(); render(); toast('Informações: ' + ({ cartoes: 'Cartões', lista: 'Lista', linha: 'Linha do tempo', misto: 'Cartões na linha do tempo' })[el.dataset.v]); },
   'colors-reset': () => { S.d.prefs.colors = {}; save(); render(); toast('Cores restauradas'); },
@@ -1094,7 +1162,7 @@ function demoData(theme, cell) {
 (function boot() {
   const id = Store.currentId(); if (id && Store.user(id)) { S.uid = id; S.user = Store.user(id); S.d = Store.load(id); if (!S.d) { S.uid = null; Store.endSession(); } }
   const hp = new URLSearchParams((location.hash || '').slice(1));
-  if (hp.has('demo')) { S.uid = 'demo'; S.user = { id: 'demo', name: 'Lucas Silva', guest: true, email: '' }; S.d = demoData(hp.get('demo') || 'dark', hp.get('cell')); S.view = hp.get('view') || 'calendar'; if (hp.get('info')) S.d.prefs.infoStyle = hp.get('info'); if (hp.get('calcard') === '0') S.d.prefs.calCard = false; if (hp.get('layout')) S.d.prefs.layout = LAYOUT_IDS.includes(hp.get('layout')) ? hp.get('layout') : 'moderno'; }
+  if (hp.has('demo')) { S.uid = 'demo'; S.user = { id: 'demo', name: 'Lucas Silva', guest: true, email: '' }; S.d = demoData(hp.get('demo') || 'dark', hp.get('cell')); S.view = hp.get('view') || 'calendar'; if (hp.get('info')) S.d.prefs.infoStyle = hp.get('info'); if (hp.get('calcard') === '0') S.d.prefs.calCard = false; if (hp.get('cal')) applyCalMode(S.d.prefs, hp.get('cal')); if (hp.get('layout')) S.d.prefs.layout = LAYOUT_IDS.includes(hp.get('layout')) ? hp.get('layout') : 'moderno'; }
   const root = document.createElement('div'); root.id = 'root'; const sr = document.createElement('div'); sr.id = 'sheetRoot'; document.body.append(root, sr);
   render();
   if ('serviceWorker' in navigator && location.protocol.startsWith('http') && !isNative() && !hp.has('demo')) navigator.serviceWorker.register('./sw.js').catch(() => {});

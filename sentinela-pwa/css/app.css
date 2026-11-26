@@ -783,3 +783,41 @@ details[data-sec=daymore] .add i{width:30px;height:30px;border-radius:10px}
 :root[data-layout=grafite] .cell.sel{outline:2px solid var(--text);outline-offset:2px}
 :root[data-layout=grafite] .dcard{border-left:3px solid var(--accent)}
 :root[data-layout=grafite] .sheet{background:var(--bg2)}
+
+/* ===== formatos do calendário ===== */
+.calg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.calc{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 4px 8px;border-radius:14px;background:var(--surface2);border:1px solid var(--line);color:var(--muted)}
+.calc svg{color:var(--text);opacity:.85}.calc small{font-size:11px;font-weight:700}
+.calc.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent);color:var(--text)}
+.cal-postos .cell{aspect-ratio:1/1.5!important;justify-content:flex-start!important;gap:1px;padding-top:5px}
+.cp{font-size:7.5px;font-weight:800;line-height:1.15;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}.cp.n{opacity:.7}
+.wks{display:flex;flex-direction:column;gap:8px}
+.wkcard{padding:10px 10px 8px;border-radius:18px;background:var(--surface);border:1px solid var(--line)}
+.wkh{display:flex;align-items:baseline;gap:8px;margin:0 2px 6px}.wkh b{font-size:13px}.wkh span{font-size:11.5px;color:var(--muted);font-weight:600}.wkh em{margin-left:auto;font-style:normal;font-size:11.5px;font-weight:700;color:var(--accent)}
+.cal.wk{gap:4px}
+.strip{display:flex;gap:8px;overflow-x:auto;padding:6px 2px 12px;scrollbar-width:none;scroll-snap-type:x proximity}.strip::-webkit-scrollbar{display:none}
+.sd{flex:none;width:54px;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 0 9px;border-radius:18px;background:var(--surface);border:1px solid var(--line);scroll-snap-align:center}
+.sd small{font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase}.sd b{font-size:20px;font-weight:800;letter-spacing:-.02em}
+.sd i{width:22px;height:5px;border-radius:5px;background:var(--sc,transparent)}
+.sd.today{box-shadow:0 0 0 2px var(--accent)}.sd.sel{background:color-mix(in srgb,var(--accent) 16%,var(--surface));border-color:var(--accent)}
+.agl{display:flex;flex-direction:column;gap:6px}
+.agr{display:flex;gap:12px;align-items:center;width:100%;text-align:left;padding:10px 12px;border-radius:16px;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--sc,var(--line))}
+.agd{min-width:40px;display:flex;flex-direction:column;align-items:center}.agd b{font-size:18px;font-weight:800}.agd span{font-size:10.5px;color:var(--muted);font-weight:700;text-transform:uppercase}
+.agi{min-width:0}.agt{font-weight:800;font-size:14px;display:flex;align-items:center;gap:6px}.agt i{width:8px;height:8px;border-radius:50%;background:var(--sc,var(--muted));flex:none}
+.ags{font-size:12px;color:var(--muted);font-weight:600;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.agr.sel{background:color-mix(in srgb,var(--accent) 12%,var(--surface))}.agr.today .agd b{color:var(--accent)}
+.yr{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.ymo{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:8px 6px 7px}
+.ymn{display:block;font-size:11px;font-weight:800;text-align:left;padding:0 2px 4px;text-transform:capitalize}
+.yg{display:grid;grid-template-columns:repeat(7,1fr);gap:1.5px}.yb{display:block}
+.yd{aspect-ratio:1;border-radius:3px;font-size:6.5px;font-weight:700;display:grid;place-items:center;background:transparent;color:var(--text)}
+.yd[data-st]:not([data-st=livre]){background:var(--sc);color:#fff}
+.yd.today{outline:1.5px solid var(--accent)}.yd.sel{outline:1.5px solid var(--text);outline-offset:1px}
+
+.cal-postos .cell .cp{display:block;font-size:8px;color:var(--text);margin-top:1px;text-shadow:none}
+.ccard .cal-postos .cell:not([data-st=livre]) .cp,.ccard .cal[data-cs=solid].cal-postos .cell:not([data-st=livre]) .cp{color:inherit}
+.yd[data-st=plantao]{background:color-mix(in srgb,var(--accent) 55%,transparent);color:var(--text)}
+.yd[data-st=livre]{background:transparent!important;color:var(--text)}
+.yd{color:var(--text)}.yd[data-st]:not([data-st=livre]):not([data-st=plantao]){color:#fff}
+.yd[data-st=plantao]{background:color-mix(in srgb,var(--text) 22%,transparent)!important;color:var(--text)!important}
+.yd[data-st=extra]{background:color-mix(in srgb,var(--sc) 80%,transparent)!important}
