@@ -570,3 +570,17 @@ details[data-sec=daymore] .add i{width:30px;height:30px;border-radius:10px}
 .fhero .bar{margin:6px 0 2px}
 .fn{margin-top:4px;padding-top:10px;border-top:1px solid color-mix(in srgb,var(--text) 10%,transparent);font-size:13px;color:var(--muted)}.fn b{color:var(--text)}
 .cwrap .ticker{margin-bottom:10px}.cwrap .legend{margin-top:12px}
+
+/* ===== Ajustes de aparência enxutos ===== */
+.themes5{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.th5{display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 2px;border-radius:14px;background:var(--surface2);border:1px solid var(--line)}
+.th5 .sw5{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--line)}
+.th5 .sw5 i{width:14px;height:14px;border-radius:50%}
+.th5 small{font-size:10.5px;font-weight:700;color:var(--muted)}
+.th5.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent)}.th5.on small{color:var(--text)}
+/* ===== postos do dia ===== */
+.pcard{display:flex;align-items:center;gap:12px;padding:12px 12px 12px 0;border-radius:16px;background:var(--surface);border:1px solid var(--line);text-align:left;width:100%;overflow:hidden}
+.pcard>i{width:4px;align-self:stretch;flex:none;margin:-12px 0 -12px 0;border-radius:0}
+.pcard .sp{display:flex;flex-direction:column;min-width:0;padding-left:2px}.pcard b{font-size:15px;font-weight:800}.pcard small{font-size:12px;color:var(--muted);font-weight:600}
+.pcard .pt{font-size:12px;font-weight:700;color:var(--muted);white-space:nowrap}
+.pcard svg{color:var(--muted);flex:none}
