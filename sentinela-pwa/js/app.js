@@ -14,6 +14,9 @@ import { signUp, signIn, signInGoogle, sendVerify, refreshVerified, GOOGLE_WEB_C
 const nowD = new Date();
 const S = { rep: { y: nowD.getFullYear(), m: nowD.getMonth() }, calSel: null, uid: null, user: null, d: null, view: 'dashboard', cal: { y: nowD.getFullYear(), m: nowD.getMonth() }, fin: { y: nowD.getFullYear(), m: nowD.getMonth() }, sum: { y: nowD.getFullYear(), m: nowD.getMonth(), values: true, notes: true, calendar: true, custom: null }, sheet: null, qv: { y: nowD.getFullYear(), m: nowD.getMonth() }, liv: { y: nowD.getFullYear(), m: nowD.getMonth() }, roster: null, qsel: null, open: new Set(), livf: { q: '', cat: '' }, alarm: null, auth: { tab: 'login', err: '' }, ob: { step: 0, today: true }, draft: null };
 const ACCENTS = ['', '#e8e8ea', '#4d8dff', '#d4a63a', '#9bbf5a', '#e07a7a', '#c08ae6'];
+const LAYOUTS = [['moderno', 'Moderno', 'linear-gradient(135deg,#1a1a1d,#3a3a40)'], ['classico', 'Clássico', 'linear-gradient(135deg,#0d1526,#3b82ff)'], ['aurora', 'Aurora', 'linear-gradient(135deg,#4f46e5,#c084fc)'], ['safira', 'Safira', 'linear-gradient(135deg,#1d4ed8,#06b6d4)'], ['vivido', 'Vívido', 'linear-gradient(135deg,#7c3aed,#ec4899,#f97316)'], ['grafite', 'Grafite', 'linear-gradient(135deg,#0b0b0d,#2dd4bf)']];
+const LAYOUT_IDS = LAYOUTS.map((x) => x[0]);
+const FIXED_PALETTE = ['safira', 'vivido', 'grafite'];
 const THEMES = [
   { id: 'dark', name: 'Preto', desc: 'Grafite e branco, sóbrio', bg: '#050505', sf: '#111113', ac: '#e8e8ea' },
   { id: 'obsidiana', name: 'Obsidiana', desc: 'Preto espelhado, com degradê', bg: '#030304', sf: '#1b1b22', ac: '#c9ced8' },
@@ -104,7 +107,7 @@ function applyTheme() {
   const p = S.d?.prefs || { theme: 'dark', accent: '' }; let th = p.theme;
   if (th === 'auto') th = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
   if (!THEME_BG[th]) th = 'dark';
-  const el = document.documentElement; el.dataset.theme = th; el.dataset.layout = ['classico', 'aurora'].includes(p.layout) ? p.layout : 'moderno';
+  const el = document.documentElement; el.dataset.theme = th; el.dataset.layout = LAYOUT_IDS.includes(p.layout) ? p.layout : 'moderno';
   if (p.accent && th !== 'night') { el.style.setProperty('--accent', p.accent); el.style.setProperty('--on', '#0a0a0a'); } else { el.style.removeProperty('--accent'); el.style.removeProperty('--on'); }
   el.style.zoom = p.zoom && p.zoom !== 1 ? String(p.zoom) : '';
   C.PRIV.on = !!p.discreet;
@@ -438,13 +441,12 @@ function settings() {
   const coresUI = () => `<div class="muted xs">Toque numa cor para trocar. Vale no calendário, nas listas e nos resumos.</div><div class="colors">${Object.entries(C.COLOR_LABELS).map(([k, l]) => `<label class="cpick"><input type="color" data-color="${k}" value="${(S.d.prefs.colors && S.d.prefs.colors[k]) || (k === 'plantao' ? accentHex() : C.DEFAULT_COLORS[k])}"><span>${l}</span></label>`).join('')}</div><button class="btn sm" data-act="colors-reset">Restaurar cores padrão</button>`;
   const VIS = ['dark', 'obsidiana', 'tatico', 'night', 'light'];
   const segB = (act, items, cur) => `<div class="seg">${items.map(([v, l]) => `<button class="${String(cur) === String(v) ? 'on' : ''}" data-act="${act}" data-v="${v}">${l}</button>`).join('')}</div>`;
-  const aparencia = `<div class="b">Tema</div><div class="themes5">${THEMES.filter((t) => VIS.includes(t.id)).map((t) => `<button class="th5 ${pr.theme === t.id ? 'on' : ''}" data-act="theme" data-v="${t.id}" aria-label="Tema ${t.name}"><span class="sw5" style="background:${t.bg}"><i style="background:${t.ac}"></i></span><small>${t.name}</small></button>`).join('')}</div>
+  const aparencia = `<div class="b">Estilo da interface</div><div class="layg">${LAYOUTS.map(([v, n, g]) => `<button class="layc ${(pr.layout || 'moderno') === v ? 'on' : ''}" data-act="layout" data-v="${v}"><span style="background:${g}"></span><small>${n}</small></button>`).join('')}</div>${FIXED_PALETTE.includes(pr.layout) ? '<div class="muted xs">Este estilo tem cores próprias. O tema claro/escuro vale para Moderno, Clássico e Aurora.</div>' : `<div class="b">Tema</div><div class="themes5">${THEMES.filter((t) => VIS.includes(t.id)).map((t) => `<button class="th5 ${pr.theme === t.id ? 'on' : ''}" data-act="theme" data-v="${t.id}" aria-label="Tema ${t.name}"><span class="sw5" style="background:${t.bg}"><i style="background:${t.ac}"></i></span><small>${t.name}</small></button>`).join('')}</div>`}
   <details class="sub" data-sec="apmore" ${S.open.has('apmore') ? 'open' : ''}><summary>Mais opções</summary><div class="col" style="margin-top:12px">
    <div class="b">Cor de destaque</div><div class="sw3">${ACCENTS.map((c) => `<button class="${(pr.accent || '') === c ? 'on' : ''}" style="${c ? `background:${c}` : 'background:conic-gradient(#e8e8ea,#4d8dff,#d4a63a,#9bbf5a,#e8e8ea)'}" data-act="accent" data-v="${c}" aria-label="${c ? 'Cor ' + c : 'Cor do tema'}"></button>`).join('')}</div>
    <div class="b">Tamanho do texto</div>${segB('zoom', [[1, 'Normal'], [1.12, 'Grande'], [1.25, 'Muito grande']], pr.zoom || 1)}
    <div class="b">Calendário</div>${segB('cal-card', [[true, 'Em card'], [false, 'Solto']], pr.calCard !== false)}
    <div class="b">Estilo dos dias</div>${segB('cell-style', [['classic', 'Clássico'], ['circle', 'Círculos'], ['solid', 'Cheio'], ['clean', 'Limpo']], pr.cellStyle || 'classic')}
-   <div class="b">Estilo da interface</div>${segB('layout', [['moderno', 'Moderno'], ['classico', 'Clássico'], ['aurora', 'Aurora (novo)']], pr.layout || 'moderno')}
    <label class="tgl"><span><div class="b">Ler respostas em voz alta</div><div class="muted xs">O assistente fala as respostas</div></span><input type="checkbox" data-bind="prefs.speak" ${pr.speak ? 'checked' : ''}></label>
   </div></details>`;
   const seguranca = `${pr.pin ? `<div class="grid2"><button class="btn" data-act="pin-new">${ic('lock')}Alterar PIN</button><button class="btn dng" data-act="pin-off">Remover PIN</button></div><label class="f">Bloquear automaticamente<select data-bind="prefs.lockAfter" data-numstr>${[[0, 'Ao sair do app'], [1, 'Depois de 1 minuto'], [5, 'Depois de 5 minutos'], [-1, 'Só ao abrir o app']].map(([v, l]) => `<option value="${v}" ${(pr.lockAfter ?? 1) === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>` : `<div class="muted sm">Peça um PIN para abrir o app. Protege suas ocorrências e dados contra quem pegar o seu celular.</div><button class="btn pri" data-act="pin-new">${ic('lock')}Criar PIN</button>`}${isNative() && pr.pin && S.bioOk ? `<label class="tgl"><span><div class="b">Desbloquear com biometria</div><div class="muted xs">Digital ou rosto; o PIN continua como alternativa</div></span><input type="checkbox" data-bind="prefs.bio" ${pr.bio ? 'checked' : ''}></label>` : ''}<label class="tgl"><span><div class="b">Modo discreto</div><div class="muted xs">Esconde os valores em R$ na tela</div></span><input type="checkbox" data-bind="prefs.discreet" ${pr.discreet ? 'checked' : ''}></label><div class="muted xs">O PIN não criptografa os dados guardados. No modo sem cadastro não há recuperação do PIN: guarde-o e exporte um backup.</div>`;
@@ -857,7 +859,7 @@ const A = {
   zoom: (el) => { S.d.prefs.zoom = Number(el.dataset.v); save(); render(); },
   'cal-card': (el) => { S.d.prefs.calCard = el.dataset.v === 'true'; save(); render(); toast(S.d.prefs.calCard ? 'Calendário dentro de um card' : 'Calendário solto'); },
   'info-style': (el) => { S.d.prefs.infoStyle = el.dataset.v; save(); render(); toast('Informações: ' + ({ cartoes: 'Cartões', lista: 'Lista', linha: 'Linha do tempo', misto: 'Cartões na linha do tempo' })[el.dataset.v]); },
-  'layout': (el) => { const v = el.dataset.v; S.d.prefs.layout = v; if (v === 'classico' && ['dark', 'auto'].includes(S.d.prefs.theme)) S.d.prefs.theme = 'tatico'; if (v === 'aurora' && !['light', 'dark'].includes(S.d.prefs.theme)) S.d.prefs.theme = 'light'; save(); render(); toast(v === 'classico' ? 'Estilo Clássico (tema Tático azul)' : v === 'aurora' ? 'Estilo Aurora (use Tema Claro ou Preto)' : 'Estilo Moderno'); },
+  'layout': (el) => { const v = el.dataset.v; S.d.prefs.layout = v; if (v === 'classico' && ['dark', 'auto'].includes(S.d.prefs.theme)) S.d.prefs.theme = 'tatico'; if (v === 'aurora' && !['light', 'dark'].includes(S.d.prefs.theme)) S.d.prefs.theme = 'light'; save(); render(); toast('Estilo ' + (LAYOUTS.find((x) => x[0] === v) || [0, 'Moderno'])[1]); },
   'colors-reset': () => { S.d.prefs.colors = {}; save(); render(); toast('Cores restauradas'); },
   'avatar-edit': async () => { try { const out = await editPhoto(S.d.profile.photo); if (out) { S.d.profile.photo = out; save(); render(); toast('Foto ajustada ✅'); } } catch (e) { toast(e.message, 'err'); } },
   'avatar-del': () => { delete S.d.profile.photo; save(); render(); },
@@ -1091,7 +1093,7 @@ function demoData(theme, cell) {
 (function boot() {
   const id = Store.currentId(); if (id && Store.user(id)) { S.uid = id; S.user = Store.user(id); S.d = Store.load(id); if (!S.d) { S.uid = null; Store.endSession(); } }
   const hp = new URLSearchParams((location.hash || '').slice(1));
-  if (hp.has('demo')) { S.uid = 'demo'; S.user = { id: 'demo', name: 'Lucas Silva', guest: true, email: '' }; S.d = demoData(hp.get('demo') || 'dark', hp.get('cell')); S.view = hp.get('view') || 'calendar'; if (hp.get('info')) S.d.prefs.infoStyle = hp.get('info'); if (hp.get('calcard') === '0') S.d.prefs.calCard = false; if (hp.get('layout')) S.d.prefs.layout = ['classico', 'aurora'].includes(hp.get('layout')) ? hp.get('layout') : 'moderno'; }
+  if (hp.has('demo')) { S.uid = 'demo'; S.user = { id: 'demo', name: 'Lucas Silva', guest: true, email: '' }; S.d = demoData(hp.get('demo') || 'dark', hp.get('cell')); S.view = hp.get('view') || 'calendar'; if (hp.get('info')) S.d.prefs.infoStyle = hp.get('info'); if (hp.get('calcard') === '0') S.d.prefs.calCard = false; if (hp.get('layout')) S.d.prefs.layout = LAYOUT_IDS.includes(hp.get('layout')) ? hp.get('layout') : 'moderno'; }
   const root = document.createElement('div'); root.id = 'root'; const sr = document.createElement('div'); sr.id = 'sheetRoot'; document.body.append(root, sr);
   render();
   if ('serviceWorker' in navigator && location.protocol.startsWith('http') && !isNative() && !hp.has('demo')) navigator.serviceWorker.register('./sw.js').catch(() => {});
