@@ -434,3 +434,62 @@ details[data-sec=daymore] .add i{width:30px;height:30px;border-radius:10px}
 .scrollx::-webkit-scrollbar{display:none}
 
 .dchips{gap:6px}.dchips .chip{padding:7px 12px;font-size:12.5px}
+
+/* ===== hoje com brilho; dia selecionado com contorno ===== */
+.cell.today{outline:none;border-color:var(--accent)}
+.cell.today .n::after{display:none}
+.cal .cell.today{box-shadow:0 0 0 1px var(--accent),0 0 14px 1px color-mix(in srgb,var(--accent) 55%,transparent)!important;animation:todayGlow 2.8s ease-in-out infinite}
+@keyframes todayGlow{50%{box-shadow:0 0 0 1px var(--accent),0 0 22px 3px color-mix(in srgb,var(--accent) 75%,transparent)}}
+.cell.today .n{text-shadow:0 0 10px color-mix(in srgb,var(--accent) 70%,transparent)}
+.cell.sel{outline:2px solid var(--text);outline-offset:2px}
+.cal[data-cs=circle] .cell.today .n{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--accent),0 0 14px 4px color-mix(in srgb,var(--accent) 60%,transparent)}
+@media (prefers-reduced-motion:reduce){.cal .cell.today{animation:none}}
+
+/* ===== card do dia (estilo do original) ===== */
+.dcard{margin-top:14px;padding:14px 16px;border-radius:18px;background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--accent);display:flex;flex-direction:column;gap:10px;cursor:pointer}
+.dch{display:flex;align-items:center;gap:10px}
+.dct{font-weight:800;font-size:15px;text-transform:uppercase;letter-spacing:.01em}
+.dcs{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-top:2px}
+.dgear{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;flex:none;background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent)}
+.dgear svg{width:18px;height:18px}
+.ccard{display:contents}
+
+/* ===== estilo Clássico (parecido com o original) ===== */
+:root[data-layout=classico] .ctop{display:flex;align-items:center;gap:12px;padding-bottom:6px}
+:root[data-layout=classico] .clogo{width:46px;height:46px;border-radius:16px;display:grid;place-items:center;flex:none;background:color-mix(in srgb,var(--accent) 10%,var(--surface));border:1px solid color-mix(in srgb,var(--accent) 30%,var(--line));color:var(--accent)}
+:root[data-layout=classico] .cname{font-size:19px;font-weight:900;letter-spacing:-.02em;white-space:nowrap}.cname span{color:var(--accent)}
+:root[data-layout=classico] .csub{display:flex;align-items:center;gap:6px;margin-top:2px;font-size:10px;font-weight:800;letter-spacing:.16em;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+:root[data-layout=classico] .csub i{width:6px;height:6px;border-radius:50%;background:var(--accent);flex:none}
+:root[data-layout=classico] .ctit{min-width:0}
+:root[data-layout=classico] .cpill{display:flex;align-items:center;gap:6px;padding:7px 11px;border-radius:99px;font-size:10px;font-weight:900;letter-spacing:.12em;color:var(--ok);background:color-mix(in srgb,var(--ok) 12%,transparent);border:1px solid color-mix(in srgb,var(--ok) 30%,transparent);flex:none}
+:root[data-layout=classico] .cpill i{width:6px;height:6px;border-radius:50%;background:var(--ok)}
+:root[data-layout=classico] .cpill.on i{animation:pulse 1.6s infinite}
+:root[data-layout=classico] .ccard{display:block;padding:18px 14px 14px;border-radius:28px;background:linear-gradient(160deg,color-mix(in srgb,var(--accent) 7%,var(--surface)),var(--surface) 55%);border:1px solid var(--line)}
+:root[data-layout=classico] .ccard .calhead{display:flex;align-items:center;gap:6px;margin:0 4px 12px}
+:root[data-layout=classico] .ccard .calhead h2{order:0;flex:1;text-align:left!important;font-size:22px;letter-spacing:-.02em}
+:root[data-layout=classico] .ccard .calhead .ibtn{order:1;background:transparent;border-color:transparent}
+:root[data-layout=classico] .ccard .calhead .btn{display:none}
+:root[data-layout=classico] .ccard .cal .cell{aspect-ratio:1;align-items:center;justify-content:center;text-align:center;gap:0;background:transparent;border-color:transparent;box-shadow:none;border-radius:16px}
+:root[data-layout=classico] .ccard .cal .cell:not([data-st=livre]){background:color-mix(in srgb,var(--sc) 16%,transparent);border-color:color-mix(in srgb,var(--sc) 38%,transparent)}
+:root[data-layout=classico] .ccard .cal .cell .tg{font-size:8px;opacity:.9;color:var(--sc)}
+:root[data-layout=classico] .ccard .cal .cell:not([data-st=livre]) .n{color:var(--sc)}
+:root[data-layout=classico] .ccard .cal .cell[data-st=livre] .tg{display:none}
+:root[data-layout=classico] .ccard .legend{margin-top:14px;padding:0 4px}
+:root[data-layout=classico] .ccard .legend span{text-transform:uppercase;font-size:10px;letter-spacing:.08em;font-weight:800;color:var(--muted)}
+:root[data-layout=classico] .ccard .ticker{margin:0 0 10px}
+:root[data-layout=classico] .tiles .tile:nth-child(1){background:linear-gradient(160deg,color-mix(in srgb,#3b82f6 22%,var(--surface)),var(--surface));border-color:color-mix(in srgb,#3b82f6 40%,var(--line))}
+:root[data-layout=classico] .tiles .tile:nth-child(2){background:linear-gradient(160deg,color-mix(in srgb,#22c55e 18%,var(--surface)),var(--surface));border-color:color-mix(in srgb,#22c55e 38%,var(--line))}
+:root[data-layout=classico] .tiles .tile:nth-child(1) .tl{color:#60a5fa}.tiles .tile:nth-child(2) .tl{color:#4ade80}
+:root[data-layout=classico] .tile .tl{font-weight:900;letter-spacing:.1em}
+:root[data-layout=classico] .crep{background:linear-gradient(160deg,color-mix(in srgb,#22c55e 12%,var(--surface)),var(--surface));border-color:color-mix(in srgb,#22c55e 30%,var(--line))}
+:root[data-layout=classico] .crep .ico{background:color-mix(in srgb,#22c55e 18%,transparent);color:#4ade80}
+:root[data-layout=classico] .crep .t{color:#4ade80}.crep .s{letter-spacing:.1em;font-weight:800;font-size:10.5px}
+:root[data-layout=classico] .tab{position:relative}
+:root[data-layout=classico] .tab.on::before{content:"";position:absolute;top:-6px;left:50%;width:26px;height:3px;margin-left:-13px;border-radius:3px;background:var(--accent)}
+.lay{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.layopt{display:flex;flex-direction:column;gap:3px;text-align:left;padding:12px;border-radius:16px;background:var(--surface2);border:1px solid var(--line)}
+.layopt b{font-size:14px}.layopt small{font-size:11.5px;color:var(--muted);line-height:1.3}
+.layopt.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent)}
+
+:root[data-layout=classico] .csub{font-size:9.5px;letter-spacing:.1em}
+:root[data-layout=classico] .cpill{letter-spacing:.06em;padding:7px 10px}
