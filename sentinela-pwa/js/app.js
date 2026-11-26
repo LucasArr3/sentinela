@@ -285,7 +285,7 @@ function qEditor(date, opts = {}) {
 }
 function quartosSheet(date) {
   const back = S.sheet && S.sheet.back;
-  return `<div class="grab"></div><div class="row">${back ? `<button class="ibtn" data-act="q-back" aria-label="Voltar">${ic('chevL')}</button>` : ''}<div class="sp"><div class="muted sm">${C.relDays(date)}</div><h3>Postos · ${C.dateLong(date)}</h3></div><button class="ibtn" data-act="close">${ic('x')}</button></div><div class="col" style="margin-top:14px">${qEditor(date)}<button class="btn blk" data-act="roster-open" data-date="${date}">${ic('camera')}Ler de uma foto da escala</button></div>`;
+  return `<div class="grab"></div><div class="row">${back ? `<button class="ibtn" data-act="q-back" aria-label="Voltar">${ic('chevL')}</button>` : ''}<div class="sp"><div class="muted sm">${C.relDays(date)}</div><h3>Postos · ${C.dateLong(date)}</h3></div><button class="ibtn" data-act="close">${ic('x')}</button></div><div class="col" style="margin-top:14px">${qTables(date)}<button class="btn blk" data-act="roster-open" data-date="${date}">${ic('camera')}Ler de uma foto da escala</button></div>`;
 }
 function quartosView() {
   const { y, m } = S.qv; const t = C.today(); const key = C.ymKey(y, m);
@@ -578,6 +578,46 @@ function postoForm() {
    <div class="row"><button class="btn pri sp" data-act="pe-save">${ic('check')}Salvar</button>${e.id ? `<button class="btn dng" data-act="pe-del" aria-label="Excluir">${ic('trash')}</button>` : ''}</div>
   </div>`;
 }
+const swapSheet = (kind, extra = {}) => { S.sheet = { kind, ...extra }; renderSheet(); };
+const DAY_DEF = { from: '08:00', to: '18:00' };
+const slotOrder = () => Object.fromEntries(S.d.quarters.map((q, i) => [q.id, i]));
+function nightRows(date) { // um posto por linha, com os quartos dele
+  const ord = slotOrder(); const m = new Map();
+  for (const e of S.d.events) { if (e.type !== 'quarto' || e.date !== date) continue; const k = e.post || ''; if (!m.has(k)) m.set(k, []); m.get(k).push(e.slot); }
+  return [...m.entries()].map(([post, slots]) => ({ post, slots: slots.sort((a, b) => ord[a] - ord[b]) })).sort((a, b) => ord[a.slots[0]] - ord[b.slots[0]]);
+}
+const slotTxt = (id) => { const q = S.d.quarters.find((x) => x.id === id); return q ? (q.alvorada ? 'Alvorada' : C.qLabel(q)) : id; };
+function qTables(date) {
+  const tab = S.qtab || (new Date().getHours() >= 18 ? 'noite' : 'dia'); const ents = postosDia(date).sort((a, b) => (a.from || '').localeCompare(b.from || ''));
+  const row = (a, as, b, bAct, aAct, xAct, data) => `<div class="tr"><button type="button" class="pb" data-act="${aAct}" ${data}><span>${esc(a)}${as ? `<small>${esc(as)}</small>` : ''}</span>${ic('chevD')}</button><button type="button" class="pb t" data-act="${bAct}" ${data}><span>${esc(b)}</span>${ic('chevD')}</button><button type="button" class="xb" data-act="${xAct}" ${data} aria-label="Remover">${ic('trash')}</button></div>`;
+  const dayRows = ents.map((e) => row(e.post, e.where, e.from || e.to ? `${e.from || DAY_DEF.from} – ${e.to || DAY_DEF.to}` : `${DAY_DEF.from} – ${DAY_DEF.to}`, 'tp-time', 'tp-post', 'tp-del', `data-id="${e.id}"`)).join('');
+  const nr = nightRows(date); const nightRowsH = nr.map((r) => row(r.post || 'Sem posto', '', r.slots.map(slotTxt).join(' · '), 'tn-slots', 'tn-post', 'tn-del', `data-post="${esc(r.post)}"`)).join('');
+  const body = tab === 'dia'
+    ? `<div class="tbl"><div class="th"><span>Posto</span><span>Horário</span><span></span></div>${dayRows || '<div class="muted sm" style="padding:8px 4px">Nenhum posto registrado durante o dia.</div>'}<button type="button" class="addrow" data-act="tp-add" data-date="${date}">${ic('plus')}Adicionar posto</button></div><div class="hint">Toque no posto para trocar e no horário para editar. O horário padrão é ${DAY_DEF.from} às ${DAY_DEF.to}. Ao adicionar outro posto, o anterior termina na hora de agora.</div>`
+    : `<div class="tbl"><div class="th"><span>Posto</span><span>Quartos de hora</span><span></span></div>${nightRowsH || '<div class="muted sm" style="padding:8px 4px">Nenhum quarto marcado à noite.</div>'}<button type="button" class="addrow" data-act="tn-add" data-date="${date}">${ic('plus')}Adicionar posto</button></div><div class="hint">1º escolha o posto, 2º marque os quartos dele. Um posto pode ter vários quartos, e um quarto pode ter mais de um posto.</div>`;
+  return `<div class="ptabs"><button type="button" class="${tab === 'dia' ? 'on' : ''}" data-act="qtab" data-v="dia">Durante o dia</button><button type="button" class="${tab === 'noite' ? 'on' : ''}" data-act="qtab" data-v="noite">À noite</button></div>${body}`;
+}
+function postPickSheet() {
+  const k = S.pk; const roles = k.kind === 'dia' ? (S.d.dayPosts || []) : nightPosts(); const wh = whereOpts();
+  const chip = (on, act, v, label) => `<button type="button" class="chip ${on ? 'on' : ''}" data-act="${act}" data-v="${esc(v)}">${esc(label)}</button>`;
+  return `<div class="grab"></div><div class="row"><div class="sp"><div class="muted sm">${C.dateLong(k.date)}</div><h3>Escolher posto</h3></div><button class="ibtn" data-act="pk-cancel" aria-label="Fechar">${ic('x')}</button></div>
+  <div class="muted sm" style="margin:8px 0 12px">Os postos fixos da sua unidade</div><div class="pgrid3">${roles.map((r) => chip(k.post === r, 'pk-role', r, r)).join('')}${k.kind === 'noite' ? chip(k.post === '', 'pk-role', '', 'Sem posto') : ''}</div>
+  ${k.kind === 'dia' && k.post && needsWhere(k.post) ? `<div class="b" style="margin:16px 0 8px">Em qual bloco?</div><div class="pgrid3">${wh.map((w) => chip(k.where === w, 'pk-where', w, w)).join('')}</div>` : ''}
+  <button type="button" class="bigok" data-act="pk-ok">${k.kind === 'noite' && !k.old && k.old !== '' ? 'Continuar' : 'Concluir'}</button>`;
+}
+function slotsSheet() {
+  const k = S.ps; const sel = new Set(k.slots);
+  return `<div class="grab"></div><div class="row"><div class="sp"><div class="muted sm">${C.dateLong(k.date)}</div><h3>Quartos de hora · ${esc(k.post || 'Sem posto')}</h3></div><button class="ibtn" data-act="ps-cancel" aria-label="Fechar">${ic('x')}</button></div>
+  <div class="muted sm" style="margin:8px 0 12px">Marque os horários em que fica neste posto</div><div class="slots">${S.d.quarters.map((q) => `<button type="button" class="slot ${sel.has(q.id) ? 'on' : ''}" data-act="ps-toggle" data-q="${q.id}"><span>${esc(q.alvorada ? 'Alvorada ' + C.qLabel(q) : C.qLabel(q))}</span><i>${sel.has(q.id) ? '✓' : ''}</i></button>`).join('')}</div>
+  <button type="button" class="bigok" data-act="ps-ok">Concluir</button>`;
+}
+function timeSheet() {
+  const t = S.pt; const ev = S.d.events.find((x) => x.id === t.id);
+  return `<div class="grab"></div><div class="row"><div class="sp"><div class="muted sm">${C.dateLong(t.date)}</div><h3>Horário · ${esc(ev ? ev.post : '')}</h3></div><button class="ibtn" data-act="pt-cancel" aria-label="Fechar">${ic('x')}</button></div>
+  <div class="muted sm" style="margin:8px 0 12px">Quando você fica neste posto durante o dia</div><div class="grid2"><label class="f">Das<input type="time" data-pt="from" value="${t.from || ''}"></label><label class="f">Até<input type="time" data-pt="to" value="${t.to || ''}"></label></div>
+  <div class="row" style="margin-top:10px;gap:8px"><button type="button" class="btn sm sp" data-act="pt-now">Agora (início)</button><button type="button" class="btn sm sp" data-act="pt-def">${DAY_DEF.from}–${DAY_DEF.to}</button></div>
+  <button type="button" class="bigok" data-act="pt-ok">Concluir</button>`;
+}
 const postosDia = (date) => S.d.events.filter((x) => x.type === 'posto' && x.date === date);
 const postoDia = (date) => postosDia(date).find((x) => !x.from);
 const postoLabel = (e) => `${e.post}${e.where ? ' · ' + e.where : ''}`;
@@ -605,10 +645,10 @@ window.addEventListener('popstate', () => { if (S.sheet) { S.histN = Math.max(0,
 function renderSheet() {
   const root = $('#sheetRoot'); const sh = S.sheet; if (!sh) { root.innerHTML = ''; root.dataset.kind = ''; document.body.style.overflow = ''; return; }
   document.body.style.overflow = 'hidden';
-  if (!root.firstChild || root.dataset.kind !== sh.kind) { root.dataset.kind = sh.kind; root.innerHTML = `<div class="overlay" data-act="overlay"><div class="sheet" role="dialog" aria-modal="true"></div></div>`; }
-  const el = $('.sheet', root); const top = el.scrollTop;
+  if (!root.firstChild || (root.dataset.kind === 'ai') !== (sh.kind === 'ai')) { root.dataset.kind = sh.kind; root.innerHTML = `<div class="overlay" data-act="overlay"><div class="sheet" role="dialog" aria-modal="true"></div></div>`; }
+  root.dataset.kind = sh.kind; const el = $('.sheet', root); const top = el.scrollTop;
   if (sh.kind === 'ai') assistant.mount(el);
-  else { el.innerHTML = { day: () => daySheet(sh.date), quartos: () => quartosSheet(sh.date), pform: postoForm, form: formSheet, pw: pwSheet, pinset: pinSheet, roster: rosterSheet }[sh.kind](); el.scrollTop = top; }
+  else { el.innerHTML = { day: () => daySheet(sh.date), quartos: () => quartosSheet(sh.date), ppick: postPickSheet, qslots: slotsSheet, ptime: timeSheet, pform: postoForm, form: formSheet, pw: pwSheet, pinset: pinSheet, roster: rosterSheet }[sh.kind](); el.scrollTop = top; }
 }
 function openForm(base) {
   const T = C.TYPES[base.type]; const e = { turno: 'diurna', dir: 'passei', ...base };
@@ -716,7 +756,7 @@ const A = {
   'qv-all': () => { S.qv.all = !S.qv.all; renderView(); },
   'qv-prev': () => { shiftMonth(S.qv, -1); render(); }, 'qv-next': () => { shiftMonth(S.qv, 1); render(); },
   'liv-prev': () => { shiftMonth(S.liv, -1); render(); }, 'liv-next': () => { shiftMonth(S.liv, 1); render(); },
-  'q-open': (el) => { const date = el.dataset.date; const back = S.sheet?.kind === 'day' ? date : null; S.tadd = false; S.qsel = null; S.sheet = null; openSheet('quartos', { date, back }); },
+  'q-open': (el) => { const date = el.dataset.date; const back = S.sheet?.kind === 'day' ? date : null; S.qctx = { date, back }; S.tadd = false; S.qsel = null; S.sheet = null; openSheet('quartos', { date, back }); },
   'q-back': () => { const d = S.sheet.date; S.qsel = null; openSheet('day', { date: d }); },
   'q-slot': (el) => {
     const { date, q } = el.dataset; const post = activePost(); const list = S.d.events.filter((x) => x.type === 'quarto' && x.date === date && x.slot === q);
@@ -727,7 +767,59 @@ const A = {
   },
   'q-setpost': (el) => { S.qpost = el.dataset.v; S.d.prefs.lastPost = S.qpost; save(); renderSheet(); },
   'qd-open': (el) => { const cur = S.qopen === undefined ? 'night' : S.qopen; S.qopen = cur === el.dataset.v ? '' : el.dataset.v; S.tadd = false; renderSheet(); },
-  'pe-new': (el) => { const date = el.dataset.date; const now = el.dataset.now === '1'; const fromQ = S.sheet && S.sheet.kind === 'quartos'; S.pdraft = { date, post: '', where: '', from: now ? nowHM() : '', to: '' }; S.sheet = null; openSheet('pform', { date, q: fromQ }); },
+  'pe-new': (el) => { const date = el.dataset.date; S.qtab = 'dia'; S.qctx = { date, back: null }; S.pk = { date, kind: 'dia', id: null, post: '', where: '' }; openSheet('ppick', { date }); },
+  'qtab': (el) => { S.qtab = el.dataset.v; renderSheet(); },
+  // ---- postos do dia
+  'tp-add': (el) => { S.pk = { date: el.dataset.date, kind: 'dia', id: null, post: '', where: '' }; swapSheet('ppick', { date: el.dataset.date }); },
+  'tp-post': (el) => { const e = S.d.events.find((x) => x.id === el.dataset.id); if (!e) return; S.pk = { date: e.date, kind: 'dia', id: e.id, post: e.post, where: e.where || '' }; swapSheet('ppick', { date: e.date }); },
+  'tp-time': (el) => { const e = S.d.events.find((x) => x.id === el.dataset.id); if (!e) return; S.pt = { date: e.date, id: e.id, from: e.from || DAY_DEF.from, to: e.to || DAY_DEF.to }; swapSheet('ptime', { date: e.date }); },
+  'tp-del': (el) => { const e = S.d.events.find((x) => x.id === el.dataset.id); if (!e) return; S.d.events = S.d.events.filter((x) => x !== e); save(); render(); renderSheet(); toast('Posto removido', '', () => { S.d.events.push(e); save(); render(); renderSheet(); }); },
+  // ---- postos da noite
+  'tn-add': (el) => { S.pk = { date: el.dataset.date, kind: 'noite', old: null, post: activePost() }; swapSheet('ppick', { date: el.dataset.date }); },
+  'tn-post': (el) => { const date = S.sheet.date; const old = el.dataset.post; S.pk = { date, kind: 'noite', old, post: old }; swapSheet('ppick', { date }); },
+  'tn-slots': (el) => { const date = S.sheet.date; const post = el.dataset.post; S.ps = { date, post, slots: S.d.events.filter((x) => x.type === 'quarto' && x.date === date && (x.post || '') === post).map((x) => x.slot) }; swapSheet('qslots', { date }); },
+  'tn-del': (el) => { const date = S.sheet.date; const post = el.dataset.post; const gone = S.d.events.filter((x) => x.type === 'quarto' && x.date === date && (x.post || '') === post); S.d.events = S.d.events.filter((x) => !gone.includes(x)); save(); render(); renderSheet(); toast('Quartos removidos', '', () => { S.d.events.push(...gone); save(); render(); renderSheet(); }); },
+  // ---- escolher posto
+  'pk-role': (el) => { S.pk.post = el.dataset.v; if (!needsWhere(el.dataset.v)) S.pk.where = ''; renderSheet(); },
+  'pk-where': (el) => { S.pk.where = el.dataset.v; renderSheet(); },
+  'pk-cancel': () => { swapSheet('quartos', { date: S.pk.date, back: S.qctx && S.qctx.back }); },
+  'pk-ok': () => {
+    const k = S.pk; const back = { date: k.date, back: S.qctx && S.qctx.back };
+    if (k.kind === 'dia') {
+      if (!k.post) return toast('Escolha o posto', 'err'); if (needsWhere(k.post) && !k.where) return toast('Escolha o bloco', 'err');
+      if (k.id) { const e = S.d.events.find((x) => x.id === k.id); if (e) { e.post = k.post; e.where = k.where || ''; } toast('Posto atualizado ✅'); }
+      else {
+        const ents = postosDia(k.date).sort((a, b) => (a.from || '').localeCompare(b.from || '')); let from = DAY_DEF.from; let msg = 'Posto adicionado ✅';
+        if (ents.length) { const n = nowHM(); from = n >= DAY_DEF.from && n < DAY_DEF.to ? n : (ents[ents.length - 1].to || DAY_DEF.from); }
+        ents.forEach((x) => { const xf = x.from || DAY_DEF.from; const xt = x.to || DAY_DEF.to; if (xf < from && xt > from) { x.from = xf; x.to = from; msg = `Posto anterior encerrado às ${from} ✅`; } });
+        S.d.events.push({ id: C.uid(), type: 'posto', date: k.date, post: k.post, where: k.where || '', from, to: DAY_DEF.to }); toast(msg);
+      }
+      save(); render(); swapSheet('quartos', back); return;
+    }
+    // noite
+    if (k.old === null) { S.ps = { date: k.date, post: k.post, slots: [] }; swapSheet('qslots', { date: k.date }); return; }
+    if (k.post !== k.old) { S.d.events.filter((x) => x.type === 'quarto' && x.date === k.date && (x.post || '') === k.old).forEach((x) => { const dup = S.d.events.find((y) => y !== x && y.type === 'quarto' && y.date === k.date && y.slot === x.slot && (y.post || '') === k.post); if (dup) S.d.events = S.d.events.filter((y) => y !== x); else x.post = k.post; }); save(); render(); toast('Posto trocado ✅'); }
+    swapSheet('quartos', back);
+  },
+  'ps-toggle': (el) => { const q = el.dataset.q; const a = S.ps.slots; const i = a.indexOf(q); if (i >= 0) a.splice(i, 1); else a.push(q); renderSheet(); },
+  'ps-cancel': () => { swapSheet('quartos', { date: S.ps.date, back: S.qctx && S.qctx.back }); },
+  'ps-ok': () => {
+    const k = S.ps; const post = k.post || ''; const sel = new Set(k.slots);
+    S.d.events = S.d.events.filter((x) => !(x.type === 'quarto' && x.date === k.date && (x.post || '') === post && !sel.has(x.slot)));
+    for (const slot of sel) { if (!S.d.events.some((x) => x.type === 'quarto' && x.date === k.date && x.slot === slot && (x.post || '') === post)) { const blank = S.d.events.find((x) => x.type === 'quarto' && x.date === k.date && x.slot === slot && !x.post); if (blank && post) blank.post = post; else S.d.events.push({ id: C.uid(), type: 'quarto', date: k.date, slot, post }); } }
+    if (post) { S.d.prefs.lastPost = post; askNotifyPermission(); }
+    save(); render(); swapSheet('quartos', { date: k.date, back: S.qctx && S.qctx.back }); toast('Quartos salvos ✅');
+  },
+  // ---- horário do posto do dia
+  'pt-now': () => { S.pt.from = nowHM(); renderSheet(); },
+  'pt-def': () => { S.pt.from = DAY_DEF.from; S.pt.to = DAY_DEF.to; renderSheet(); },
+  'pt-cancel': () => { swapSheet('quartos', { date: S.pt.date, back: S.qctx && S.qctx.back }); },
+  'pt-ok': () => {
+    const t = S.pt; if (!t.from || !t.to) return toast('Informe os dois horários', 'err'); if (t.to <= t.from) return toast('O horário final precisa ser depois do inicial', 'err');
+    const e = S.d.events.find((x) => x.id === t.id); if (e) { e.from = t.from; e.to = t.to; }
+    save(); render(); swapSheet('quartos', { date: t.date, back: S.qctx && S.qctx.back }); toast('Horário salvo ✅');
+  },
+  'pe-new0': (el) => { const date = el.dataset.date; const now = el.dataset.now === '1'; const fromQ = S.sheet && S.sheet.kind === 'quartos'; S.pdraft = { date, post: '', where: '', from: now ? nowHM() : '', to: '' }; S.sheet = null; openSheet('pform', { date, q: fromQ }); },
   'pe-edit': (el) => { const x = S.d.events.find((v) => v.id === el.dataset.id); if (!x) return; const fromQ = S.sheet && S.sheet.kind === 'quartos'; S.pdraft = { id: x.id, date: x.date, post: x.post, where: x.where || '', from: x.from || '', to: x.to || '' }; S.sheet = null; openSheet('pform', { date: x.date, q: fromQ }); },
   'pe-role': (el) => { S.pdraft.post = el.dataset.v; if (!needsWhere(el.dataset.v)) S.pdraft.where = ''; renderSheet(); },
   'pe-where': (el) => { S.pdraft.where = el.dataset.v; renderSheet(); },
@@ -934,6 +1026,7 @@ document.addEventListener('change', async (ev) => {
   if (t.dataset.rosterDate !== undefined) { S.roster.date = t.value || S.roster.date; renderSheet(); return; }
   if (t.dataset.ri !== undefined) { S.roster.entries[+t.dataset.ri].checked = t.checked; renderSheet(); return; }
   if (t.dataset.tf && S.tdraft) { S.tdraft[t.dataset.tf] = t.value; return; }
+  if (t.dataset.pt && S.pt) { S.pt[t.dataset.pt] = t.value; return; }
   if (t.dataset.pf && S.pdraft) { S.pdraft[t.dataset.pf] = t.value; return; }
   if (t.dataset.f && S.draft) { S.draft[t.dataset.f] = t.type === 'checkbox' ? t.checked : t.value; if (t.dataset.f === 'turno' && S.draft.type === 'extra') { S.draft.value = S.d.money[t.value]; renderSheet(); } return; }
   if (t.dataset.postI !== undefined) {
