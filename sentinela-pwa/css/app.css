@@ -569,3 +569,4 @@ details[data-sec=daymore] .add i{width:30px;height:30px;border-radius:10px}
 .fs{font-size:13px;font-weight:700;color:var(--muted)}
 .fhero .bar{margin:6px 0 2px}
 .fn{margin-top:4px;padding-top:10px;border-top:1px solid color-mix(in srgb,var(--text) 10%,transparent);font-size:13px;color:var(--muted)}.fn b{color:var(--text)}
+.cwrap .ticker{margin-bottom:10px}.cwrap .legend{margin-top:12px}
