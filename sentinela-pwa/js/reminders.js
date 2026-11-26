@@ -34,10 +34,12 @@ const shiftHours = (info, sc) => (info.status === 'extra' ? (info.events.find((e
 export function alarmsBetween(state, from, to) {
   const out = []; const p = state.prefs; if (!p.reminders) return out;
   const f = from.getTime(), t = to.getTime();
-  for (const e of state.events) {
-    if (e.type !== 'quarto') continue; const q = state.quarters.find((x) => x.id === e.slot); if (!q || q.alvorada || q.alarm === false) continue;
+  const groups = new Map();
+  for (const e of state.events) { if (e.type !== 'quarto') continue; const k = `${e.date}|${e.slot}`; if (!groups.has(k)) groups.set(k, { e, posts: [] }); if (e.post) groups.get(k).posts.push(e.post); }
+  for (const { e, posts } of groups.values()) {
+    const q = state.quarters.find((x) => x.id === e.slot); if (!q || q.alvorada || q.alarm === false) continue;
     const lead = q.lead ?? p.lead ?? 15; const st = slotDate(e.date, q, state.scale); const at = st.getTime() - lead * 60000;
-    if (at >= f && at <= t) out.push({ id: hashId(`q:${e.id}:${e.slot}:${e.date}`), at, kind: 'quarto', title: `Quarto ${q.start.replace(':00', 'h')}${lead ? ` em ${lead} min` : ' agora'}`, body: e.post ? `Posto: ${e.post}` : 'Prepare-se para assumir o quarto', sound: q.sound || p.sound || DEFAULT_SOUND });
+    if (at >= f && at <= t) out.push({ id: hashId(`q:${e.date}:${e.slot}`), at, kind: 'quarto', title: `Quarto ${q.start.replace(':00', 'h')}${lead ? ` em ${lead} min` : ' agora'}`, body: posts.length ? `Posto: ${posts.join(' + ')}` : 'Prepare-se para assumir o quarto', sound: q.sound || p.sound || DEFAULT_SOUND });
   }
   if (p.alvorada) {
     const al = state.quarters.find((q) => q.alvorada);

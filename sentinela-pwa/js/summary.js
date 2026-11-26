@@ -40,7 +40,8 @@ export function buildSummary(state, y, m, opts = {}) {
     L.push('');
     if (s.quartos.length) {
       L.push(`⏱️ *QUARTOS E POSTOS (${s.quartos.length})*`); const byDay = {};
-      for (const e of s.quartos) { const q = state.quarters.find((x) => x.id === e.slot); (byDay[e.date] = byDay[e.date] || []).push(`${q ? qLabel(q) : e.slot}${e.post ? ' ' + e.post : ''}`); }
+      const bySlot = {}; for (const e of s.quartos) { const k = e.date + '|' + e.slot; (bySlot[k] = bySlot[k] || { e, posts: [] }); if (e.post) bySlot[k].posts.push(e.post); }
+      for (const { e, posts } of Object.values(bySlot)) { const q = state.quarters.find((x) => x.id === e.slot); (byDay[e.date] = byDay[e.date] || []).push(`${q ? qLabel(q) : e.slot}${posts.length ? ' ' + posts.join('+') : ''}`); }
       L.push(...Object.entries(byDay).map(([d, v]) => `▫️ ${dow(d)} ${fmtShort(d)} — ${v.join(' · ')}`), '');
     }
   }

@@ -452,7 +452,6 @@ details[data-sec=daymore] .add i{width:30px;height:30px;border-radius:10px}
 .dcs{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-top:2px}
 .dgear{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;flex:none;background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent)}
 .dgear svg{width:18px;height:18px}
-.ccard{display:contents}
 
 /* ===== estilo Clássico (parecido com o original) ===== */
 :root[data-layout=classico] .ctop{display:flex;align-items:center;gap:12px;padding-bottom:6px}
@@ -464,19 +463,19 @@ details[data-sec=daymore] .add i{width:30px;height:30px;border-radius:10px}
 :root[data-layout=classico] .cpill{display:flex;align-items:center;gap:6px;padding:7px 11px;border-radius:99px;font-size:10px;font-weight:900;letter-spacing:.12em;color:var(--ok);background:color-mix(in srgb,var(--ok) 12%,transparent);border:1px solid color-mix(in srgb,var(--ok) 30%,transparent);flex:none}
 :root[data-layout=classico] .cpill i{width:6px;height:6px;border-radius:50%;background:var(--ok)}
 :root[data-layout=classico] .cpill.on i{animation:pulse 1.6s infinite}
-:root[data-layout=classico] .ccard{display:block;padding:18px 14px 14px;border-radius:28px;background:linear-gradient(160deg,color-mix(in srgb,var(--accent) 7%,var(--surface)),var(--surface) 55%);border:1px solid var(--line)}
-:root[data-layout=classico] .ccard .calhead{display:flex;align-items:center;gap:6px;margin:0 4px 12px}
-:root[data-layout=classico] .ccard .calhead h2{order:0;flex:1;text-align:left!important;font-size:22px;letter-spacing:-.02em}
-:root[data-layout=classico] .ccard .calhead .ibtn{order:1;background:transparent;border-color:transparent}
-:root[data-layout=classico] .ccard .calhead .btn{display:none}
-:root[data-layout=classico] .ccard .cal .cell{aspect-ratio:1;align-items:center;justify-content:center;text-align:center;gap:0;background:transparent;border-color:transparent;box-shadow:none;border-radius:16px}
-:root[data-layout=classico] .ccard .cal .cell:not([data-st=livre]){background:color-mix(in srgb,var(--sc) 16%,transparent);border-color:color-mix(in srgb,var(--sc) 38%,transparent)}
-:root[data-layout=classico] .ccard .cal .cell .tg{font-size:8px;opacity:.9;color:var(--sc)}
-:root[data-layout=classico] .ccard .cal .cell:not([data-st=livre]) .n{color:var(--sc)}
-:root[data-layout=classico] .ccard .cal .cell[data-st=livre] .tg{display:none}
-:root[data-layout=classico] .ccard .legend{margin-top:14px;padding:0 4px}
-:root[data-layout=classico] .ccard .legend span{text-transform:uppercase;font-size:10px;letter-spacing:.08em;font-weight:800;color:var(--muted)}
-:root[data-layout=classico] .ccard .ticker{margin:0 0 10px}
+.ccard{display:block;padding:18px 14px 14px;border-radius:28px;background:linear-gradient(160deg,color-mix(in srgb,var(--accent) 7%,var(--surface)),var(--surface) 55%);border:1px solid var(--line)}
+.ccard .calhead{display:flex;align-items:center;gap:6px;margin:0 4px 12px}
+.ccard .calhead h2{order:0;flex:1;text-align:left!important;font-size:22px;letter-spacing:-.02em}
+.ccard .calhead .ibtn{order:1;background:transparent;border-color:transparent}
+.ccard .calhead .btn{display:none}
+.ccard .cal[data-cs=classic] .cell{aspect-ratio:1;align-items:center;justify-content:center;text-align:center;gap:0;background:transparent;border-color:transparent;box-shadow:none;border-radius:16px}
+.ccard .cal[data-cs=classic] .cell:not([data-st=livre]){background:color-mix(in srgb,var(--sc) 16%,transparent);border-color:color-mix(in srgb,var(--sc) 38%,transparent)}
+.ccard .cal[data-cs=classic] .cell .tg{font-size:8px;opacity:.9;color:var(--sc)}
+.ccard .cal[data-cs=classic] .cell:not([data-st=livre]) .n{color:var(--sc)}
+.ccard .cal[data-cs=classic] .cell[data-st=livre] .tg{display:none}
+.ccard .legend{margin-top:14px;padding:0 4px}
+.ccard .legend span{text-transform:uppercase;font-size:10px;letter-spacing:.08em;font-weight:800;color:var(--muted)}
+.ccard .ticker{margin:0 0 10px}
 :root[data-layout=classico] .tiles .tile:nth-child(1){background:linear-gradient(160deg,color-mix(in srgb,#3b82f6 22%,var(--surface)),var(--surface));border-color:color-mix(in srgb,#3b82f6 40%,var(--line))}
 :root[data-layout=classico] .tiles .tile:nth-child(2){background:linear-gradient(160deg,color-mix(in srgb,#22c55e 18%,var(--surface)),var(--surface));border-color:color-mix(in srgb,#22c55e 38%,var(--line))}
 :root[data-layout=classico] .tiles .tile:nth-child(1) .tl{color:#60a5fa}.tiles .tile:nth-child(2) .tl{color:#4ade80}
@@ -500,3 +499,25 @@ details[data-sec=daymore] .add i{width:30px;height:30px;border-radius:10px}
 .qdh .chv{transition:.2s;color:var(--muted);flex:none}.qd.open .qdh .chv{transform:rotate(90deg)}
 .qdb{padding:2px 14px 14px}
 .tform{margin-top:12px;padding:12px;border-radius:14px;background:var(--surface2);border:1px solid var(--line)}
+
+/* ===== calendário compacto (card) para os dois estilos ===== */
+.ccard{display:block;padding:12px 10px 10px;border-radius:22px;background:var(--surface);border:1px solid var(--line)}
+.ccard .calhead{display:flex;align-items:center;gap:4px;margin:0 2px 8px}
+.ccard .calhead h2{flex:1;order:0;text-align:left!important;font-size:18px;letter-spacing:-.02em;margin:0}
+.ccard .calhead .ibtn{order:1;width:34px;height:34px;background:transparent;border-color:transparent}
+.ccard .calhead .btn{display:none}
+.ccard .ticker{margin:0 0 8px;padding:5px 0;font-size:12px;border-radius:10px}
+.ccard .dow{margin-bottom:2px}.ccard .dow div{font-size:10.5px}
+.ccard .cal{gap:3px}
+.ccard .cal .cell{aspect-ratio:1;padding:3px 2px;border-radius:12px;align-items:center;justify-content:center;text-align:center;gap:0}
+.ccard .cal .cell .n{font-size:14px}.ccard .cal .cell .tg{font-size:7.5px;letter-spacing:.02em}
+.ccard .legend{margin-top:10px;gap:4px 12px;padding:0 2px}.ccard .legend span{font-size:10.5px}.ccard .legend i{width:8px;height:8px}
+/* resumo do dia menor */
+.dcard{margin-top:10px;padding:10px 12px;border-radius:16px;gap:7px}
+.dct{font-size:13px}.dcs{font-size:9.5px;margin-top:1px}
+.dgear{width:30px;height:30px;border-radius:10px}.dgear svg{width:15px;height:15px}
+.dcard .badge{font-size:10.5px;padding:3px 8px}
+.dcard .qmini{gap:4px}.dcard .qm{padding:4px 3px;border-radius:10px}.dcard .qm b{font-size:11px}.dcard .qm small{font-size:9.5px}
+.dsr .t{font-size:12.5px}.dcard .dsr .muted.xs{font-size:10.5px}
+.ccard .legend{display:flex;flex-wrap:wrap;gap:4px 12px}
+.ccard .legend span{letter-spacing:.03em;font-size:10px;display:flex;align-items:center;gap:5px}
