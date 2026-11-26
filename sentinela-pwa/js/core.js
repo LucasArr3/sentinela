@@ -53,7 +53,10 @@ export const DEFAULT_QUARTERS = [
   { id: '00-02', start: '00:00', end: '02:00' }, { id: '02-04', start: '02:00', end: '04:00' }, { id: '04-06', start: '04:00', end: '06:00' },
   { id: '06-08', start: '06:00', end: '08:00', name: 'Alvorada', alvorada: true, lead: 0, sound: 'clarim' },
 ];
-export const DEFAULT_POSTS = ['Bloco A', 'Bloco B', 'Bloco C', 'G1', 'G2', 'Superior', 'Monitoramento', 'Calibre 12'];
+export const DEFAULT_POSTS = ['Bloco A', 'Bloco B', 'Bloco C', 'G1', 'G2', 'Superior', 'Monitoramento'];
+// Durante o dia (antes das 18h) não há quarto de hora: há o posto do dia e, quando o supervisor manda, horários específicos.
+export const DEFAULT_DAY_POSTS = ['Bloco A', 'Bloco B', 'Bloco C', 'Superior', 'G1', 'G2', 'Monitoramento', 'Calibre 12', 'Chefe de bloco', 'Hospital'];
+export const DEFAULT_NEED_WHERE = ['Calibre 12', 'Chefe de bloco'];
 export const OLD_DEFAULT_POSTS = ['Portaria', 'Pavilhão A', 'Pavilhão B', 'Muralha', 'Ronda'];
 const hh = (t) => t.replace(':00', '') + 'h';
 export const qLabel = (q) => `${hh(q.start)}–${hh(q.end)}`;

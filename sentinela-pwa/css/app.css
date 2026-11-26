@@ -493,3 +493,10 @@ details[data-sec=daymore] .add i{width:30px;height:30px;border-radius:10px}
 
 :root[data-layout=classico] .csub{font-size:9.5px;letter-spacing:.1em}
 :root[data-layout=classico] .cpill{letter-spacing:.06em;padding:7px 10px}
+
+.qd{border:1px solid var(--line);border-radius:16px;background:var(--surface);margin-top:10px;overflow:hidden}.qd:first-child{margin-top:0}
+.qdh{display:flex;align-items:center;gap:10px;width:100%;padding:13px 14px;text-align:left}
+.qdh b{font-size:14.5px;white-space:nowrap}.qdh .sp{text-align:right;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qdh .chv{transition:.2s;color:var(--muted);flex:none}.qd.open .qdh .chv{transform:rotate(90deg)}
+.qdb{padding:2px 14px 14px}
+.tform{margin-top:12px;padding:12px;border-radius:14px;background:var(--surface2);border:1px solid var(--line)}

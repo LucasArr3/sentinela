@@ -1,5 +1,5 @@
 // Persistência local (localStorage) com contas por dispositivo. Dados ficam só neste aparelho.
-import { defaultScale, today, DEFAULT_QUARTERS, DEFAULT_POSTS, OLD_DEFAULT_POSTS } from './core.js';
+import { defaultScale, today, DEFAULT_QUARTERS, DEFAULT_POSTS, DEFAULT_DAY_POSTS, DEFAULT_NEED_WHERE, OLD_DEFAULT_POSTS } from './core.js';
 import { DEFAULT_SOUND, migrateSound } from './sounds.js';
 const K = 'sentinela:v1';
 // Armazenamento tolerante a bloqueio (aba anônima etc.): cai para memória se o navegador negar.
@@ -24,7 +24,7 @@ async function hashPw(pw, salt, iter) {
 export const defaultData = (name = '') => ({
   v: 1, onboarded: false,
   profile: { name, rank: '', matricula: '', unit: '', phone: '', alias: '' },
-  quarters: DEFAULT_QUARTERS.map((q) => ({ ...q })), posts: [...DEFAULT_POSTS], holidays: [], customSounds: [],
+  quarters: DEFAULT_QUARTERS.map((q) => ({ ...q })), posts: [...DEFAULT_POSTS], dayPosts: [...DEFAULT_DAY_POSTS], dayNeedWhere: [...DEFAULT_NEED_WHERE], holidays: [], customSounds: [],
   scale: defaultScale(today()),
   money: { diurna: 219, noturna: 219 },
   prefs: { theme: 'dark', accent: '', speak: false, waPhone: '', waKind: 'completo', lastPost: '', reminders: true, lead: 15, sound: DEFAULT_SOUND, shiftReminder: 0, shiftSound: 'carrilhao', snooze: 5, ramp: true, autostop: 5, alvorada: true, wake: false, cellStyle: 'classic', colors: {}, layout: 'moderno', ai: { provider: 'gemini', key: '', model: '' } },
