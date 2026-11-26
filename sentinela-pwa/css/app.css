@@ -844,3 +844,17 @@ details[data-sec=daymore] .add i{width:30px;height:30px;border-radius:10px}
 .pnow{padding:14px 16px}
 .pn{display:flex;align-items:baseline;gap:10px}.pn b{font-size:19px;font-weight:800;letter-spacing:-.01em}.pn span{font-size:12.5px;color:var(--muted);font-weight:700}
 .pnow .link{font-size:13px;font-weight:800;color:var(--accent);margin-left:auto}
+
+/* ===== cartões em lista do Início (postos de serviço e quartos) ===== */
+.qcard{display:block;padding:14px 16px}.qcard .qch{width:100%;text-align:left}
+.qr{cursor:pointer}.qr.dr .qfn{font-size:12.5px;font-weight:700;color:var(--muted);white-space:nowrap}
+.qr .qt{display:flex;flex-direction:column;min-width:86px}.qr .qt small{font-size:10.5px;font-weight:800;color:var(--accent);margin-top:1px}.qr .qt small.on{color:var(--ok)}
+.qr b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qa{margin-left:auto;display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border-radius:99px;background:var(--surface2);border:1px solid var(--line);font-size:12px;font-weight:800;color:var(--text);flex:none}
+.qa svg{width:13px;height:13px}.qa.off{color:var(--muted);font-weight:700}
+.qempty{display:block;text-align:left;padding:2px 0}
+
+.qal{margin-left:auto;display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border-radius:99px;background:var(--surface2);border:1px solid var(--line);font-size:12px;font-weight:800;color:var(--text);flex:none;width:auto;height:auto;line-height:1}
+.qal svg{width:13px;height:13px}.qal.off{color:var(--muted);font-weight:700}
+.qr .qfn{font-size:12.5px;font-weight:700;color:var(--muted);white-space:nowrap}
+.qr .qt{align-items:flex-start}

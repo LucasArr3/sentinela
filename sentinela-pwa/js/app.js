@@ -516,9 +516,9 @@ function settings() {
   const seguranca = `${pr.pin ? `<div class="grid2"><button class="btn" data-act="pin-new">${ic('lock')}Alterar PIN</button><button class="btn dng" data-act="pin-off">Remover PIN</button></div><label class="f">Bloquear automaticamente<select data-bind="prefs.lockAfter" data-numstr>${[[0, 'Ao sair do app'], [1, 'Depois de 1 minuto'], [5, 'Depois de 5 minutos'], [-1, 'Só ao abrir o app']].map(([v, l]) => `<option value="${v}" ${(pr.lockAfter ?? 1) === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>` : `<div class="muted sm">Peça um PIN para abrir o app. Protege suas ocorrências e dados contra quem pegar o seu celular.</div><button class="btn pri" data-act="pin-new">${ic('lock')}Criar PIN</button>`}${isNative() && pr.pin && S.bioOk ? `<label class="tgl"><span><div class="b">Desbloquear com biometria</div><div class="muted xs">Digital ou rosto; o PIN continua como alternativa</div></span><input type="checkbox" data-bind="prefs.bio" ${pr.bio ? 'checked' : ''}></label>` : ''}<label class="tgl"><span><div class="b">Modo discreto</div><div class="muted xs">Esconde os valores em R$ na tela</div></span><input type="checkbox" data-bind="prefs.discreet" ${pr.discreet ? 'checked' : ''}></label><div class="muted xs">O PIN não criptografa os dados guardados. No modo sem cadastro não há recuperação do PIN: guarde-o e exporte um backup.</div>`;
   const cl = pr.cloud;
   const nuvem = cl ? `<div class="card col" style="background:var(--surface2);gap:6px"><div class="row"><b class="sp">Conectado</b><span class="badge" style="background:${tint('#6fcf97', 22)};color:#6fcf97">nuvem</span></div><div class="muted sm">${esc(cl.email)}</div>${cl.verified === false || (cl.verified === undefined && !cl.google) ? `<div class="card col" style="gap:8px;border-color:#e0b25a"><b>Confirme seu e-mail</b><div class="muted xs">Enviamos um link para ${esc(cl.email)}. O backup só funciona depois de confirmar.</div><div class="grid2"><button class="btn sm pri" data-act="cloud-verify-check">Já confirmei</button><button class="btn sm" data-act="cloud-verify-resend">Reenviar e-mail</button></div></div>` : ''}<div class="muted xs">${pr.cloudAt ? 'Último backup: ' + new Date(pr.cloudAt).toLocaleString('pt-BR') : 'Nenhum backup enviado ainda'}</div>${S.cloudErr ? `<div class="err">${esc(S.cloudErr)}</div>` : ''}</div><div class="grid2"><button class="btn pri" data-act="cloud-up">${ic('upload')}Enviar agora</button><button class="btn" data-act="cloud-down">${ic('download')}Restaurar</button></div><label class="tgl"><span><div class="b">Backup automático</div><div class="muted xs">Envia sozinho depois que você mexe nos dados</div></span><input type="checkbox" data-bind="prefs.cloudAuto" ${pr.cloudAuto !== false ? 'checked' : ''}></label><button class="btn sm dng" data-act="cloud-out">Sair da nuvem</button>` : `<div class="muted sm">Guarda uma cópia dos seus dados na nuvem e deixa você usar o mesmo login em outro aparelho. Fotos e ocorrências vão junto. A chave de IA e o PIN <b>não</b> vão para a nuvem.</div>${isNative() ? `<button class="btn blk" data-act="google-cloud">${G_ICON}Continuar com o Google</button><div class="muted xs" style="text-align:center">ou com e-mail e senha (enviamos um link para confirmar)</div>` : ''}<form class="col" data-submit="cloud-login"><label class="f">E-mail<input id="cloudEmail" name="email" type="email" required autocomplete="email"></label><label class="f">Senha<input name="password" type="password" minlength="6" required autocomplete="current-password"></label><div class="grid2"><button class="btn pri" type="submit" name="mode" value="in">Entrar</button><button class="btn" type="submit" name="mode" value="up">Criar conta</button></div></form><div class="row"><button class="link" data-act="cloud-reset">Esqueci a senha</button><span class="sp"></span><button class="link" data-act="cloud-check">Verificar configuração</button></div>`;
-  const hh = pr.home || {}; const hq = pr.homeQ || 'a';
+  const hh = pr.home || {}; const hq = pr.homeQ === 'c' ? 'c' : 'a';
   const tglh = (k, t, sub, on) => `<label class="tgl"><span><div class="b">${t}</div><div class="muted xs">${sub}</div></span><input type="checkbox" data-bind="prefs.home.${k}" ${on ? 'checked' : ''}></label>`;
-  const inicioCfg = `<div class="b">Cartão de quartos</div><div class="seg">${[['a', 'Lista'], ['b', 'Destaque'], ['c', 'Posto + quartos']].map(([v, l]) => `<button class="${hq === v ? 'on' : ''}" data-act="homeq" data-v="${v}">${l}</button>`).join('')}</div><div class="muted xs">Escolha o que aparece no Início. O cartão principal do plantão fica sempre.</div>${tglh('extras', 'Extras do mês', 'Total e valor a receber', hh.extras !== false)}${tglh('quartos', 'Quartos de hora', 'Próximo quarto e atalho para marcar', hh.quartos !== false)}${tglh('proximos', 'Próximos plantões', 'Atalhos para os próximos dias', hh.proximos !== false)}${tglh('numeros', 'Resumo do mês em números', 'Plantões, extras e permutas', hh.numeros === true)}`;
+  const inicioCfg = `<div class="b">Cartão de quartos</div><div class="seg">${[['a', 'Só quartos'], ['c', 'Postos + quartos']].map(([v, l]) => `<button class="${hq === v ? 'on' : ''}" data-act="homeq" data-v="${v}">${l}</button>`).join('')}</div><div class="muted xs">Escolha o que aparece no Início. O cartão principal do plantão fica sempre.</div>${tglh('extras', 'Extras do mês', 'Total e valor a receber', hh.extras !== false)}${tglh('quartos', 'Quartos de hora', 'Próximo quarto e atalho para marcar', hh.quartos !== false)}${tglh('proximos', 'Próximos plantões', 'Atalhos para os próximos dias', hh.proximos !== false)}${tglh('numeros', 'Resumo do mês em números', 'Plantões, extras e permutas', hh.numeros === true)}`;
   const u = S.upd || {};
   const atualizacao = `<div class="card col" style="background:var(--surface2);gap:8px"><div class="row"><b class="sp">Versão instalada</b><span class="badge">${u.installedName ? esc(u.installedName) : (isNative() ? '…' : 'navegador')}</span></div>${u.busy ? '<div class="muted xs">Verificando…</div>' : u.err ? `<div class="muted xs" style="color:#d96b6b">${esc(u.err)}</div>` : u.latest ? `<div class="row"><span class="sp">Última disponível</span><span class="badge">1.0.${u.latest}</span></div><div class="muted xs">${u.newer ? 'Há uma versão nova.' : 'Você está com a versão mais recente.'}</div>` : '<div class="muted xs">Toque em verificar para ver se há versão nova.</div>'}${u.notes ? `<div class="muted xs" style="white-space:pre-wrap"><b>Novidades</b>\n${esc(u.notes)}</div>` : ''}${u.history && u.history.length ? `<details><summary class="muted xs">Versões anteriores</summary><div class="muted xs" style="white-space:pre-wrap;margin-top:6px">${u.history.map((h) => '• ' + esc(h)).join('\n')}</div></details>` : ''}<div class="grid2"><button class="btn sm" data-act="upd-check">Verificar</button><button class="btn sm ${u.newer || !isNative() ? 'pri' : ''}" data-act="upd-get">${ic('download')}${isNative() ? 'Baixar e atualizar' : 'Baixar o app Android'}</button></div>${isNative() ? '<div class="muted xs">O celular baixa o APK e abre o instalador. Toque em Instalar; seus dados e alarmes são mantidos. Na primeira vez o Android pode pedir para permitir instalar do navegador.</div>' : ''}</div>`;
   const dados = `${storageMeter()}<div class="muted sm">Seus dados ficam somente neste aparelho. Faça backup para guardar ou levar para outro celular.</div><div class="grid2"><button class="btn" data-act="export">${ic('download')}Exportar</button><button class="btn" data-act="import">${ic('upload')}Importar</button></div><input type="file" id="impFile" accept="application/json,.json" class="hidden">${window._bip ? `<button class="btn pri" data-act="install">${ic('download')}Instalar app no aparelho</button>` : `<div class="muted xs">Para instalar: no Chrome use “Adicionar à tela inicial”; no iPhone, Compartilhar → “Adicionar à Tela de Início”.</div>`}<button class="btn dng" data-act="clear-events">${ic('trash')}Apagar todos os lançamentos</button>`;
@@ -686,34 +686,50 @@ function timeSheet() {
   <button type="button" class="bigok" data-act="pt-ok">Concluir</button>`;
 }
 // ---------- cartão de quartos do Início (3 modelos: a = lista, b = destaque, c = posto agora + quartos) ----------
+const hmOf = (dt) => `${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}`;
 function nightList(qDate, now) {
   const d = S.d; const sc = d.scale; const out = [];
   for (const g of qGroups(qDate)) {
-    const q = d.quarters.find((x) => x.id === g.slot); if (!q) continue;
+    const qi = d.quarters.findIndex((x) => x.id === g.slot); const q = d.quarters[qi]; if (qi < 0) continue;
     const st = C.slotDate(qDate, q, sc); const [eh, em] = q.end.split(':').map(Number); let en = new Date(st); en.setHours(eh, em, 0, 0); if (en <= st) en = new Date(en.getTime() + 864e5);
-    out.push({ label: C.qLabel(q), post: g.posts.length ? g.posts.join(' + ') : 'Sem posto', st, en, state: now >= en ? 'past' : (now >= st ? 'now' : 'next') });
+    const lead = q.lead ?? d.prefs.lead ?? 15; const on = q.alarm !== false && d.prefs.reminders !== false && !(q.alvorada && !d.prefs.alvorada);
+    out.push({ qi, label: C.qLabel(q), post: g.posts.length ? g.posts.join(' + ') : 'Sem posto', st, en, alarm: hmOf(new Date(st.getTime() - lead * 60000)), alarmOn: on, state: now >= en ? 'past' : (now >= st ? 'now' : 'next') });
   }
   const first = out.find((x) => x.state !== 'past'); if (first && first.state === 'next') first.state = 'nxt';
   return out;
 }
+function dayList(qDate, now) {
+  const hm = hmOf(now); const ents = postosDia(qDate).sort((a, b) => (a.from || '').localeCompare(b.from || '')); const out = ents.map((e) => {
+    const f = e.from || DAY_DEF.from; const t = e.to || DAY_DEF.to; return { id: e.id, time: `${f}–${t}`, a: e.where || e.post, fn: e.where ? e.post : '', state: hm >= t ? 'past' : (hm >= f ? 'now' : 'next') };
+  });
+  const first = out.find((x) => x.state === 'next'); if (first && !out.some((x) => x.state === 'now')) first.state = 'nxt';
+  return out;
+}
 function quartosCard(ctx) {
-  const { qDate, now, du } = ctx; const v = S.d.prefs.homeQ || 'a'; const list = nightList(qDate, now); const open = `data-act="q-open" data-date="${qDate}"`;
-  const when = (x) => (x.state === 'now' ? '<em class="on">agora</em>' : (x.state === 'nxt' ? `<em>em ${fmtDur(x.st - now)}</em>` : ''));
-  const rowsH = list.map((x) => `<div class="qr ${x.state}"><i></i><span class="qt">${esc(x.label)}</span><b>${esc(x.post)}</b>${when(x)}</div>`).join('');
-  const empty = '<div class="muted sm" style="padding:2px 0 2px">Nenhum quarto marcado. Toque para marcar.</div>';
-  const night = `<button type="button" class="card qcard" ${open}><div class="qch"><b>Quartos de hora</b><span class="muted xs">${list.length ? (list.length + (list.length === 1 ? ' marcado' : ' marcados')) : ''}</span>${ic('chevR')}</div>${list.length ? `<div class="qrl">${rowsH}</div>` : empty}</button>`;
-  if (v === 'b') {
-    const cur = list.find((x) => x.state === 'now') || list.find((x) => x.state === 'nxt'); const rest = list.filter((x) => x !== cur && x.state !== 'past');
-    if (!cur) return `<button type="button" class="card qcard" ${open}><div class="qch"><b>Quartos de hora</b>${ic('chevR')}</div>${list.length ? '<div class="muted sm">Todos os quartos de hoje já passaram.</div>' : empty}</button>`;
-    return `<button type="button" class="card qhero ${cur.state}" ${open}><div class="qhl">${cur.state === 'now' ? 'QUARTO AGORA' : 'PRÓXIMO QUARTO'}</div><div class="qhb"><span>${esc(cur.label)}</span><b>${esc(cur.post)}</b></div><div class="qhs">${cur.state === 'now' ? 'termina em ' + fmtDur(cur.en - now) : 'começa em ' + fmtDur(cur.st - now)}${rest.length ? ` · depois ${rest.map((x) => esc(x.label + ' ' + x.post)).join(' · ')}` : ''}</div></button>`;
-  }
-  if (v === 'c') {
-    const ents = postosDia(qDate).sort((a, b) => (a.from || '').localeCompare(b.from || '')); const hm = nowHM();
-    const cur = ents.find((x) => (x.from || DAY_DEF.from) <= hm && hm < (x.to || DAY_DEF.to)); const nxt = ents.find((x) => (x.from || DAY_DEF.from) > hm);
-    const inDay = hm >= DAY_DEF.from && hm < DAY_DEF.to; const day = (cur || nxt || (du.on && inDay)) ? `<div class="card pnow"><div class="qch"><b>Posto agora</b>${du.on && inDay ? `<button type="button" class="link" data-act="pe-new" data-date="${qDate}" data-now="1">Trocar</button>` : ''}</div>${cur ? `<div class="pn"><b>${esc(postoLabel(cur))}</b><span>${cur.to ? 'até ' + esc(cur.to) : 'o dia todo'}</span></div>` : '<div class="muted sm">Nenhum posto neste horário.</div>'}${nxt ? `<div class="muted xs" style="margin-top:4px">Depois: ${esc(nxt.from)} · ${esc(postoLabel(nxt))}</div>` : ''}</div>` : '';
-    return day + night;
-  }
-  return night;
+  const { qDate, now, du } = ctx; const v = S.d.prefs.homeQ === 'c' ? 'c' : 'a'; const list = nightList(qDate, now);
+  const when = (x) => (x.state === 'now' ? '<small class="on">agora</small>' : (x.state === 'nxt' ? `<small>em ${fmtDur(x.st - now)}</small>` : ''));
+  const bell = (x) => `<button type="button" class="qal ${x.alarmOn ? '' : 'off'}" data-act="qa-open" data-qi="${x.qi}" aria-label="Alarme do quarto ${esc(x.label)}">${ic(x.alarmOn ? 'bell' : 'bellOff')}${x.alarmOn ? x.alarm : 'sem alarme'}</button>`;
+  const rowsH = list.map((x) => `<div class="qr ${x.state}" data-act="q-open" data-date="${qDate}" data-tab="noite"><i></i><span class="qt">${esc(x.label)}${when(x)}</span><b>${esc(x.post)}</b>${bell(x)}</div>`).join('');
+  const empty = `<button type="button" class="muted sm qempty" data-act="q-open" data-date="${qDate}" data-tab="noite">Nenhum quarto marcado. Toque para marcar.</button>`;
+  const night = `<div class="card qcard"><button type="button" class="qch" data-act="q-open" data-date="${qDate}" data-tab="noite"><b>Quartos de hora</b><span class="muted xs">${list.length ? (list.length + (list.length === 1 ? ' marcado' : ' marcados')) : ''}</span>${ic('chevR')}</button>${list.length ? `<div class="qrl">${rowsH}</div>` : empty}</div>`;
+  if (v !== 'c') return night;
+  const days = dayList(qDate, now); const inDay = hmOf(now) >= DAY_DEF.from && hmOf(now) < DAY_DEF.to;
+  if (!days.length && !(du.on && inDay)) return night;
+  const dh = days.map((x) => `<div class="qr dr ${x.state}" data-act="q-open" data-date="${qDate}" data-tab="dia"><i></i><span class="qt">${esc(x.time)}${x.state === 'now' ? '<small class="on">agora</small>' : ''}</span><b>${esc(x.a)}</b>${x.fn ? `<span class="qfn">${esc(x.fn)}</span>` : ''}</div>`).join('');
+  const dayCard = `<div class="card qcard"><button type="button" class="qch" data-act="q-open" data-date="${qDate}" data-tab="dia"><b>Postos de serviço</b><span class="muted xs">${days.length ? (days.length + (days.length === 1 ? ' posto' : ' postos')) : ''}</span>${ic('chevR')}</button>${days.length ? `<div class="qrl">${dh}</div>` : `<button type="button" class="muted sm qempty" data-act="q-open" data-date="${qDate}" data-tab="dia">Nenhum posto registrado. Toque para marcar.</button>`}</div>`;
+  return dayCard + night;
+}
+function qAlarmSheet() {
+  const qi = S.qa; const q = S.d.quarters[qi]; if (!q) return '';
+  const lead = q.lead ?? S.d.prefs.lead ?? 15; const on = q.alarm !== false; const st = (() => { const [h, m] = q.start.split(':').map(Number); return h * 60 + m; })(); const at = ((st - lead) % 1440 + 1440) % 1440;
+  const hh = `${String(Math.floor(at / 60)).padStart(2, '0')}:${String(at % 60).padStart(2, '0')}`;
+  return `<div class="grab"></div><div class="row"><div class="sp"><div class="muted sm">Vale para todos os dias</div><h3>Alarme · ${esc(C.qLabel(q))}</h3></div><button class="ibtn" data-act="close" aria-label="Fechar">${ic('x')}</button></div>
+  <div class="col" style="margin-top:14px;gap:14px">
+   <label class="tgl"><span><div class="b">Alarme ligado</div><div class="muted xs">${on ? `Toca às <b>${hh}</b>, ${lead ? lead + ' min antes do quarto' : 'na hora do quarto'}` : 'Este quarto não vai tocar'}</div></span><input type="checkbox" data-bind="quarters.${qi}.alarm" ${on ? 'checked' : ''}></label>
+   <div><div class="b" style="margin-bottom:8px">Quanto tempo antes</div><div class="chips">${[0, 5, 10, 15, 20, 30].map((m) => `<button type="button" class="chip ${lead === m ? 'on' : ''}" data-act="qa-lead" data-v="${m}">${m ? m + ' min' : 'na hora'}</button>`).join('')}</div></div>
+   <div><div class="b" style="margin-bottom:8px">Som</div><div class="row"><select class="sp" data-bind="quarters.${qi}.sound" aria-label="Som"><option value="">Padrão</option>${sndOpts(q.sound)}</select><button class="ibtn" data-act="snd-test" data-qi="${qi}" aria-label="Ouvir som">${ic('volume')}</button></div></div>
+   <button type="button" class="bigok" data-act="close">Concluir</button>
+  </div>`;
 }
 const postosDia = (date) => S.d.events.filter((x) => x.type === 'posto' && x.date === date);
 const postoDia = (date) => postosDia(date).find((x) => !x.from);
@@ -745,7 +761,7 @@ function renderSheet() {
   if (!root.firstChild || (root.dataset.kind === 'ai') !== (sh.kind === 'ai')) { root.dataset.kind = sh.kind; root.innerHTML = `<div class="overlay" data-act="overlay"><div class="sheet" role="dialog" aria-modal="true"></div></div>`; }
   root.dataset.kind = sh.kind; const el = $('.sheet', root); const top = el.scrollTop;
   if (sh.kind === 'ai') assistant.mount(el);
-  else { el.innerHTML = { day: () => daySheet(sh.date), quartos: () => quartosSheet(sh.date), ppick: postPickSheet, qslots: slotsSheet, ptime: timeSheet, pform: postoForm, form: formSheet, pw: pwSheet, pinset: pinSheet, roster: rosterSheet }[sh.kind](); el.scrollTop = top; }
+  else { el.innerHTML = { day: () => daySheet(sh.date), quartos: () => quartosSheet(sh.date), qalarm: qAlarmSheet, ppick: postPickSheet, qslots: slotsSheet, ptime: timeSheet, pform: postoForm, form: formSheet, pw: pwSheet, pinset: pinSheet, roster: rosterSheet }[sh.kind](); el.scrollTop = top; }
 }
 function openForm(base) {
   const T = C.TYPES[base.type]; const e = { turno: 'diurna', dir: 'passei', ...base };
@@ -856,7 +872,7 @@ const A = {
   'qv-all': () => { S.qv.all = !S.qv.all; renderView(); },
   'qv-prev': () => { shiftMonth(S.qv, -1); render(); }, 'qv-next': () => { shiftMonth(S.qv, 1); render(); },
   'liv-prev': () => { shiftMonth(S.liv, -1); render(); }, 'liv-next': () => { shiftMonth(S.liv, 1); render(); },
-  'q-open': (el) => { const date = el.dataset.date; const back = S.sheet?.kind === 'day' ? date : null; S.qctx = { date, back }; S.tadd = false; S.qsel = null; S.sheet = null; openSheet('quartos', { date, back }); },
+  'q-open': (el) => { if (el.dataset.tab) S.qtab = el.dataset.tab; const date = el.dataset.date; const back = S.sheet?.kind === 'day' ? date : null; S.qctx = { date, back }; S.tadd = false; S.qsel = null; S.sheet = null; openSheet('quartos', { date, back }); },
   'q-back': () => { const d = S.sheet.date; S.qsel = null; openSheet('day', { date: d }); },
   'q-slot': (el) => {
     const { date, q } = el.dataset; const post = activePost(); const list = S.d.events.filter((x) => x.type === 'quarto' && x.date === date && x.slot === q);
@@ -963,6 +979,8 @@ const A = {
   'liv-cat': (el) => { S.livf.cat = el.dataset.v; renderView(); },
   zoom: (el) => { S.d.prefs.zoom = Number(el.dataset.v); save(); render(); },
   'homeq': (el) => { S.d.prefs.homeQ = el.dataset.v; save(); render(); },
+  'qa-open': (el) => { S.qa = +el.dataset.qi; openSheet('qalarm'); },
+  'qa-lead': (el) => { const q = S.d.quarters[S.qa]; q.lead = +el.dataset.v; save(); render(); renderSheet(); },
   'cal-view': (el) => { const pr = S.d.prefs; const cur = calMode(pr); const v = el.dataset.v; if (v === 'ano' && cur !== 'ano') pr.calPrevView = cur; applyCalMode(pr, v); save(); render(); toast('Calendário: ' + CAL_MODES.find((q) => q[0] === v)[1]); },
   'cal-yprev': () => { S.cal.y--; S.calTapped = null; renderView(); }, 'cal-ynext': () => { S.cal.y++; S.calTapped = null; renderView(); },
   'cal-month': (el) => { S.cal = { y: +el.dataset.y, m: +el.dataset.m }; S.calTapped = null; applyCalMode(S.d.prefs, S.d.prefs.calPrevView && S.d.prefs.calPrevView !== 'ano' ? S.d.prefs.calPrevView : 'padrao'); save(); render(); },
@@ -1154,7 +1172,7 @@ document.addEventListener('change', async (ev) => {
     if (t.dataset.bind === 'scale.anchor' && !v) return;
     setPath(t.dataset.bind, v);
     if (t.dataset.bind.startsWith('scale.') && ['work', 'off', 'hours'].includes(t.dataset.bind.split('.')[1])) S.d.scale.preset = 'custom';
-    save(); if (t.dataset.bind.startsWith('scale') || t.dataset.bind.startsWith('profile') || (t.dataset.bind.startsWith('money') && S.view === 'settings') || ['prefs.lead', 'prefs.sound', 'prefs.reminders', 'prefs.discreet'].includes(t.dataset.bind) || t.dataset.bind.startsWith('prefs.home.')) render(); return;
+    save(); if (t.dataset.bind.startsWith('scale') || t.dataset.bind.startsWith('profile') || (t.dataset.bind.startsWith('money') && S.view === 'settings') || ['prefs.lead', 'prefs.sound', 'prefs.reminders', 'prefs.discreet'].includes(t.dataset.bind) || t.dataset.bind.startsWith('prefs.home.') || t.dataset.bind.startsWith('quarters.')) { render(); if (S.sheet && S.sheet.kind === 'qalarm') renderSheet(); } return;
   }
   if (t.dataset.sum) { S.sum[t.dataset.sum] = t.checked; S.sum.custom = null; render(); return; }
   if (t.id === 'waPhone') { S.d.prefs.waPhone = t.value; save(); return; }
