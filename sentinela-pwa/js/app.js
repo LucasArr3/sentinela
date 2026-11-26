@@ -14,11 +14,17 @@ import { signUp, signIn, signInGoogle, sendVerify, refreshVerified, GOOGLE_WEB_C
 const nowD = new Date();
 const S = { rep: { y: nowD.getFullYear(), m: nowD.getMonth() }, calSel: null, uid: null, user: null, d: null, view: 'dashboard', cal: { y: nowD.getFullYear(), m: nowD.getMonth() }, fin: { y: nowD.getFullYear(), m: nowD.getMonth() }, sum: { y: nowD.getFullYear(), m: nowD.getMonth(), values: true, notes: true, calendar: true, custom: null }, sheet: null, qv: { y: nowD.getFullYear(), m: nowD.getMonth() }, liv: { y: nowD.getFullYear(), m: nowD.getMonth() }, roster: null, qsel: null, open: new Set(), livf: { q: '', cat: '' }, alarm: null, auth: { tab: 'login', err: '' }, ob: { step: 0, today: true }, draft: null };
 const ACCENTS = ['', '#e8e8ea', '#4d8dff', '#d4a63a', '#9bbf5a', '#e07a7a', '#c08ae6'];
+const LAYOUTS = [['moderno', 'Padrão', 'linear-gradient(135deg,#1a1a1d,#4a4a52)'], ['aurora', 'Aurora', 'linear-gradient(135deg,#4f46e5,#c084fc)'], ['safira', 'Safira', 'linear-gradient(135deg,#1d4ed8,#06b6d4)'], ['vivido', 'Vívido', 'linear-gradient(135deg,#7c3aed,#ec4899,#f97316)'], ['grafite', 'Grafite', 'linear-gradient(135deg,#0b0b0d,#2dd4bf)']];
+const LAYOUT_IDS = LAYOUTS.map((x) => x[0]);
+const FIXED_PALETTE = ['safira', 'vivido', 'grafite'];
 const THEMES = [
   { id: 'dark', name: 'Preto', desc: 'Padrão', bg: '#050505', sf: '#111113', ac: '#e8e8ea' },
   { id: 'escuro', name: 'Escuro', desc: 'Limpo', bg: '#000000', sf: '#121212', ac: '#0095f6' },
   { id: 'light', name: 'Claro', desc: 'Limpo', bg: '#fafafa', sf: '#ffffff', ac: '#0095f6' },
-  { id: 'safira', name: 'Azul', desc: 'Azul profundo', bg: '#050c20', sf: '#0e1b40', ac: '#3b82f6' },
+  { id: 'obsidiana', name: 'Obsidiana', desc: 'Preto espelhado', bg: '#030304', sf: '#1b1b22', ac: '#c9ced8' },
+  { id: 'tatico', name: 'Tático azul', desc: 'Azul profundo', bg: '#04070f', sf: '#0d1526', ac: '#3b82ff' },
+  { id: 'ouro', name: 'Ouro', desc: 'Preto e dourado', bg: '#050505', sf: '#12110d', ac: '#d4a63a' },
+  { id: 'oliva', name: 'Verde oliva', desc: 'Tático', bg: '#070906', sf: '#12170f', ac: '#9bbf5a' },
   { id: 'night', name: 'Noturno', desc: 'Madrugada', bg: '#000000', sf: '#0e0505', ac: '#ff6a55' },
 ];
 const THEME_BG = { escuro: '#000000', safira: '#050c20', dark: '#050505', obsidiana: '#030304', tatico: '#04070f', ouro: '#050505', oliva: '#070906', night: '#000000', light: '#f4f4f5' };
@@ -102,7 +108,7 @@ function applyTheme() {
   const p = S.d?.prefs || { theme: 'dark', accent: '' }; let th = p.theme;
   if (th === 'auto') th = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
   if (!THEME_BG[th]) th = 'dark';
-  const el = document.documentElement; el.dataset.theme = th; delete el.dataset.layout;
+  const el = document.documentElement; el.dataset.theme = th; el.dataset.layout = LAYOUT_IDS.includes(p.layout) ? p.layout : 'moderno';
   if (p.accent && th !== 'night') { el.style.setProperty('--accent', p.accent); el.style.setProperty('--on', '#0a0a0a'); } else { el.style.removeProperty('--accent'); el.style.removeProperty('--on'); }
   el.style.zoom = p.zoom && p.zoom !== 1 ? String(p.zoom) : '';
   C.PRIV.on = !!p.discreet;
@@ -433,7 +439,8 @@ function settings() {
   const coresUI = () => `<div class="muted xs">Toque numa cor para trocar. Vale no calendário, nas listas e nos resumos.</div><div class="colors">${Object.entries(C.COLOR_LABELS).map(([k, l]) => `<label class="cpick"><input type="color" data-color="${k}" value="${(S.d.prefs.colors && S.d.prefs.colors[k]) || (k === 'plantao' ? accentHex() : C.DEFAULT_COLORS[k])}"><span>${l}</span></label>`).join('')}</div><button class="btn sm" data-act="colors-reset">Restaurar cores padrão</button>`;
   const VIS = ['dark', 'obsidiana', 'tatico', 'night', 'light'];
   const segB = (act, items, cur) => `<div class="seg">${items.map(([v, l]) => `<button class="${String(cur) === String(v) ? 'on' : ''}" data-act="${act}" data-v="${v}">${l}</button>`).join('')}</div>`;
-  const aparencia = `<div class="b">Tema</div><div class="themes5">${THEMES.map((t) => `<button class="th5 ${pr.theme === t.id ? 'on' : ''}" data-act="theme" data-v="${t.id}" aria-label="Tema ${t.name}"><span class="sw5" style="background:${t.bg}"><i style="background:${t.ac}"></i></span><small>${t.name}</small></button>`).join('')}</div>
+  const aparencia = `<div class="b">Estilo</div><div class="layg">${LAYOUTS.map(([v, n, g]) => `<button class="layc ${(pr.layout || 'moderno') === v ? 'on' : ''}" data-act="layout" data-v="${v}"><span style="background:${g}"></span><small>${n}</small></button>`).join('')}</div><div class="muted xs">O estilo muda o jeito dos cartões e do calendário. O tema muda só as cores.</div>
+  ${FIXED_PALETTE.includes(pr.layout) ? '<div class="muted xs" style="margin-top:4px">Este estilo tem cores próprias. Os temas valem para Padrão e Aurora.</div>' : `<div class="b" style="margin-top:8px">Tema</div><div class="themes5">${THEMES.filter((t) => pr.layout !== 'aurora' || ['dark', 'light'].includes(t.id)).map((t) => `<button class="th5 ${pr.theme === t.id ? 'on' : ''}" data-act="theme" data-v="${t.id}" aria-label="Tema ${t.name}"><span class="sw5" style="background:${t.bg}"><i style="background:${t.ac}"></i></span><small>${t.name}</small></button>`).join('')}${pr.layout === 'aurora' ? '' : `<button class="th5 ${pr.theme === 'auto' ? 'on' : ''}" data-act="theme" data-v="auto" aria-label="Tema automático"><span class="sw5" style="background:linear-gradient(90deg,#050505 50%,#f4f4f5 50%)"></span><small>Automático</small></button>`}</div>`}
   <details class="sub" data-sec="apmore" ${S.open.has('apmore') ? 'open' : ''}><summary>Mais opções</summary><div class="col" style="margin-top:12px">
    <div class="b">Cor de destaque</div><div class="sw3">${ACCENTS.map((c) => `<button class="${(pr.accent || '') === c ? 'on' : ''}" style="${c ? `background:${c}` : 'background:conic-gradient(#e8e8ea,#4d8dff,#d4a63a,#9bbf5a,#e8e8ea)'}" data-act="accent" data-v="${c}" aria-label="${c ? 'Cor ' + c : 'Cor do tema'}"></button>`).join('')}</div>
    <div class="b">Tamanho do texto</div>${segB('zoom', [[1, 'Normal'], [1.12, 'Grande'], [1.25, 'Muito grande']], pr.zoom || 1)}
@@ -711,6 +718,7 @@ const A = {
   preset: (el) => { const k = el.dataset.v, p = C.PRESETS[k]; const sc = S.d.scale; sc.preset = k; if (k !== 'custom') { sc.work = p.work; sc.off = p.off; sc.hours = p.hours; if (k === '12x36' && sc.start === '07:00') sc.start = '07:00'; } save(); render(); },
   'anchor-today': () => { S.d.scale.anchor = C.today(); save(); render(); toast('Hoje agora é dia de plantão ✅'); },
   theme: (el) => { S.d.prefs.theme = el.dataset.v; save(); render(); },
+  'layout': (el) => { const v = el.dataset.v; S.d.prefs.layout = v; if (v === 'aurora' && !['light', 'dark'].includes(S.d.prefs.theme)) S.d.prefs.theme = 'light'; save(); render(); toast('Estilo ' + (LAYOUTS.find((x) => x[0] === v) || [0, 'Padrão'])[1]); },
   accent: (el) => { S.d.prefs.accent = el.dataset.v; save(); render(); },
   // calendário / nav mensal
   'cal-pick': (el) => { const dt = el.dataset.date; if (S.calTapped === dt) { S.calTapped = null; return openSheet('day', { date: dt }); } S.calSel = dt; S.calTapped = dt; render(); },
@@ -1084,7 +1092,7 @@ function demoData(theme, cell) {
 (function boot() {
   const id = Store.currentId(); if (id && Store.user(id)) { S.uid = id; S.user = Store.user(id); S.d = Store.load(id); if (!S.d) { S.uid = null; Store.endSession(); } }
   const hp = new URLSearchParams((location.hash || '').slice(1));
-  if (hp.has('demo')) { S.uid = 'demo'; S.user = { id: 'demo', name: 'Lucas Silva', guest: true, email: '' }; S.d = demoData(hp.get('demo') || 'dark', hp.get('cell')); S.view = hp.get('view') || 'calendar'; if (hp.get('info')) S.d.prefs.infoStyle = hp.get('info'); if (hp.get('calcard') === '0') S.d.prefs.calCard = false; }
+  if (hp.has('demo')) { S.uid = 'demo'; S.user = { id: 'demo', name: 'Lucas Silva', guest: true, email: '' }; S.d = demoData(hp.get('demo') || 'dark', hp.get('cell')); S.view = hp.get('view') || 'calendar'; if (hp.get('info')) S.d.prefs.infoStyle = hp.get('info'); if (hp.get('calcard') === '0') S.d.prefs.calCard = false; if (hp.get('layout')) S.d.prefs.layout = LAYOUT_IDS.includes(hp.get('layout')) ? hp.get('layout') : 'moderno'; }
   const root = document.createElement('div'); root.id = 'root'; const sr = document.createElement('div'); sr.id = 'sheetRoot'; document.body.append(root, sr);
   render();
   if ('serviceWorker' in navigator && location.protocol.startsWith('http') && !isNative() && !hp.has('demo')) navigator.serviceWorker.register('./sw.js').catch(() => {});
