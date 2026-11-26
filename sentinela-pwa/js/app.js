@@ -14,6 +14,24 @@ import { signUp, signIn, signInGoogle, sendVerify, refreshVerified, GOOGLE_WEB_C
 const nowD = new Date();
 const S = { rep: { y: nowD.getFullYear(), m: nowD.getMonth() }, calSel: null, uid: null, user: null, d: null, view: 'dashboard', cal: { y: nowD.getFullYear(), m: nowD.getMonth() }, fin: { y: nowD.getFullYear(), m: nowD.getMonth() }, sum: { y: nowD.getFullYear(), m: nowD.getMonth(), values: true, notes: true, calendar: true, custom: null }, sheet: null, qv: { y: nowD.getFullYear(), m: nowD.getMonth() }, liv: { y: nowD.getFullYear(), m: nowD.getMonth() }, roster: null, qsel: null, open: new Set(), livf: { q: '', cat: '' }, alarm: null, auth: { tab: 'login', err: '' }, ob: { step: 0, today: true }, draft: null };
 const ACCENTS = ['', '#e8e8ea', '#4d8dff', '#d4a63a', '#9bbf5a', '#e07a7a', '#c08ae6'];
+// ---------- layouts do aplicativo (estrutura inteira: menu, cabeçalho, tela inicial) ----------
+const APPS = [['padrao', 'Padrão'], ['gaveta', 'Menu lateral'], ['abas', 'Abas no topo'], ['painel', 'Painel'], ['lista', 'Lista'], ['trilho', 'Trilho']];
+const APP_IDS = APPS.map((x) => x[0]);
+const appMode = () => (APP_IDS.includes(S.d && S.d.prefs && S.d.prefs.app) ? S.d.prefs.app : 'padrao');
+const ALLV = ['dashboard', 'calendar', 'quartos', 'plantao', 'finance', 'report', 'summary', 'livro', 'settings'];
+function appIcon(id) {
+  const o = '<rect x="1" y="1" width="30" height="50" rx="5" fill="none" stroke="currentColor" opacity=".5"/>';
+  const bar = (x, y, w, h, op = 1, r = 1.5) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" opacity="${op}"/>`;
+  const body = {
+    padrao: bar(4, 5, 14, 3) + bar(4, 12, 24, 12, .55, 3) + bar(4, 27, 11, 8, .35, 2) + bar(17, 27, 11, 8, .35, 2) + bar(4, 43, 24, 5, .8, 2.5),
+    gaveta: bar(4, 5, 5, 1.6) + bar(4, 8.4, 5, 1.6) + bar(4, 11.8, 5, 1.6) + bar(12, 6, 10, 3) + bar(4, 18, 24, 12, .55, 3) + bar(4, 33, 24, 10, .3, 3) + '<rect x="1" y="1" width="16" height="50" rx="5" opacity=".18"/>',
+    abas: bar(4, 5, 14, 3) + bar(4, 12, 6, 3, 1, 1.5) + bar(12, 12, 6, 3, .4, 1.5) + bar(20, 12, 6, 3, .4, 1.5) + bar(4, 19, 24, 12, .55, 3) + bar(4, 34, 24, 10, .3, 3),
+    painel: bar(4, 5, 24, 9, .6, 3) + [0, 1, 2].map((c) => [0, 1, 2].map((r) => bar(4 + c * 8.5, 18 + r * 9, 7, 7, c === 1 && r === 1 ? 1 : .45, 2)).join('')).join(''),
+    lista: bar(4, 5, 16, 4) + [0, 1, 2, 3, 4].map((r) => bar(4, 14 + r * 7, 24, .8, .35, .4) + bar(4, 16.5 + r * 7, 14, 2, r === 1 ? 1 : .55, 1)).join('') + bar(4, 47, 24, 1, .5),
+    trilho: '<rect x="1" y="1" width="8" height="50" rx="4" opacity=".28"/>' + [0, 1, 2, 3].map((r) => `<circle cx="5" cy="${9 + r * 8}" r="2" opacity="${r === 1 ? 1 : .6}"/>`).join('') + bar(12, 5, 16, 3) + bar(12, 12, 16, 12, .55, 3) + bar(12, 27, 16, 8, .35, 2) + bar(12, 38, 16, 8, .3, 2)
+  }[id];
+  return `<svg viewBox="0 0 32 52" width="32" height="52" fill="currentColor" aria-hidden="true">${o}${body}</svg>`;
+}
 const LAYOUT_IDS = ['moderno', 'aurora', 'safira', 'vivido', 'grafite'];
 // Temas: cada um já traz o jeito dos cartões e as cores. (layout = aparência; theme = paleta)
 const PRESETS = [
@@ -110,7 +128,7 @@ function applyTheme() {
   const p = S.d?.prefs || { theme: 'dark', accent: '' }; let th = p.theme;
   if (th === 'auto') th = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
   if (!THEME_BG[th]) th = 'dark';
-  const el = document.documentElement; el.dataset.theme = th; el.dataset.layout = LAYOUT_IDS.includes(p.layout) ? p.layout : 'moderno';
+  const el = document.documentElement; el.dataset.theme = th; el.dataset.layout = LAYOUT_IDS.includes(p.layout) ? p.layout : 'moderno'; el.dataset.app = APP_IDS.includes(p.app) ? p.app : 'padrao';
   if (p.accent && th !== 'night') { el.style.setProperty('--accent', p.accent); el.style.setProperty('--on', '#0a0a0a'); } else { el.style.removeProperty('--accent'); el.style.removeProperty('--on'); }
   el.style.zoom = p.zoom && p.zoom !== 1 ? String(p.zoom) : '';
   C.PRIV.on = !!p.discreet;
@@ -194,19 +212,41 @@ const moneyFields = () => `<div class="grid2"><label class="f">Diurna 12h<input 
 
 // ---------- SHELL ----------
 function shell() {
-  const [title] = VIEWS[S.view]; const p = S.d.profile; const moreSet = ['more', 'plantao', 'finance', 'summary', 'report', 'livro', 'settings'];
-  const classic = false; const onDuty = C.dutyNow(S.d, new Date()).on;
-  const topHtml = classic ? `<header class="top ctop"><div class="clogo">${ic('shield')}</div><div class="sp ctit"><div class="cname">SENTINELA <span>TÁTICO</span></div><div class="csub"><i></i>OPERACIONAL · ${esc(title.toUpperCase())}</div></div><button class="cpill ${onDuty ? 'on' : ''}" data-act="go" data-v="settings" aria-label="Ajustes"><i></i>${onDuty ? 'EM SERVIÇO' : 'ATIVO'}</button></header>` : null;
+  const [title] = VIEWS[S.view]; const p = S.d.profile; const moreSet = ['more', 'plantao', 'finance', 'summary', 'report', 'livro', 'settings']; const app = appMode(); const home = S.view === 'dashboard';
   const nav = (k) => `<button class="nav ${S.view === k ? 'on' : ''}" data-act="go" data-v="${k}">${ic(VIEWS[k][1])}${VIEWS[k][0]}</button>`;
   const tab = (k, on = S.view === k) => `<button class="tab ${on ? 'on' : ''}" data-act="go" data-v="${k}">${ic(VIEWS[k][1])}${VIEWS[k][0]}</button>`;
+  const av = `<button class="avatar" data-act="go" data-v="settings" aria-label="Ajustes">${avatarHtml(p)}</button>`;
+  let top = `<header class="top"><div class="sp"><div class="muted sm">${home ? greet() + ',' : 'Sentinela Tático'}</div><h1>${home ? esc((p.name || 'Olá').split(' ')[0]) : title}</h1></div>${av}</header>`;
+  let extra = '';
+  if (app === 'gaveta') {
+    top = `<header class="top gtop"><button class="ibtn" data-act="drawer" aria-label="Abrir menu">${ic('menu')}</button><div class="sp"><h1>${home ? 'Sentinela' : title}</h1>${home ? `<div class="muted sm">${greet()}, ${esc((p.name || 'Olá').split(' ')[0])}</div>` : ''}</div>${av}</header>`;
+    if (S.drawer) extra = `<div class="dwr"><div class="dwbg" data-act="drawer"></div><aside class="dwp"><div class="dwh"><div class="avatar">${avatarHtml(p)}</div><div class="sp" style="min-width:0"><b>${esc(p.name || 'Meu perfil')}</b><div class="muted xs">${C.scaleLabel(S.d.scale)}</div></div></div>${ALLV.map(nav).join('')}<button class="nav" data-act="drawer-ai">${ic('sparkles')}Assistente IA</button></aside></div>`;
+  } else if (app === 'abas') {
+    top = `<header class="top"><div class="sp"><h1>${home ? esc(greet() + ', ' + (p.name || 'Olá').split(' ')[0]) : title}</h1></div>${av}</header><nav class="atabs" aria-label="Seções">${ALLV.map((k) => `<button class="at ${S.view === k ? 'on' : ''}" data-act="go" data-v="${k}">${VIEWS[k][0]}</button>`).join('')}</nav>`;
+  } else if (app === 'painel' && !home) {
+    top = `<header class="top ptop"><button class="ibtn" data-act="go" data-v="dashboard" aria-label="Voltar ao início">${ic('chevL')}</button><div class="sp"><h1>${title}</h1></div>${av}</header>`;
+  } else if (app === 'lista') {
+    top = `<header class="top ltop"><div class="sp"><div class="muted sm">${home ? greet() + ',' : 'Sentinela Tático'}</div><h1>${home ? esc((p.name || 'Olá').split(' ')[0]) : title}</h1></div>${av}</header>`;
+  } else if (app === 'trilho') {
+    extra = `<nav class="rail" aria-label="Seções">${ALLV.map((k) => `<button class="rl ${S.view === k ? 'on' : ''}" data-act="go" data-v="${k}" aria-label="${VIEWS[k][0]}">${ic(VIEWS[k][1])}</button>`).join('')}</nav>`;
+    top = `<header class="top"><div class="sp"><div class="muted sm">${home ? greet() + ',' : 'Sentinela Tático'}</div><h1>${home ? esc((p.name || 'Olá').split(' ')[0]) : title}</h1></div>${av}</header>`;
+  }
   return `<div class="shell"><aside class="side"><div class="brand" style="margin:4px 8px 22px"><div class="logo">${ic('shield')}</div>Sentinela</div>${['dashboard', 'plantao', 'calendar', 'quartos', 'finance', 'summary', 'livro'].map(nav).join('')}<button class="nav" data-act="ai">${ic('sparkles')}Assistente IA</button><span class="sp"></span>${nav('settings')}
    <div class="item" style="margin-top:8px"><div class="avatar" style="width:38px;height:38px;border-radius:12px;font-size:13px">${avatarHtml(p)}</div><div class="sp" style="min-width:0"><div class="t" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.name || 'Meu perfil')}</div><div class="s">${C.scaleLabel(S.d.scale)}</div></div><button class="ibtn" style="width:34px;height:34px" data-act="logout" title="Sair">${ic('logout')}</button></div></aside>
-   <main class="main">${topHtml || `<header class="top"><div class="sp"><div class="muted sm">${S.view === 'dashboard' ? greet() + ',' : 'Sentinela Tático'}</div><h1>${S.view === 'dashboard' ? esc((p.name || 'Olá').split(' ')[0]) : title}</h1></div><button class="avatar" data-act="go" data-v="settings" aria-label="Ajustes">${avatarHtml(p)}</button></header>`}<section class="view" id="view"></section></main></div>
+   <main class="main">${top}<section class="view" id="view"></section></main></div>${extra}
    <nav class="tabbar" aria-label="Navegação">${tab('dashboard')}${tab('calendar')}<button class="fab" data-act="ai" aria-label="Assistente IA">${ic('sparkles')}</button>${tab('quartos')}${tab('more', moreSet.includes(S.view))}</nav><button class="fab desk" data-act="ai" aria-label="Assistente IA">${ic('sparkles')}</button>`;
 }
 
 // ---------- DASHBOARD ----------
 function dashboard() {
+  const h = dashboardBase(); if (appMode() !== 'painel') return h;
+  const i = h.indexOf('<div class="tiles'); return i < 0 ? h : h.slice(0, i) + launcher() + h.slice(i);
+}
+function launcher() {
+  const T = [['calendar', 'Calendário', '#6366f1'], ['quartos', 'Quartos', '#06b6d4'], ['plantao', 'Plantão', '#22c55e'], ['finance', 'Finanças', '#f59e0b'], ['report', 'Relatório', '#ec4899'], ['summary', 'Resumos', '#14b8a6'], ['livro', 'Ocorrências', '#ef4444'], ['settings', 'Ajustes', '#64748b']];
+  return `<div class="lch">${T.map(([k, n, c]) => `<button class="lc" data-act="go" data-v="${k}"><i style="background:linear-gradient(145deg,${c},color-mix(in srgb,${c} 55%,#000))">${ic(VIEWS[k][1])}</i><span>${n}</span></button>`).join('')}</div>`;
+}
+function dashboardBase() {
   const classic = false;
   const d = S.d, now = new Date(), t = C.today(); const sc = d.scale; const ms = C.monthSummary(d, now.getFullYear(), now.getMonth());
   const du = C.dutyNow(d, now); const info = C.dayInfo(t, d); const ns = C.nextShift(d, now);
@@ -505,7 +545,7 @@ function settings() {
   const coresUI = () => `<div class="muted xs">Toque numa cor para trocar. Vale no calendário, nas listas e nos resumos.</div><div class="colors">${Object.entries(C.COLOR_LABELS).map(([k, l]) => `<label class="cpick"><input type="color" data-color="${k}" value="${(S.d.prefs.colors && S.d.prefs.colors[k]) || (k === 'plantao' ? accentHex() : C.DEFAULT_COLORS[k])}"><span>${l}</span></label>`).join('')}</div><button class="btn sm" data-act="colors-reset">Restaurar cores padrão</button>`;
   const VIS = ['dark', 'obsidiana', 'tatico', 'night', 'light'];
   const segB = (act, items, cur) => `<div class="seg">${items.map(([v, l]) => `<button class="${String(cur) === String(v) ? 'on' : ''}" data-act="${act}" data-v="${v}">${l}</button>`).join('')}</div>`;
-  const aparencia = `<div class="b">Tema</div><div class="layg">${PRESETS.map((t) => `<button class="layc ${presetOf(pr).id === t.id ? 'on' : ''}" data-act="preset" data-v="${t.id}" aria-label="Tema ${t.name}"><span style="background:${t.sw}"></span><small>${t.name}</small></button>`).join('')}</div>
+  const aparencia = `<div class="b">Layout do aplicativo</div><div class="appg">${APPS.map(([v, n]) => `<button class="appc ${appMode() === v ? 'on' : ''}" data-act="app-layout" data-v="${v}" aria-label="Layout ${n}">${appIcon(v)}<small>${n}</small></button>`).join('')}</div><div class="muted xs">Muda a estrutura: menu, cabeçalho e tela inicial. O tema muda só as cores.</div><div class="b" style="margin-top:10px">Tema</div><div class="layg">${PRESETS.map((t) => `<button class="layc ${presetOf(pr).id === t.id ? 'on' : ''}" data-act="preset" data-v="${t.id}" aria-label="Tema ${t.name}"><span style="background:${t.sw}"></span><small>${t.name}</small></button>`).join('')}</div>
   <div class="b" style="margin-top:14px">Calendário</div><div class="calg">${CAL_MODES.map(([v, n]) => `<button class="calc ${calMode(pr) === v ? 'on' : ''}" data-act="cal-view" data-v="${v}" aria-label="Calendário ${n}">${calIcon(v)}<small>${n}</small></button>`).join('')}</div>
   <details class="sub" data-sec="apmore" ${S.open.has('apmore') ? 'open' : ''}><summary>Mais opções</summary><div class="col" style="margin-top:12px">
    <div class="b">Cor de destaque</div><div class="sw3">${ACCENTS.map((c) => `<button class="${(pr.accent || '') === c ? 'on' : ''}" style="${c ? `background:${c}` : 'background:conic-gradient(#e8e8ea,#4d8dff,#d4a63a,#9bbf5a,#e8e8ea)'}" data-act="accent" data-v="${c}" aria-label="${c ? 'Cor ' + c : 'Cor do tema'}"></button>`).join('')}</div>
@@ -733,6 +773,7 @@ function renderView() {
   const el = $('#view'); if (!el) return;
   el.innerHTML = { dashboard, report: reportView, plantao: plantaoView, calendar, quartos: quartosView, finance, summary, livro: livroView, more: moreView, settings }[S.view]();
   el.classList.toggle('enter', !!S.anim); S.anim = false;
+  const at = $('.atabs'); if (at) { const c = $('.at.on', at); if (c) at.scrollLeft = c.offsetLeft - at.clientWidth / 2 + c.clientWidth / 2; }
   const st = $('.strip'); if (st) { const c = $('.sd.sel', st) || $('.sd.today', st); if (c) st.scrollLeft = c.offsetLeft - st.clientWidth / 2 + c.clientWidth / 2; }
 }
 function render() {
@@ -743,7 +784,7 @@ function render() {
   const keep = window.scrollY;
   root.innerHTML = shell(); renderView(); window.scrollTo(0, keep);
 }
-function go(v) { S.view = v; S.anim = true; S.sheet && closeSheet(); render(); window.scrollTo(0, 0); if (v === 'quartos') setTimeout(() => $('#qtoday')?.scrollIntoView({ block: 'center' }), 60); }
+function go(v) { S.view = v; S.anim = true; S.sheet && closeSheet(); S.drawer = false; render(); window.scrollTo(0, 0); if (v === 'quartos') setTimeout(() => $('#qtoday')?.scrollIntoView({ block: 'center' }), 60); }
 
 // ---------- TRAVA POR PIN ----------
 function renderLock() {
@@ -775,7 +816,8 @@ const A = {
   guest: async () => { const { user, data } = await Store.register({ name: 'Meu perfil', guest: true }); data.onboarded = true; data.scale = C.defaultScale(C.today()); Store.save(user.id, data); await start(user.id, true); toast('Escala 24x72 configurada — hoje é seu plantão ✅'); },
   logout: async () => { if (!(await ask('Sair da conta?', 'Sair'))) return; Store.endSession(); S.uid = S.d = S.user = null; S.sheet = null; renderSheet(); render(); },
   'delete-account': async () => { if (!(await ask('Excluir a conta e TODOS os dados deste aparelho? Não dá para desfazer.', 'Excluir'))) return; Store.deleteAccount(S.uid); S.uid = S.d = S.user = null; render(); },
-  go: (el) => go(el.dataset.v), ai: () => openSheet('ai'), close: () => closeSheet(),
+  go: (el) => { S.drawer = false; go(el.dataset.v); }, drawer: () => { S.drawer = !S.drawer; render(); }, 'drawer-ai': () => { S.drawer = false; render(); openSheet('ai'); },
+  'app-layout': (el) => { const v = el.dataset.v; S.d.prefs.app = v; S.drawer = false; save(); render(); toast('Layout ' + APPS.find((x) => x[0] === v)[1]); }, ai: () => openSheet('ai'), close: () => closeSheet(),
   overlay: (el, ev) => { if (ev.target === el) (S.sheet?.kind === 'form' && S.sheet.back) ? A['f-cancel']() : closeSheet(); },
   // onboarding
   'ob-next': () => { const st = S.ob.step; if (st === 1 && S.ob.today) S.d.scale.anchor = C.today(); if (st === 0 && !S.d.profile.name.trim()) return toast('Informe seu nome', 'err'); if (st === 3) { S.d.onboarded = true; save(); render(); toast('Bem-vindo ao Sentinela! 🛡️'); return; } S.ob.step++; save(); render(); },
@@ -1162,7 +1204,7 @@ function demoData(theme, cell) {
 (function boot() {
   const id = Store.currentId(); if (id && Store.user(id)) { S.uid = id; S.user = Store.user(id); S.d = Store.load(id); if (!S.d) { S.uid = null; Store.endSession(); } }
   const hp = new URLSearchParams((location.hash || '').slice(1));
-  if (hp.has('demo')) { S.uid = 'demo'; S.user = { id: 'demo', name: 'Lucas Silva', guest: true, email: '' }; S.d = demoData(hp.get('demo') || 'dark', hp.get('cell')); S.view = hp.get('view') || 'calendar'; if (hp.get('info')) S.d.prefs.infoStyle = hp.get('info'); if (hp.get('calcard') === '0') S.d.prefs.calCard = false; if (hp.get('cal')) applyCalMode(S.d.prefs, hp.get('cal')); if (hp.get('layout')) S.d.prefs.layout = LAYOUT_IDS.includes(hp.get('layout')) ? hp.get('layout') : 'moderno'; }
+  if (hp.has('demo')) { S.uid = 'demo'; S.user = { id: 'demo', name: 'Lucas Silva', guest: true, email: '' }; S.d = demoData(hp.get('demo') || 'dark', hp.get('cell')); S.view = hp.get('view') || 'calendar'; if (hp.get('info')) S.d.prefs.infoStyle = hp.get('info'); if (hp.get('calcard') === '0') S.d.prefs.calCard = false; if (hp.get('cal')) applyCalMode(S.d.prefs, hp.get('cal')); if (hp.get('app')) S.d.prefs.app = APP_IDS.includes(hp.get('app')) ? hp.get('app') : 'padrao'; if (hp.get('layout')) S.d.prefs.layout = LAYOUT_IDS.includes(hp.get('layout')) ? hp.get('layout') : 'moderno'; }
   const root = document.createElement('div'); root.id = 'root'; const sr = document.createElement('div'); sr.id = 'sheetRoot'; document.body.append(root, sr);
   render();
   if ('serviceWorker' in navigator && location.protocol.startsWith('http') && !isNative() && !hp.has('demo')) navigator.serviceWorker.register('./sw.js').catch(() => {});
