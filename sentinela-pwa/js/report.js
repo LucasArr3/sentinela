@@ -41,9 +41,9 @@ export function reportText(rep, profile = {}) {
   const L = [`📋 *Relatório de postos — ${MONTHS[rep.m]}/${rep.y}*`];
   const who = [profile.name, profile.unit].filter(Boolean).join(' · '); if (who) L.push(who);
   L.push(`${rep.plantoes} ${rep.plantoes === 1 ? 'plantão' : 'plantões'}`, '');
-  for (const r of rep.rows) { L.push(`*${fmtShort(r.date)} (${r.dow})* — ${rowDia(r) || 'noite'}`); if (rowNoite(r) && rowDia(r)) L.push(`   🌙 ${rowNoite(r)}`); else if (rowNoite(r)) L.push(`   🌙 ${rowNoite(r)}`); }
+  for (const r of rep.rows) { L.push(`*${fmtShort(r.date)} (${r.dow})*`); L.push(`   ☀️ Diurno: ${rowDia(r) || '—'}`); L.push(`   🌙 Noturno: ${rowNoite(r) || '—'}`); }
   if (!rep.rows.length) L.push('Nenhum registro neste mês.');
-  return L.join('\n').replace(/— noite\n   🌙/g, '— 🌙');
+  return L.join('\n');
 }
 
 // ---------------- imagem (canvas) ----------------
@@ -60,7 +60,7 @@ export function renderReport(rep, profile = {}, { paged = true } = {}) {
   const totalH = M + 330 + meas.reduce((s, r) => s + r.h, 0) + 140;
   mk(paged ? PH : Math.max(900, totalH));
   const foot = () => { txt(`${MONTHS[rep.m]} de ${rep.y} · Sentinela Tático`, M, cv.height - 52, F('', 21), '#94a3b8'); if (paged) txt(`Página ${pages.length}`, W - M, cv.height - 52, F('', 21), '#94a3b8', 'right'); };
-  const head = () => { txt('DATA', X1, y, F('800', 20), '#94a3b8'); txt('DURANTE O DIA', X2, y, F('800', 20), '#94a3b8'); txt('À NOITE', X3, y, F('800', 20), '#94a3b8'); y += 16; c.fillStyle = '#cbd5e1'; c.fillRect(M, y, W - 2 * M, 2); y += 8; };
+  const head = () => { txt('DATA', X1, y, F('800', 20), '#94a3b8'); txt('POSTO DIURNO', X2, y, F('800', 20), '#94a3b8'); txt('POSTO NOTURNO', X3, y, F('800', 20), '#94a3b8'); y += 16; c.fillStyle = '#cbd5e1'; c.fillRect(M, y, W - 2 * M, 2); y += 8; };
   // título
   txt('Relatório de postos', M, y + 34, F('800', 48), '#0f172a'); y += 82; txt(`${MONTHS[rep.m]} de ${rep.y} · ${rep.plantoes} ${rep.plantoes === 1 ? 'plantão' : 'plantões'}`, M, y, F('600', 28), '#475569'); y += 38;
   const who = [profile.name, profile.rank, profile.unit].filter(Boolean).join(' · '); if (who) { txt(who, M, y, F('', 25), '#64748b'); y += 30; }

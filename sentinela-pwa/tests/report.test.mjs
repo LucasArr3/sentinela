@@ -22,7 +22,7 @@ test('lista só dias de plantão ou com posto, sem extras', () => {
   assert.ok(r.plantoes >= 2);
 });
 test('texto do WhatsApp enxuto', () => {
-  const t = reportText(buildReport(mk(ev), 2026, 10), { name: 'Lucas', unit: 'Unidade X' }); assert.match(t, /Relatório de postos — Novembro\/2026/); assert.match(t, /\*28\/11 \(Sáb\)\* — Chefe de bloco · Bloco A/); assert.match(t, /🌙 G1 18h–20h · 20h–22h · G2 00h–02h/); assert.doesNotMatch(t, /R\$|Extra/);
+  const t = reportText(buildReport(mk(ev), 2026, 10), { name: 'Lucas', unit: 'Unidade X' }); assert.match(t, /Relatório de postos — Novembro\/2026/); assert.match(t, /\*28\/11 \(Sáb\)\*\n   ☀️ Diurno: Chefe de bloco · Bloco A/); assert.match(t, /🌙 Noturno: G1 18h–20h · 20h–22h · G2 00h–02h/); assert.doesNotMatch(t, /R\$|Extra/);
 });
 test('PDF válido a partir de JPEGs', () => {
   const jpg = new Uint8Array([0xff, 0xd8, 0xff, 0xd9]); const pdf = makePdf([{ bytes: jpg, w: 10, h: 10 }]); const s = Buffer.from(pdf).toString('latin1'); assert.ok(s.startsWith('%PDF-1.4')); assert.ok(s.trimEnd().endsWith('%%EOF')); assert.match(s, /\/Count 1/);
