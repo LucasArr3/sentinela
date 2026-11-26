@@ -42,7 +42,7 @@ export const Store = {
       const map = { 'Pavilhão A': 'Bloco A', 'Pavilhão B': 'Bloco B' }; d.posts = [...DEFAULT_POSTS];
       (d.events || []).forEach((e) => { if (e.post && map[e.post]) e.post = map[e.post]; });
     }
-    if (d.prefs) { if (!['dark', 'obsidiana', 'tatico', 'night', 'light'].includes(d.prefs.theme)) d.prefs.theme = 'dark'; if (d.prefs.layout === 'foco') d.prefs.layout = 'moderno'; d.prefs.infoStyle = 'cartoes'; }
+    if (d.prefs) { if (!['dark', 'escuro', 'light', 'safira', 'night'].includes(d.prefs.theme)) d.prefs.theme = 'dark'; d.prefs.layout = 'moderno'; d.prefs.infoStyle = 'cartoes'; }
     if (d.prefs && d.prefs.sound) d.prefs.sound = migrateSound(d.prefs.sound); if (Array.isArray(d.quarters)) d.quarters.forEach((q) => { if (q.sound) q.sound = migrateSound(q.sound); }); return { ...b, ...d, profile: { ...b.profile, ...d.profile }, scale: { ...b.scale, ...d.scale }, money: { ...b.money, ...d.money }, prefs: { ...b.prefs, ...d.prefs, accent: (d.prefs || {}).accent && !['#3b82f6', '#e8e8ea'].includes(d.prefs.accent) ? d.prefs.accent : '', ai: { ...b.prefs.ai, ...(d.prefs || {}).ai } }, quarters: Array.isArray(d.quarters) && d.quarters.length ? d.quarters : b.quarters, posts: Array.isArray(d.posts) ? d.posts : b.posts, holidays: Array.isArray(d.holidays) ? d.holidays : [], customSounds: Array.isArray(d.customSounds) ? d.customSounds : [] }; },
   save(id, data) { return wr(`${K}:data:${id}`, data); },
   async register({ name, email, password, guest = false }) {

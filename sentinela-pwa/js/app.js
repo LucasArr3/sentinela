@@ -8,25 +8,20 @@ import { startReminders, playSound, stopSound, SOUNDS, keepAwake, notify, askNot
 import { SOUND_CATS, soundLabel, DEFAULT_SOUND, isBuiltin } from './sounds.js';
 import { NativeAlarm, isNative, startListening, canListen, APK_URL, checkUpdate, openApkDownload } from './native.js';
 import { editPhoto, urlToDataUrl, bigGooglePhoto } from './photo.js';
-import { buildReport, reportText, renderReport, makePdf, dataUrlBytes, bytesB64, rpHours } from './report.js';
+import { buildReport, reportText, renderReport, makePdf, dataUrlBytes, bytesB64, rowDia, rowNoite } from './report.js';
 import { signUp, signIn, signInGoogle, sendVerify, refreshVerified, GOOGLE_WEB_CLIENT_ID, resetPassword, backupUpload, backupDownload, getMeta, explain, checkAuthEnabled } from './cloud.js';
 
 const nowD = new Date();
 const S = { rep: { y: nowD.getFullYear(), m: nowD.getMonth() }, calSel: null, uid: null, user: null, d: null, view: 'dashboard', cal: { y: nowD.getFullYear(), m: nowD.getMonth() }, fin: { y: nowD.getFullYear(), m: nowD.getMonth() }, sum: { y: nowD.getFullYear(), m: nowD.getMonth(), values: true, notes: true, calendar: true, custom: null }, sheet: null, qv: { y: nowD.getFullYear(), m: nowD.getMonth() }, liv: { y: nowD.getFullYear(), m: nowD.getMonth() }, roster: null, qsel: null, open: new Set(), livf: { q: '', cat: '' }, alarm: null, auth: { tab: 'login', err: '' }, ob: { step: 0, today: true }, draft: null };
 const ACCENTS = ['', '#e8e8ea', '#4d8dff', '#d4a63a', '#9bbf5a', '#e07a7a', '#c08ae6'];
-const LAYOUTS = [['moderno', 'Moderno', 'linear-gradient(135deg,#1a1a1d,#3a3a40)'], ['classico', 'Clássico', 'linear-gradient(135deg,#0d1526,#3b82ff)'], ['aurora', 'Aurora', 'linear-gradient(135deg,#4f46e5,#c084fc)'], ['safira', 'Safira', 'linear-gradient(135deg,#1d4ed8,#06b6d4)'], ['vivido', 'Vívido', 'linear-gradient(135deg,#7c3aed,#ec4899,#f97316)'], ['grafite', 'Grafite', 'linear-gradient(135deg,#0b0b0d,#2dd4bf)']];
-const LAYOUT_IDS = LAYOUTS.map((x) => x[0]);
-const FIXED_PALETTE = ['safira', 'vivido', 'grafite'];
 const THEMES = [
-  { id: 'dark', name: 'Preto', desc: 'Grafite e branco, sóbrio', bg: '#050505', sf: '#111113', ac: '#e8e8ea' },
-  { id: 'obsidiana', name: 'Obsidiana', desc: 'Preto espelhado, com degradê', bg: '#030304', sf: '#1b1b22', ac: '#c9ced8' },
-  { id: 'tatico', name: 'Tático azul', desc: 'Estilo do app original', bg: '#04070f', sf: '#0d1526', ac: '#3b82ff' },
-  { id: 'ouro', name: 'Ouro', desc: 'Preto com dourado', bg: '#050505', sf: '#12110d', ac: '#d4a63a' },
-  { id: 'oliva', name: 'Verde oliva', desc: 'Tático militar', bg: '#070906', sf: '#12170f', ac: '#9bbf5a' },
-  { id: 'night', name: 'Noturno', desc: 'Vermelho, visão de madrugada', bg: '#000000', sf: '#0e0505', ac: '#ff6a55' },
-  { id: 'light', name: 'Claro', desc: 'Fundo branco', bg: '#f4f4f5', sf: '#ffffff', ac: '#18181b' },
+  { id: 'dark', name: 'Preto', desc: 'Padrão', bg: '#050505', sf: '#111113', ac: '#e8e8ea' },
+  { id: 'escuro', name: 'Escuro', desc: 'Limpo', bg: '#000000', sf: '#121212', ac: '#0095f6' },
+  { id: 'light', name: 'Claro', desc: 'Limpo', bg: '#fafafa', sf: '#ffffff', ac: '#0095f6' },
+  { id: 'safira', name: 'Azul', desc: 'Azul profundo', bg: '#050c20', sf: '#0e1b40', ac: '#3b82f6' },
+  { id: 'night', name: 'Noturno', desc: 'Madrugada', bg: '#000000', sf: '#0e0505', ac: '#ff6a55' },
 ];
-const THEME_BG = { dark: '#050505', obsidiana: '#030304', tatico: '#04070f', ouro: '#050505', oliva: '#070906', night: '#000000', light: '#f4f4f5' };
+const THEME_BG = { escuro: '#000000', safira: '#050c20', dark: '#050505', obsidiana: '#030304', tatico: '#04070f', ouro: '#050505', oliva: '#070906', night: '#000000', light: '#f4f4f5' };
 const VIEWS = { dashboard: ['Início', 'home'], calendar: ['Calendário', 'calendar'], plantao: ['Plantão', 'shield'], quartos: ['Quartos', 'clock'], finance: ['Finanças', 'wallet'], summary: ['Resumos', 'chat'], report: ['Relatório', 'note'], livro: ['Ocorrências', 'book'], more: ['Mais', 'menu'], settings: ['Ajustes', 'settings'] };
 const save = () => { if (S.d) S.d.mod = Date.now(); if (S.uid && !Store.save(S.uid, S.d)) toast('Não foi possível salvar (armazenamento cheio?)', 'err'); syncAlarmsSoon(); cloudPushSoon(); if (!S.warnedFull && Store.usage().pct > 90) { S.warnedFull = true; toast('Armazenamento quase cheio: exporte um backup e apague fotos antigas', 'err'); } };
 // ---- alarmes nativos (Android): reenvia a lista dos próximos 14 dias sempre que algo muda ----
@@ -107,7 +102,7 @@ function applyTheme() {
   const p = S.d?.prefs || { theme: 'dark', accent: '' }; let th = p.theme;
   if (th === 'auto') th = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
   if (!THEME_BG[th]) th = 'dark';
-  const el = document.documentElement; el.dataset.theme = th; el.dataset.layout = LAYOUT_IDS.includes(p.layout) ? p.layout : 'moderno';
+  const el = document.documentElement; el.dataset.theme = th; delete el.dataset.layout;
   if (p.accent && th !== 'night') { el.style.setProperty('--accent', p.accent); el.style.setProperty('--on', '#0a0a0a'); } else { el.style.removeProperty('--accent'); el.style.removeProperty('--on'); }
   el.style.zoom = p.zoom && p.zoom !== 1 ? String(p.zoom) : '';
   C.PRIV.on = !!p.discreet;
@@ -192,7 +187,7 @@ const moneyFields = () => `<div class="grid2"><label class="f">Diurna 12h<input 
 // ---------- SHELL ----------
 function shell() {
   const [title] = VIEWS[S.view]; const p = S.d.profile; const moreSet = ['more', 'plantao', 'finance', 'summary', 'report', 'livro', 'settings'];
-  const classic = S.d.prefs.layout === 'classico'; const onDuty = C.dutyNow(S.d, new Date()).on;
+  const classic = false; const onDuty = C.dutyNow(S.d, new Date()).on;
   const topHtml = classic ? `<header class="top ctop"><div class="clogo">${ic('shield')}</div><div class="sp ctit"><div class="cname">SENTINELA <span>TÁTICO</span></div><div class="csub"><i></i>OPERACIONAL · ${esc(title.toUpperCase())}</div></div><button class="cpill ${onDuty ? 'on' : ''}" data-act="go" data-v="settings" aria-label="Ajustes"><i></i>${onDuty ? 'EM SERVIÇO' : 'ATIVO'}</button></header>` : null;
   const nav = (k) => `<button class="nav ${S.view === k ? 'on' : ''}" data-act="go" data-v="${k}">${ic(VIEWS[k][1])}${VIEWS[k][0]}</button>`;
   const tab = (k, on = S.view === k) => `<button class="tab ${on ? 'on' : ''}" data-act="go" data-v="${k}">${ic(VIEWS[k][1])}${VIEWS[k][0]}</button>`;
@@ -204,7 +199,7 @@ function shell() {
 
 // ---------- DASHBOARD ----------
 function dashboard() {
-  const classic = S.d.prefs.layout === 'classico';
+  const classic = false;
   const d = S.d, now = new Date(), t = C.today(); const sc = d.scale; const ms = C.monthSummary(d, now.getFullYear(), now.getMonth());
   const du = C.dutyNow(d, now); const info = C.dayInfo(t, d); const ns = C.nextShift(d, now);
   let pill, h, sub = '', extra = '';
@@ -321,14 +316,11 @@ function livroView() {
   <div class="list" id="livList">${livList()}</div>`;
 }
 function reportView() {
-  const { y, m } = S.rep; const rep = buildReport(S.d, y, m); const T = rep.totals; const text = reportText(rep, S.d.profile);
-  const st = (v, l, s2) => `<div class="rst"><b>${v}</b><span>${l}</span>${s2 ? `<small>${s2}</small>` : ''}</div>`;
-  const kcol = { dia: '#5b8def', noite: '#9b7bf0', extra: '#4cc38a', permuta: '#e0b25a', folga: '#74b9c9', atestado: '#e07a7a', ferias: '#e39ab8', oc: '#d4688f', obs: '#8b8b92' };
+  const { y, m } = S.rep; const rep = buildReport(S.d, y, m); const text = reportText(rep, S.d.profile);
   return `<div class="calhead"><button class="ibtn" data-act="rep-prev" aria-label="Mês anterior">${ic('chevL')}</button><h2 style="text-align:center">${C.MONTHS[m]} <span class="muted" style="font-weight:600">${y}</span></h2><button class="ibtn" data-act="rep-next" aria-label="Próximo mês">${ic('chevR')}</button></div>
   <div class="rexp"><button class="btn sm" data-act="rep-pdf">${ic('download')}PDF</button><button class="btn sm" data-act="rep-img">${ic('image')}Imagem</button><a class="btn sm wa" data-act="rep-wa" data-native href="${esc(waLink(text, S.d.prefs.waPhone))}" target="_blank" rel="noopener">${ic('chat')}WhatsApp</a><button class="btn sm" data-act="rep-copy">${ic('copy')}Copiar</button></div>
-  <div class="rsts">${st(T.plantoes, 'Plantões', T.plantaoHoras + 'h')}${st(rpHours(T.diaMin), 'Posto de dia', '')}${st(rpHours(T.quartosMin), 'Quartos', T.quartos + ' horário' + (T.quartos === 1 ? '' : 's'))}${st(T.extras, 'Extras', C.brl(T.extrasValor))}${st(T.permutas, 'Permutas', '')}${st(T.ocorrencias, 'Ocorrências', '')}</div>
-  ${rep.posts.length ? `<div class="h2">Por posto</div><div class="rtab"><div class="rth"><span>Posto</span><span>Total</span><span>Dias</span></div>${rep.posts.map((p) => `<div class="rtr"><span class="rp">${esc(p.post)}<small>${p.dia ? 'dia ' + rpHours(p.dia) : ''}${p.dia && p.noite ? ' · ' : ''}${p.noite ? 'noite ' + rpHours(p.noite) : ''}</small></span><b>${rpHours(p.min)}</b><span>${p.dias}</span></div>`).join('')}</div>` : ''}
-  <div class="h2">Dia a dia</div>${rep.days.length ? `<div class="rdays">${rep.days.map((d) => `<div class="rday"><div class="rdh"><b>${d.dow} ${C.fmtShort(d.date)}</b><span>${d.hours ? esc((d.statusLabel || 'Plantão') + ' ' + d.hours + 'h') : (d.status !== 'livre' ? esc(d.statusLabel) : '')}</span></div>${d.lines.map((l) => `<div class="rln"><i style="background:${kcol[l.k] || '#888'}"></i><span class="rt">${esc(l.time || '')}</span><span class="rx">${esc(l.post)}${l.sub ? `<small>${esc(l.sub)}</small>` : ''}</span></div>`).join('')}</div>`).join('')}</div>` : '<div class="card empty">Nenhum registro neste mês.</div>'}`;
+  <div class="muted sm" style="margin:2px 4px">${rep.plantoes} ${rep.plantoes === 1 ? 'plantão' : 'plantões'} · postos de cada dia</div>
+  ${rep.rows.length ? `<div class="rlist">${rep.rows.map((r) => `<div class="rrow"><div class="rdt"><b>${C.fmtShort(r.date)}</b><span>${r.dow}</span></div><div class="rinf"><div class="rd">${esc(rowDia(r) || (rowNoite(r) ? 'Noite' : ''))}</div>${rowNoite(r) ? `<div class="rn">${r.dia.length || r.worked ? '<i>Noite</i> ' : ''}${esc(rowNoite(r))}</div>` : ''}</div></div>`).join('')}</div><div class="muted xs" style="text-align:center;margin-top:6px">Extras e valores ficam em Finanças.</div>` : '<div class="card empty">Nenhum posto registrado neste mês.</div>'}`;
 }
 async function reportFile(kind) {
   const rep = buildReport(S.d, S.rep.y, S.rep.m); const prof = S.d.profile; const name = `relatorio-${C.ymKey(S.rep.y, S.rep.m)}`;
@@ -343,7 +335,7 @@ async function shareReportFile(f) {
 }
 function moreView() {
   const row = (v, icn, t, sub) => `<button class="item" data-act="go" data-v="${v}"><div class="ico" style="background:${tint('var(--accent)', 18)};color:var(--accent)">${ic(icn)}</div><div class="sp"><div class="t">${t}</div><div class="s">${sub}</div></div>${ic('chevR')}</button>`;
-  return `<div class="list">${row('plantao', 'shield', 'Modo Plantão', 'Relógio grande, próximo quarto e atalhos')}${row('finance', 'wallet', 'Finanças', 'Extras, valores a receber e permutas')}${row('report', 'note', 'Relatório do mês', 'Horários e postos detalhados · PDF, imagem, WhatsApp')}${row('summary', 'chat', 'Resumos para WhatsApp', 'Escala, quartos e finanças do mês')}${row('livro', 'book', 'Livro de ocorrências', 'Registros com hora e foto')}${row('settings', 'settings', 'Ajustes', 'Escala, quartos, postos, alarmes, IA e conta')}</div>`;
+  return `<div class="list">${row('plantao', 'shield', 'Modo Plantão', 'Relógio grande, próximo quarto e atalhos')}${row('finance', 'wallet', 'Finanças', 'Extras, valores a receber e permutas')}${row('report', 'note', 'Relatório do mês', 'Data, posto e horário · PDF, imagem, WhatsApp')}${row('summary', 'chat', 'Resumos para WhatsApp', 'Escala, quartos e finanças do mês')}${row('livro', 'book', 'Livro de ocorrências', 'Registros com hora e foto')}${row('settings', 'settings', 'Ajustes', 'Escala, quartos, postos, alarmes, IA e conta')}</div>`;
 }
 
 // ---------- CALENDÁRIO ----------
@@ -441,7 +433,7 @@ function settings() {
   const coresUI = () => `<div class="muted xs">Toque numa cor para trocar. Vale no calendário, nas listas e nos resumos.</div><div class="colors">${Object.entries(C.COLOR_LABELS).map(([k, l]) => `<label class="cpick"><input type="color" data-color="${k}" value="${(S.d.prefs.colors && S.d.prefs.colors[k]) || (k === 'plantao' ? accentHex() : C.DEFAULT_COLORS[k])}"><span>${l}</span></label>`).join('')}</div><button class="btn sm" data-act="colors-reset">Restaurar cores padrão</button>`;
   const VIS = ['dark', 'obsidiana', 'tatico', 'night', 'light'];
   const segB = (act, items, cur) => `<div class="seg">${items.map(([v, l]) => `<button class="${String(cur) === String(v) ? 'on' : ''}" data-act="${act}" data-v="${v}">${l}</button>`).join('')}</div>`;
-  const aparencia = `<div class="b">Estilo da interface</div><div class="layg">${LAYOUTS.map(([v, n, g]) => `<button class="layc ${(pr.layout || 'moderno') === v ? 'on' : ''}" data-act="layout" data-v="${v}"><span style="background:${g}"></span><small>${n}</small></button>`).join('')}</div>${FIXED_PALETTE.includes(pr.layout) ? '<div class="muted xs">Este estilo tem cores próprias. O tema claro/escuro vale para Moderno, Clássico e Aurora.</div>' : `<div class="b">Tema</div><div class="themes5">${THEMES.filter((t) => VIS.includes(t.id)).map((t) => `<button class="th5 ${pr.theme === t.id ? 'on' : ''}" data-act="theme" data-v="${t.id}" aria-label="Tema ${t.name}"><span class="sw5" style="background:${t.bg}"><i style="background:${t.ac}"></i></span><small>${t.name}</small></button>`).join('')}</div>`}
+  const aparencia = `<div class="b">Tema</div><div class="themes5">${THEMES.map((t) => `<button class="th5 ${pr.theme === t.id ? 'on' : ''}" data-act="theme" data-v="${t.id}" aria-label="Tema ${t.name}"><span class="sw5" style="background:${t.bg}"><i style="background:${t.ac}"></i></span><small>${t.name}</small></button>`).join('')}</div>
   <details class="sub" data-sec="apmore" ${S.open.has('apmore') ? 'open' : ''}><summary>Mais opções</summary><div class="col" style="margin-top:12px">
    <div class="b">Cor de destaque</div><div class="sw3">${ACCENTS.map((c) => `<button class="${(pr.accent || '') === c ? 'on' : ''}" style="${c ? `background:${c}` : 'background:conic-gradient(#e8e8ea,#4d8dff,#d4a63a,#9bbf5a,#e8e8ea)'}" data-act="accent" data-v="${c}" aria-label="${c ? 'Cor ' + c : 'Cor do tema'}"></button>`).join('')}</div>
    <div class="b">Tamanho do texto</div>${segB('zoom', [[1, 'Normal'], [1.12, 'Grande'], [1.25, 'Muito grande']], pr.zoom || 1)}
@@ -859,7 +851,6 @@ const A = {
   zoom: (el) => { S.d.prefs.zoom = Number(el.dataset.v); save(); render(); },
   'cal-card': (el) => { S.d.prefs.calCard = el.dataset.v === 'true'; save(); render(); toast(S.d.prefs.calCard ? 'Calendário dentro de um card' : 'Calendário solto'); },
   'info-style': (el) => { S.d.prefs.infoStyle = el.dataset.v; save(); render(); toast('Informações: ' + ({ cartoes: 'Cartões', lista: 'Lista', linha: 'Linha do tempo', misto: 'Cartões na linha do tempo' })[el.dataset.v]); },
-  'layout': (el) => { const v = el.dataset.v; S.d.prefs.layout = v; if (v === 'classico' && ['dark', 'auto'].includes(S.d.prefs.theme)) S.d.prefs.theme = 'tatico'; if (v === 'aurora' && !['light', 'dark'].includes(S.d.prefs.theme)) S.d.prefs.theme = 'light'; save(); render(); toast('Estilo ' + (LAYOUTS.find((x) => x[0] === v) || [0, 'Moderno'])[1]); },
   'colors-reset': () => { S.d.prefs.colors = {}; save(); render(); toast('Cores restauradas'); },
   'avatar-edit': async () => { try { const out = await editPhoto(S.d.profile.photo); if (out) { S.d.profile.photo = out; save(); render(); toast('Foto ajustada ✅'); } } catch (e) { toast(e.message, 'err'); } },
   'avatar-del': () => { delete S.d.profile.photo; save(); render(); },
@@ -1093,7 +1084,7 @@ function demoData(theme, cell) {
 (function boot() {
   const id = Store.currentId(); if (id && Store.user(id)) { S.uid = id; S.user = Store.user(id); S.d = Store.load(id); if (!S.d) { S.uid = null; Store.endSession(); } }
   const hp = new URLSearchParams((location.hash || '').slice(1));
-  if (hp.has('demo')) { S.uid = 'demo'; S.user = { id: 'demo', name: 'Lucas Silva', guest: true, email: '' }; S.d = demoData(hp.get('demo') || 'dark', hp.get('cell')); S.view = hp.get('view') || 'calendar'; if (hp.get('info')) S.d.prefs.infoStyle = hp.get('info'); if (hp.get('calcard') === '0') S.d.prefs.calCard = false; if (hp.get('layout')) S.d.prefs.layout = LAYOUT_IDS.includes(hp.get('layout')) ? hp.get('layout') : 'moderno'; }
+  if (hp.has('demo')) { S.uid = 'demo'; S.user = { id: 'demo', name: 'Lucas Silva', guest: true, email: '' }; S.d = demoData(hp.get('demo') || 'dark', hp.get('cell')); S.view = hp.get('view') || 'calendar'; if (hp.get('info')) S.d.prefs.infoStyle = hp.get('info'); if (hp.get('calcard') === '0') S.d.prefs.calCard = false; }
   const root = document.createElement('div'); root.id = 'root'; const sr = document.createElement('div'); sr.id = 'sheetRoot'; document.body.append(root, sr);
   render();
   if ('serviceWorker' in navigator && location.protocol.startsWith('http') && !isNative() && !hp.has('demo')) navigator.serviceWorker.register('./sw.js').catch(() => {});
