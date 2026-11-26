@@ -5,7 +5,7 @@ import { monthDays, dayInfo, quartosOn, qLabel, fmtShort, WD3, MONTHS } from './
 const rpMin = (t) => { const [h, m] = String(t).split(':').map(Number); return h * 60 + (m || 0); };
 export const rpHours = (min) => { const h = Math.floor(min / 60), m = min % 60; return m ? `${h}h${String(m).padStart(2, '0')}` : `${h}h`; };
 const rpHM = (min) => `${String(Math.floor(min / 60) % 24).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
-const rpWhere = (e) => `${e.post}${e.where ? ' · ' + e.where : ''}`;
+const rpWhere = (e) => (e.where ? `${e.where} · ${e.post}` : e.post);
 
 // Postos do dia com horário calculado (sem horário = do início do plantão até as 18h)
 export function dayPostEntries(state, date) {

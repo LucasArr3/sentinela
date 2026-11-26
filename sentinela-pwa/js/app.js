@@ -657,7 +657,7 @@ const slotTxt = (id) => { const q = S.d.quarters.find((x) => x.id === id); retur
 function qTables(date) {
   const tab = S.qtab || (new Date().getHours() >= 18 ? 'noite' : 'dia'); const ents = postosDia(date).sort((a, b) => (a.from || '').localeCompare(b.from || ''));
   const row = (a, as, b, bAct, aAct, xAct, data) => `<div class="tr"><button type="button" class="pb" data-act="${aAct}" ${data}><span>${esc(a)}${as ? `<small>${esc(as)}</small>` : ''}</span>${ic('chevD')}</button><button type="button" class="pb t" data-act="${bAct}" ${data}><span>${esc(b)}</span>${ic('chevD')}</button><button type="button" class="xb" data-act="${xAct}" ${data} aria-label="Remover">${ic('trash')}</button></div>`;
-  const dayRows = ents.map((e) => row(e.post, e.where, e.from || e.to ? `${e.from || DAY_DEF.from} – ${e.to || DAY_DEF.to}` : `${DAY_DEF.from} – ${DAY_DEF.to}`, 'tp-time', 'tp-post', 'tp-del', `data-id="${e.id}"`)).join('');
+  const dayRows = ents.map((e) => row(e.where || e.post, e.where ? e.post : '', e.from || e.to ? `${e.from || DAY_DEF.from} – ${e.to || DAY_DEF.to}` : `${DAY_DEF.from} – ${DAY_DEF.to}`, 'tp-time', 'tp-post', 'tp-del', `data-id="${e.id}"`)).join('');
   const nr = nightRows(date); const nightRowsH = nr.map((r) => row(r.post || 'Sem posto', '', r.slots.map(slotTxt).join(' · '), 'tn-slots', 'tn-post', 'tn-del', `data-rk="${esc(r.key)}" data-post="${esc(r.post)}"`)).join('');
   const body = tab === 'dia'
     ? `<div class="tbl"><div class="th"><span>Posto</span><span>Horário</span><span></span></div>${dayRows || '<div class="muted sm" style="padding:8px 4px">Nenhum posto registrado durante o dia.</div>'}<button type="button" class="addrow" data-act="tp-add" data-date="${date}">${ic('plus')}Adicionar posto</button></div><div class="hint">Toque no posto para trocar e no horário para editar. O horário padrão é ${DAY_DEF.from} às ${DAY_DEF.to}. Ao adicionar outro posto, o anterior termina na hora de agora.</div>`
@@ -687,7 +687,7 @@ function timeSheet() {
 }
 const postosDia = (date) => S.d.events.filter((x) => x.type === 'posto' && x.date === date);
 const postoDia = (date) => postosDia(date).find((x) => !x.from);
-const postoLabel = (e) => `${e.post}${e.where ? ' · ' + e.where : ''}`;
+const postoLabel = (e) => (e.where ? `${e.where} · ${e.post}` : e.post);
 const needsWhere = (r) => (S.d.dayNeedWhere || []).includes(r);
 const whereOpts = () => S.d.posts.filter((p) => /^bloco\s/i.test(p));
 const nightPosts = () => S.d.posts.filter((p) => !needsWhere(p));
