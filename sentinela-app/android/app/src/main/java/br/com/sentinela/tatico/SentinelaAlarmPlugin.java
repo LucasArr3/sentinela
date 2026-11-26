@@ -158,6 +158,33 @@ public class SentinelaAlarmPlugin extends Plugin {
         call.resolve();
     }
 
+    // Compartilha um arquivo (PDF/imagem) gerado pelo app, pelo menu de compartilhar do Android.
+    @PluginMethod
+    public void shareFile(PluginCall call) {
+        String name = call.getString("name", "relatorio.pdf").replaceAll("[^A-Za-z0-9._-]", "_");
+        String mime = call.getString("mime", "application/pdf");
+        String data = call.getString("data", "");
+        if (data.isEmpty()) { call.reject("sem dados"); return; }
+        try {
+            byte[] bytes = android.util.Base64.decode(data, android.util.Base64.DEFAULT);
+            java.io.File dir = new java.io.File(getContext().getCacheDir(), "reports");
+            if (!dir.exists()) dir.mkdirs();
+            java.io.File f = new java.io.File(dir, name);
+            try (java.io.FileOutputStream fo = new java.io.FileOutputStream(f)) { fo.write(bytes); }
+            Uri uri = androidx.core.content.FileProvider.getUriForFile(getContext(), getContext().getPackageName() + ".fileprovider", f);
+            Intent i = new Intent(Intent.ACTION_SEND);
+            i.setType(mime);
+            i.putExtra(Intent.EXTRA_STREAM, uri);
+            i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            Intent ch = Intent.createChooser(i, "Compartilhar relatório");
+            ch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getContext().startActivity(ch);
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("falha ao compartilhar: " + e.getMessage());
+        }
+    }
+
     // ---------------- versão instalada e atualização ----------------
     @PluginMethod
     public void appVersion(PluginCall call) {

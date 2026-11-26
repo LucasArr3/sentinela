@@ -8,10 +8,11 @@ import { startReminders, playSound, stopSound, SOUNDS, keepAwake, notify, askNot
 import { SOUND_CATS, soundLabel, DEFAULT_SOUND, isBuiltin } from './sounds.js';
 import { NativeAlarm, isNative, startListening, canListen, APK_URL, checkUpdate, openApkDownload } from './native.js';
 import { editPhoto, urlToDataUrl, bigGooglePhoto } from './photo.js';
+import { buildReport, reportText, renderReport, makePdf, dataUrlBytes, bytesB64, rpHours } from './report.js';
 import { signUp, signIn, signInGoogle, sendVerify, refreshVerified, GOOGLE_WEB_CLIENT_ID, resetPassword, backupUpload, backupDownload, getMeta, explain, checkAuthEnabled } from './cloud.js';
 
 const nowD = new Date();
-const S = { calSel: null, uid: null, user: null, d: null, view: 'dashboard', cal: { y: nowD.getFullYear(), m: nowD.getMonth() }, fin: { y: nowD.getFullYear(), m: nowD.getMonth() }, sum: { y: nowD.getFullYear(), m: nowD.getMonth(), values: true, notes: true, calendar: true, custom: null }, sheet: null, qv: { y: nowD.getFullYear(), m: nowD.getMonth() }, liv: { y: nowD.getFullYear(), m: nowD.getMonth() }, roster: null, qsel: null, open: new Set(), livf: { q: '', cat: '' }, alarm: null, auth: { tab: 'login', err: '' }, ob: { step: 0, today: true }, draft: null };
+const S = { rep: { y: nowD.getFullYear(), m: nowD.getMonth() }, calSel: null, uid: null, user: null, d: null, view: 'dashboard', cal: { y: nowD.getFullYear(), m: nowD.getMonth() }, fin: { y: nowD.getFullYear(), m: nowD.getMonth() }, sum: { y: nowD.getFullYear(), m: nowD.getMonth(), values: true, notes: true, calendar: true, custom: null }, sheet: null, qv: { y: nowD.getFullYear(), m: nowD.getMonth() }, liv: { y: nowD.getFullYear(), m: nowD.getMonth() }, roster: null, qsel: null, open: new Set(), livf: { q: '', cat: '' }, alarm: null, auth: { tab: 'login', err: '' }, ob: { step: 0, today: true }, draft: null };
 const ACCENTS = ['', '#e8e8ea', '#4d8dff', '#d4a63a', '#9bbf5a', '#e07a7a', '#c08ae6'];
 const THEMES = [
   { id: 'dark', name: 'Preto', desc: 'Grafite e branco, sóbrio', bg: '#050505', sf: '#111113', ac: '#e8e8ea' },
@@ -23,7 +24,7 @@ const THEMES = [
   { id: 'light', name: 'Claro', desc: 'Fundo branco', bg: '#f4f4f5', sf: '#ffffff', ac: '#18181b' },
 ];
 const THEME_BG = { dark: '#050505', obsidiana: '#030304', tatico: '#04070f', ouro: '#050505', oliva: '#070906', night: '#000000', light: '#f4f4f5' };
-const VIEWS = { dashboard: ['Início', 'home'], calendar: ['Calendário', 'calendar'], plantao: ['Plantão', 'shield'], quartos: ['Quartos', 'clock'], finance: ['Finanças', 'wallet'], summary: ['Resumos', 'chat'], livro: ['Ocorrências', 'book'], more: ['Mais', 'menu'], settings: ['Ajustes', 'settings'] };
+const VIEWS = { dashboard: ['Início', 'home'], calendar: ['Calendário', 'calendar'], plantao: ['Plantão', 'shield'], quartos: ['Quartos', 'clock'], finance: ['Finanças', 'wallet'], summary: ['Resumos', 'chat'], report: ['Relatório', 'note'], livro: ['Ocorrências', 'book'], more: ['Mais', 'menu'], settings: ['Ajustes', 'settings'] };
 const save = () => { if (S.d) S.d.mod = Date.now(); if (S.uid && !Store.save(S.uid, S.d)) toast('Não foi possível salvar (armazenamento cheio?)', 'err'); syncAlarmsSoon(); cloudPushSoon(); if (!S.warnedFull && Store.usage().pct > 90) { S.warnedFull = true; toast('Armazenamento quase cheio: exporte um backup e apague fotos antigas', 'err'); } };
 // ---- alarmes nativos (Android): reenvia a lista dos próximos 14 dias sempre que algo muda ----
 let syncT = null;
@@ -187,7 +188,7 @@ const moneyFields = () => `<div class="grid2"><label class="f">Diurna 12h<input 
 
 // ---------- SHELL ----------
 function shell() {
-  const [title] = VIEWS[S.view]; const p = S.d.profile; const moreSet = ['more', 'plantao', 'finance', 'summary', 'livro', 'settings'];
+  const [title] = VIEWS[S.view]; const p = S.d.profile; const moreSet = ['more', 'plantao', 'finance', 'summary', 'report', 'livro', 'settings'];
   const classic = S.d.prefs.layout === 'classico'; const onDuty = C.dutyNow(S.d, new Date()).on;
   const topHtml = classic ? `<header class="top ctop"><div class="clogo">${ic('shield')}</div><div class="sp ctit"><div class="cname">SENTINELA <span>TÁTICO</span></div><div class="csub"><i></i>OPERACIONAL · ${esc(title.toUpperCase())}</div></div><button class="cpill ${onDuty ? 'on' : ''}" data-act="go" data-v="settings" aria-label="Ajustes"><i></i>${onDuty ? 'EM SERVIÇO' : 'ATIVO'}</button></header>` : null;
   const nav = (k) => `<button class="nav ${S.view === k ? 'on' : ''}" data-act="go" data-v="${k}">${ic(VIEWS[k][1])}${VIEWS[k][0]}</button>`;
@@ -316,9 +317,30 @@ function livroView() {
   <input id="livQ" type="search" placeholder="Buscar nas ocorrências" value="${esc(S.livf.q)}"><div class="chips"><button class="chip ${!S.livf.cat ? 'on' : ''}" data-act="liv-cat" data-v="">Todas</button>${C.OC_CATS.map((c) => `<button class="chip ${S.livf.cat === c ? 'on' : ''}" data-act="liv-cat" data-v="${c}">${c}</button>`).join('')}</div>
   <div class="list" id="livList">${livList()}</div>`;
 }
+function reportView() {
+  const { y, m } = S.rep; const rep = buildReport(S.d, y, m); const T = rep.totals; const text = reportText(rep, S.d.profile);
+  const st = (v, l, s2) => `<div class="rst"><b>${v}</b><span>${l}</span>${s2 ? `<small>${s2}</small>` : ''}</div>`;
+  const kcol = { dia: '#5b8def', noite: '#9b7bf0', extra: '#4cc38a', permuta: '#e0b25a', folga: '#74b9c9', atestado: '#e07a7a', ferias: '#e39ab8', oc: '#d4688f', obs: '#8b8b92' };
+  return `<div class="calhead"><button class="ibtn" data-act="rep-prev" aria-label="Mês anterior">${ic('chevL')}</button><h2 style="text-align:center">${C.MONTHS[m]} <span class="muted" style="font-weight:600">${y}</span></h2><button class="ibtn" data-act="rep-next" aria-label="Próximo mês">${ic('chevR')}</button></div>
+  <div class="rexp"><button class="btn sm" data-act="rep-pdf">${ic('download')}PDF</button><button class="btn sm" data-act="rep-img">${ic('image')}Imagem</button><a class="btn sm wa" data-act="rep-wa" data-native href="${esc(waLink(text, S.d.prefs.waPhone))}" target="_blank" rel="noopener">${ic('chat')}WhatsApp</a><button class="btn sm" data-act="rep-copy">${ic('copy')}Copiar</button></div>
+  <div class="rsts">${st(T.plantoes, 'Plantões', T.plantaoHoras + 'h')}${st(rpHours(T.diaMin), 'Posto de dia', '')}${st(rpHours(T.quartosMin), 'Quartos', T.quartos + ' horário' + (T.quartos === 1 ? '' : 's'))}${st(T.extras, 'Extras', C.brl(T.extrasValor))}${st(T.permutas, 'Permutas', '')}${st(T.ocorrencias, 'Ocorrências', '')}</div>
+  ${rep.posts.length ? `<div class="h2">Por posto</div><div class="rtab"><div class="rth"><span>Posto</span><span>Total</span><span>Dias</span></div>${rep.posts.map((p) => `<div class="rtr"><span class="rp">${esc(p.post)}<small>${p.dia ? 'dia ' + rpHours(p.dia) : ''}${p.dia && p.noite ? ' · ' : ''}${p.noite ? 'noite ' + rpHours(p.noite) : ''}</small></span><b>${rpHours(p.min)}</b><span>${p.dias}</span></div>`).join('')}</div>` : ''}
+  <div class="h2">Dia a dia</div>${rep.days.length ? `<div class="rdays">${rep.days.map((d) => `<div class="rday"><div class="rdh"><b>${d.dow} ${C.fmtShort(d.date)}</b><span>${d.hours ? esc((d.statusLabel || 'Plantão') + ' ' + d.hours + 'h') : (d.status !== 'livre' ? esc(d.statusLabel) : '')}</span></div>${d.lines.map((l) => `<div class="rln"><i style="background:${kcol[l.k] || '#888'}"></i><span class="rt">${esc(l.time || '')}</span><span class="rx">${esc(l.post)}${l.sub ? `<small>${esc(l.sub)}</small>` : ''}</span></div>`).join('')}</div>`).join('')}</div>` : '<div class="card empty">Nenhum registro neste mês.</div>'}`;
+}
+async function reportFile(kind) {
+  const rep = buildReport(S.d, S.rep.y, S.rep.m); const prof = S.d.profile; const name = `relatorio-${C.ymKey(S.rep.y, S.rep.m)}`;
+  if (kind === 'pdf') { const pages = renderReport(rep, prof, { paged: true }); const jp = pages.map((cv) => ({ bytes: dataUrlBytes(cv.toDataURL('image/jpeg', 0.92)), w: cv.width, h: cv.height })); return { name: name + '.pdf', mime: 'application/pdf', bytes: makePdf(jp) }; }
+  const cv = renderReport(rep, prof, { paged: false })[0]; return { name: name + '.png', mime: 'image/png', bytes: dataUrlBytes(cv.toDataURL('image/png')) };
+}
+async function shareReportFile(f) {
+  if (isNative()) return NativeAlarm.shareFile(f.name, f.mime, bytesB64(f.bytes));
+  const blob = new Blob([f.bytes], { type: f.mime }); const file = new File([blob], f.name, { type: f.mime });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], title: f.name }); return; } catch (e) { if (e && e.name === 'AbortError') return; } }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = f.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
 function moreView() {
   const row = (v, icn, t, sub) => `<button class="item" data-act="go" data-v="${v}"><div class="ico" style="background:${tint('var(--accent)', 18)};color:var(--accent)">${ic(icn)}</div><div class="sp"><div class="t">${t}</div><div class="s">${sub}</div></div>${ic('chevR')}</button>`;
-  return `<div class="list">${row('plantao', 'shield', 'Modo Plantão', 'Relógio grande, próximo quarto e atalhos')}${row('finance', 'wallet', 'Finanças', 'Extras, valores a receber e permutas')}${row('summary', 'chat', 'Resumos para WhatsApp', 'Escala, quartos e finanças do mês')}${row('livro', 'book', 'Livro de ocorrências', 'Registros com hora e foto')}${row('settings', 'settings', 'Ajustes', 'Escala, quartos, postos, alarmes, IA e conta')}</div>`;
+  return `<div class="list">${row('plantao', 'shield', 'Modo Plantão', 'Relógio grande, próximo quarto e atalhos')}${row('finance', 'wallet', 'Finanças', 'Extras, valores a receber e permutas')}${row('report', 'note', 'Relatório do mês', 'Horários e postos detalhados · PDF, imagem, WhatsApp')}${row('summary', 'chat', 'Resumos para WhatsApp', 'Escala, quartos e finanças do mês')}${row('livro', 'book', 'Livro de ocorrências', 'Registros com hora e foto')}${row('settings', 'settings', 'Ajustes', 'Escala, quartos, postos, alarmes, IA e conta')}</div>`;
 }
 
 // ---------- CALENDÁRIO ----------
@@ -604,7 +626,7 @@ function addEvent(e) {
 // ---------- RENDER ----------
 function renderView() {
   const el = $('#view'); if (!el) return;
-  el.innerHTML = { dashboard, plantao: plantaoView, calendar, quartos: quartosView, finance, summary, livro: livroView, more: moreView, settings }[S.view]();
+  el.innerHTML = { dashboard, report: reportView, plantao: plantaoView, calendar, quartos: quartosView, finance, summary, livro: livroView, more: moreView, settings }[S.view]();
   el.classList.toggle('enter', !!S.anim); S.anim = false;
 }
 function render() {
@@ -687,6 +709,10 @@ const A = {
     save(); renderSheet(); render();
   },
   'f-cancel': () => { const b = S.sheet?.back; b ? openSheet('day', { date: b }) : closeSheet(); },
+  'rep-prev': () => { shiftMonth(S.rep, -1); renderView(); }, 'rep-next': () => { shiftMonth(S.rep, 1); renderView(); },
+  'rep-pdf': async () => { try { toast('Gerando PDF…'); await shareReportFile(await reportFile('pdf')); } catch (e) { toast('Não consegui gerar o PDF: ' + ((e && e.message) || e), 'err'); } },
+  'rep-img': async () => { try { toast('Gerando imagem…'); await shareReportFile(await reportFile('img')); } catch (e) { toast('Não consegui gerar a imagem: ' + ((e && e.message) || e), 'err'); } },
+  'rep-copy': async () => { const t = reportText(buildReport(S.d, S.rep.y, S.rep.m), S.d.profile); try { await navigator.clipboard.writeText(t); toast('Relatório copiado ✅'); } catch { toast('Não consegui copiar', 'err'); } },
   'qv-all': () => { S.qv.all = !S.qv.all; renderView(); },
   'qv-prev': () => { shiftMonth(S.qv, -1); render(); }, 'qv-next': () => { shiftMonth(S.qv, 1); render(); },
   'liv-prev': () => { shiftMonth(S.liv, -1); render(); }, 'liv-next': () => { shiftMonth(S.liv, 1); render(); },
