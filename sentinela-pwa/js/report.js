@@ -27,7 +27,7 @@ export function buildReport(state, y, m) {
     const info = dayInfo(date, state); const worked = info.status === 'plantao' || info.status === 'permuta_in';
     const dia = dayPostEntries(state, date).map((e) => ({ post: e.label, time: e.allDay || (e.from === DEF.from && e.to === DEF.to) ? '' : `${e.from}–${e.to}` }));
     const nights = new Map();
-    for (const e of quartosOn(state, date)) { const q = state.quarters.find((x) => x.id === e.slot); if (!q) continue; const key = e.post || 'Sem posto'; const o = nights.get(key) || { post: key, slots: [] }; o.slots.push(q.alvorada ? `Alvorada ${qLabel(q)}` : qLabel(q)); nights.set(key, o); }
+    for (const e of quartosOn(state, date)) { const q = state.quarters.find((x) => x.id === e.slot); if (!q) continue; const key = e.post || 'Sem posto'; const o = nights.get(key) || { post: key, slots: [] }; o.slots.push(qLabel(q)); nights.set(key, o); }
     const noite = [...nights.values()].map((o) => ({ post: o.post, slots: o.slots.join(' · ') }));
     if (worked) plantoes++;
     if (worked || dia.length || noite.length) rows.push({ date, dow: WD3[new Date(`${date}T12:00:00`).getDay()], worked, dia, noite });
