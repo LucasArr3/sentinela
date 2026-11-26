@@ -129,7 +129,7 @@ export function evTitle(e) {
     case 'posto': return `${e.from ? e.from + (e.to ? '–' + e.to : '') + ' · ' : 'Dia · '}${postoLabel(e)}`;
     case 'quarto': { const q = S.d.quarters.find((x) => x.id === e.slot); return `${q ? C.qLabel(q) : e.slot}${e.post ? ' · ' + e.post : ''}`; }
     case 'ocorrencia': return `${e.time ? e.time + ' · ' : ''}${e.title || 'Ocorrência'}`;
-    default: return (e.note || 'Observação').slice(0, 60);
+    default: return `${e.time ? e.time + ' · ' : ''}${(e.note || 'Anotação').slice(0, 60)}`;
   }
 }
 const evSub = (e) => {
@@ -357,10 +357,11 @@ function daySummary(date) {
   else if (i.status === 'extra') { const ex = i.events.find((e) => e.type === 'extra'); chips.push(`<span class="badge" style="background:${tint(C.STATUS.extra.color, 20)};color:${ex && ex.turno === 'noturna' ? C.EXTRA_N : C.EXTRA_D}">${ex && ex.turno === 'noturna' ? 'Extra noturna' : 'Extra diurna'}</span>`); }
   if (dp) chips.push(`<span class="badge" style="background:${tint(C.TYPES.posto.color, 20)};color:${C.TYPES.posto.color}">Dia: ${esc(postoLabel(dp))}</span>`);
   const tm = postosDia(date).filter((x) => x.from).sort((x, y) => x.from.localeCompare(y.from)).map((x) => `<div class="dsr"><i class="dsd" style="background:${C.TYPES.posto.color}"></i><div class="sp"><div class="t">${esc(x.from)}${x.to ? '–' + esc(x.to) : ''} · ${esc(postoLabel(x))}</div></div></div>`).join('');
-  const qh = qs.length ? `<div class="qmini">${qGroups(date).map((g) => { const q = d.quarters.find((x) => x.id === g.slot); return `<span class="qm"><b>${q ? esc(q.alvorada ? 'Alvorada' : C.qLabel(q)) : esc(g.slot)}</b><small>${g.posts.length ? esc(g.posts.join(' · ')) : '—'}</small></span>`; }).join('')}</div>` : '';
+  const nit = qGroups(date).map((g) => { const q = d.quarters.find((x) => x.id === g.slot); const t = q ? (q.alvorada ? `Alvorada ${C.qLabel(q)}` : C.qLabel(q)) : g.slot; return `<div class="dsr"><i class="dsd" style="background:${C.TYPES.quarto.color}"></i><div class="sp"><div class="t">${esc(t)} · ${esc(g.posts.length ? g.posts.join(' + ') : '—')}</div></div></div>`; }).join('');
+  const qh = nit ? `<div class="dsec">Quartos de hora</div>${nit}` : '';
   const rows = evs.filter((e) => e.type !== 'extra').map((e) => { const T = C.TYPES[e.type]; const sub = e.type === 'ocorrencia' ? [e.cat, e.place].filter(Boolean).join(' · ') : evSub(e); return `<div class="dsr"><i class="dsd" style="background:${T.color}"></i><div class="sp" style="min-width:0"><div class="t">${esc(evTitle(e))}</div>${sub ? `<div class="muted xs" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(sub)}</div>` : ''}</div></div>`; }).join('');
   if (infoStyle() !== 'cartoes') { const its = renderItems(dayItems(date), infoStyle()); const meta = [hol, i.status === 'plantao' ? `Plantão ${d.scale.hours}h · ${d.scale.start}` : (i.status === 'extra' ? (i.events.find((e) => e.type === 'extra')?.turno === 'noturna' ? 'Extra noturna' : 'Extra diurna') : '')].filter(Boolean).join(' · '); const rws = evs.filter((e) => e.type !== 'extra').map((e) => `<div class="ir ev"><b>${esc(evTitle(e))}</b><span>${esc(e.type === 'ocorrencia' ? [e.cat, e.place].filter(Boolean).join(' · ') : evSub(e))}</span></div>`).join(''); return `<div class="dplain" role="button" tabindex="0" data-act="day" data-date="${date}"><div class="dch"><div class="sp" style="min-width:0"><div class="dct">${C.dateLong(date)}</div>${meta ? `<div class="dcs">${esc(meta)}</div>` : ''}</div><span class="dgear" aria-hidden="true">${ic('settings')}</span></div>${its}${rws ? `<div class="ilist">${rws}</div>` : ''}</div>`; }
-  return `<div class="dcard" role="button" tabindex="0" data-act="day" data-date="${date}"><div class="dch"><div class="sp" style="min-width:0"><div class="dct">${C.dateLong(date)}</div><div class="dcs">Resumo do dia</div></div><span class="dgear" aria-hidden="true">${ic('settings')}</span></div>${chips.length ? `<div class="row wrap" style="gap:6px">${chips.join('')}</div>` : ''}${tm}${qh}${rows}</div>`;
+  return `<div class="dcard" role="button" tabindex="0" data-act="day" data-date="${date}"><div class="dch"><div class="sp" style="min-width:0"><div class="dct">${C.dateLong(date)}</div><div class="dcs">Resumo do dia</div></div><span class="dgear" aria-hidden="true">${ic('settings')}</span></div>${chips.length ? `<div class="row wrap" style="gap:6px">${chips.join('')}</div>` : ''}${tm ? `<div class="dsec">Durante o dia</div>${tm}` : ''}${qh}${rows ? `<div class="dsec">${evs.some((e) => e.type === 'obs') ? 'Anotações e registros' : 'Registros'}</div>${rows}` : ''}</div>`;
 }
 // ---------- formatos do calendário (mesmas funções, jeitos diferentes) ----------
 const CAL_MODES = [['padrao', 'Padrão'], ['circulos', 'Círculos'], ['cheio', 'Cheio'], ['limpo', 'Limpo'], ['solto', 'Solto'], ['postos', 'Com postos'], ['semanas', 'Semanas'], ['faixa', 'Faixa'], ['agenda', 'Agenda'], ['ano', 'Ano']];
@@ -404,7 +405,7 @@ function calCell(date, x, withPost) {
   const i = C.dayInfo(date, S.d); const hol = C.holidayName(date, x.hols); const tag = { plantao: x.sc.hours + 'h', extra: '12h', permuta_in: 'PERMUTA', permuta_out: 'PASSOU', folga: 'FOLGA', atestado: 'ATEST.', ferias: 'FÉRIAS', livre: '' };
   const ex = i.events.find((e) => e.type === 'extra'); const label = i.status === 'extra' && ex && ex.turno === 'h24' ? '24h' : tag[i.status];
   let post = ''; if (withPost) { const dps = postosDia(date).sort((p, q) => (p.from || '').localeCompare(q.from || '')); const dp = dps[0]; const ng = qGroups(date)[0]; const a = dp ? shortPost(dp.post) + (dps.length > 1 ? '+' : '') : ''; const b = ng ? '☾' + (ng.posts[0] ? shortPost(ng.posts[0]) : '') : ''; post = (a ? `<span class="cp">${esc(a)}</span>` : '') + (b ? `<span class="cp n">${esc(b)}</span>` : ''); }
-  return `<button class="cell ${date === x.t ? 'today' : ''} ${hol ? 'hol' : ''} ${date === x.selDay ? 'sel' : ''}" style="--sc:${cellColor(i)}" data-st="${i.status}" data-act="cal-pick" data-date="${date}" aria-label="${C.dateLong(date)}${hol ? ', ' + hol : ''}: ${C.STATUS[i.status].label}"><span class="tg">${label}</span><span class="n">${+date.slice(8)}</span>${post}${hol ? '<span class="hbar"></span>' : ''}</button>`;
+  return `<button class="cell ${date === x.t ? 'today' : ''} ${hol ? 'hol' : ''} ${date === x.selDay ? 'sel' : ''} ${i.events.some((q) => q.type === 'obs') ? 'hasn' : ''}" style="--sc:${cellColor(i)}" data-st="${i.status}" data-act="cal-pick" data-date="${date}" aria-label="${C.dateLong(date)}${hol ? ', ' + hol : ''}: ${C.STATUS[i.status].label}"><span class="tg">${label}</span><span class="n">${+date.slice(8)}</span>${post}${hol ? '<span class="hbar"></span>' : ''}</button>`;
 }
 function calGrade(x, withPost) {
   const first = new Date(x.y, x.m, 1).getDay(); const cells = Array.from({ length: first }, () => '<div class="cell blank"></div>').join('') + C.monthDays(x.y, x.m).map((d) => calCell(d, x, withPost)).join('');
@@ -543,7 +544,7 @@ function daySheet(date) {
   ${main}
   ${others.length ? `<div class="col" style="gap:6px;margin-top:10px">${others.map(mini).join('')}</div>` : ''}
   ${i.works || qs.length || dpost || diaResumo(date) ? `<button class="item slim" data-act="q-open" data-date="${date}"><div class="ico" style="background:${tint(C.TYPES.quarto.color, 20)};color:${C.TYPES.quarto.color}">${ic('clock')}</div><div class="sp" style="min-width:0"><div class="t">Postos e quartos</div><div class="s">${dpost || qs.length || diaResumo(date) ? esc([diaResumo(date) ? 'Dia: ' + diaResumo(date) : '', qsum].filter(Boolean).join(' · ')) : 'Toque para marcar'}</div></div>${ic('chevR')}</button>` : ''}
-  <details class="sub" data-sec="daymore" ${S.open.has('daymore') ? 'open' : ''} style="margin-top:12px"><summary>Mais opções</summary><div class="adds" style="margin-top:10px">${add('permuta', 'Permuta')}${add('atestado', 'Atestado')}${add('ferias', 'Férias')}${add('ocorrencia', 'Ocorrência')}</div></details>`;
+  <details class="sub" data-sec="daymore" ${S.open.has('daymore') ? 'open' : ''} style="margin-top:12px"><summary>Mais opções</summary><div class="adds" style="margin-top:10px">${add('obs', 'Anotação')}${add('permuta', 'Permuta')}${add('atestado', 'Atestado')}${add('ferias', 'Férias')}${add('ocorrencia', 'Ocorrência')}</div></details>`;
 }
 function formSheet() {
   if (S.draft.type === 'ocorrencia') return ocForm();
@@ -556,10 +557,10 @@ function formSheet() {
   if (e.type === 'permuta') fields = `<div class="seg"><button class="${e.dir === 'passei' ? 'on' : ''}" data-act="f-set" data-k="dir" data-v="passei">Passei meu plantão</button><button class="${e.dir === 'assumi' ? 'on' : ''}" data-act="f-set" data-k="dir" data-v="assumi">Assumi plantão</button></div>${f('who', e.dir === 'passei' ? 'Quem assumiu' : 'De quem', `<input data-f="who" list="names" value="${esc(e.who || '')}" placeholder="Nome do colega"><datalist id="names">${names.map((n) => `<option value="${esc(n)}">`).join('')}</datalist>`)}<details class="sub" data-sec="pmore"><summary>Devolução</summary><div class="col" style="margin-top:10px">${f('returnDate', 'Data da devolução (opcional)', `<input data-f="returnDate" type="date" value="${e.returnDate || ''}">`)}<label class="tgl"><span class="sm b">Permuta quitada (já devolvida)</span><input type="checkbox" data-f="settled" ${e.settled ? 'checked' : ''}></label></div></details>`;
   if (e.type === 'folga') fields = `${f('reason', 'Motivo', `<select data-f="reason">${['', 'Compensação', 'Banco de horas', 'Abono', 'Outro'].map((r) => `<option ${e.reason === r ? 'selected' : ''} value="${r}">${r || 'Selecione (opcional)'}</option>`).join('')}</select>`)}`;
   if (e.type === 'atestado') fields = f('cid', 'CID (opcional)', `<input data-f="cid" value="${esc(e.cid || '')}" placeholder="Ex.: J11">`);
-  if (e.type === 'obs') fields = '';
+  if (e.type === 'obs') fields = f('time', 'Hora (opcional)', `<input data-f="time" type="time" value="${e.time || ''}">`);
   const days = range ? `${f('_days', 'Quantidade de dias', `<input data-f="_days" type="number" min="1" max="365" inputmode="numeric" value="${e._days || 1}">`)}<div class="muted xs" style="margin-top:-6px">${(+e._days || 1) > 1 ? `Até ${C.fmtBR(C.addDays(e.date || C.today(), (+e._days || 1) - 1))}` : ''}</div>` : '';
   return `<div class="grab"></div><div class="row"><div class="ico" style="width:42px;height:42px;border-radius:14px;display:grid;place-items:center;background:${tint(T.color, 20)};color:${T.color}">${ic(T.icon)}</div><h3 class="sp">${isNew ? T.label : 'Editar ' + T.label.toLowerCase()}</h3><button class="ibtn" data-act="f-cancel">${ic('x')}</button></div>
-  <form class="col" style="margin-top:14px" data-submit="ev-save">${typeChips}${isNew ? `<div class="muted sm" style="margin:-6px 0 0">${C.dateLong(e.date)}</div><details class="sub" data-sec="dtchg"><summary>Mudar a data</summary><div style="margin-top:10px"><input data-f="date" type="date" required value="${e.date}"></div></details>` : f('date', 'Data', `<input data-f="date" type="date" required value="${e.date}">`)}${days}${fields}${e.type === 'obs' || e.note ? f('note', e.type === 'obs' ? 'Observação' : 'Observações', `<textarea data-f="note" placeholder="Escreva aqui…">${esc(e.note || '')}</textarea>`) : `<details class="sub" data-sec="notemore"><summary>Adicionar observação</summary><div style="margin-top:10px"><textarea data-f="note" placeholder="Detalhes, local, motivo…"></textarea></div></details>`}
+  <form class="col" style="margin-top:14px" data-submit="ev-save">${typeChips}${isNew ? `<div class="muted sm" style="margin:-6px 0 0">${C.dateLong(e.date)}</div><details class="sub" data-sec="dtchg"><summary>Mudar a data</summary><div style="margin-top:10px"><input data-f="date" type="date" required value="${e.date}"></div></details>` : f('date', 'Data', `<input data-f="date" type="date" required value="${e.date}">`)}${days}${fields}${e.type === 'obs' || e.note ? f('note', e.type === 'obs' ? 'Anotação' : 'Observações', `<textarea data-f="note" placeholder="${e.type === 'obs' ? 'Compromisso, lembrete, anotação…' : 'Escreva aqui…'}">${esc(e.note || '')}</textarea>`) : `<details class="sub" data-sec="notemore"><summary>Adicionar observação</summary><div style="margin-top:10px"><textarea data-f="note" placeholder="Detalhes, local, motivo…"></textarea></div></details>`}
   <div class="row"><button class="btn pri sp" type="submit">${ic('check')}Salvar</button>${isNew ? '' : `<button class="btn dng" type="button" data-act="ev-del" data-id="${e.id}">${ic('trash')}</button>`}</div></form>`;
 }
 function ocForm() {
@@ -646,20 +647,21 @@ function postoForm() {
 const swapSheet = (kind, extra = {}) => { S.sheet = { kind, ...extra }; renderSheet(); };
 const DAY_DEF = { from: '08:00', to: '18:00' };
 const slotOrder = () => Object.fromEntries(S.d.quarters.map((q, i) => [q.id, i]));
-function nightRows(date) { // um posto por linha, com os quartos dele
+const rkOf = (e) => e.row || ('p:' + (e.post || ''));
+function nightRows(date) { // cada linha = um grupo de quartos (o mesmo posto pode aparecer em várias linhas)
   const ord = slotOrder(); const m = new Map();
-  for (const e of S.d.events) { if (e.type !== 'quarto' || e.date !== date) continue; const k = e.post || ''; if (!m.has(k)) m.set(k, []); m.get(k).push(e.slot); }
-  return [...m.entries()].map(([post, slots]) => ({ post, slots: slots.sort((a, b) => ord[a] - ord[b]) })).sort((a, b) => ord[a.slots[0]] - ord[b.slots[0]]);
+  for (const e of S.d.events) { if (e.type !== 'quarto' || e.date !== date) continue; const k = rkOf(e); if (!m.has(k)) m.set(k, { key: k, post: e.post || '', slots: [] }); m.get(k).slots.push(e.slot); }
+  return [...m.values()].map((r) => ({ ...r, slots: r.slots.sort((x, y) => ord[x] - ord[y]) })).sort((x, y) => ord[x.slots[0]] - ord[y.slots[0]]);
 }
-const slotTxt = (id) => { const q = S.d.quarters.find((x) => x.id === id); return q ? (q.alvorada ? 'Alvorada' : C.qLabel(q)) : id; };
+const slotTxt = (id) => { const q = S.d.quarters.find((x) => x.id === id); return q ? (q.alvorada ? 'Alvorada ' + C.qLabel(q) : C.qLabel(q)) : id; };
 function qTables(date) {
   const tab = S.qtab || (new Date().getHours() >= 18 ? 'noite' : 'dia'); const ents = postosDia(date).sort((a, b) => (a.from || '').localeCompare(b.from || ''));
   const row = (a, as, b, bAct, aAct, xAct, data) => `<div class="tr"><button type="button" class="pb" data-act="${aAct}" ${data}><span>${esc(a)}${as ? `<small>${esc(as)}</small>` : ''}</span>${ic('chevD')}</button><button type="button" class="pb t" data-act="${bAct}" ${data}><span>${esc(b)}</span>${ic('chevD')}</button><button type="button" class="xb" data-act="${xAct}" ${data} aria-label="Remover">${ic('trash')}</button></div>`;
   const dayRows = ents.map((e) => row(e.post, e.where, e.from || e.to ? `${e.from || DAY_DEF.from} – ${e.to || DAY_DEF.to}` : `${DAY_DEF.from} – ${DAY_DEF.to}`, 'tp-time', 'tp-post', 'tp-del', `data-id="${e.id}"`)).join('');
-  const nr = nightRows(date); const nightRowsH = nr.map((r) => row(r.post || 'Sem posto', '', r.slots.map(slotTxt).join(' · '), 'tn-slots', 'tn-post', 'tn-del', `data-post="${esc(r.post)}"`)).join('');
+  const nr = nightRows(date); const nightRowsH = nr.map((r) => row(r.post || 'Sem posto', '', r.slots.map(slotTxt).join(' · '), 'tn-slots', 'tn-post', 'tn-del', `data-rk="${esc(r.key)}" data-post="${esc(r.post)}"`)).join('');
   const body = tab === 'dia'
     ? `<div class="tbl"><div class="th"><span>Posto</span><span>Horário</span><span></span></div>${dayRows || '<div class="muted sm" style="padding:8px 4px">Nenhum posto registrado durante o dia.</div>'}<button type="button" class="addrow" data-act="tp-add" data-date="${date}">${ic('plus')}Adicionar posto</button></div><div class="hint">Toque no posto para trocar e no horário para editar. O horário padrão é ${DAY_DEF.from} às ${DAY_DEF.to}. Ao adicionar outro posto, o anterior termina na hora de agora.</div>`
-    : `<div class="tbl"><div class="th"><span>Posto</span><span>Quartos de hora</span><span></span></div>${nightRowsH || '<div class="muted sm" style="padding:8px 4px">Nenhum quarto marcado à noite.</div>'}<button type="button" class="addrow" data-act="tn-add" data-date="${date}">${ic('plus')}Adicionar posto</button></div><div class="hint">1º escolha o posto, 2º marque os quartos dele. Um posto pode ter vários quartos, e um quarto pode ter mais de um posto.</div>`;
+    : `<div class="tbl"><div class="th"><span>Posto</span><span>Quartos de hora</span><span></span></div>${nightRowsH || '<div class="muted sm" style="padding:8px 4px">Nenhum quarto marcado à noite.</div>'}<button type="button" class="addrow" data-act="tn-add" data-date="${date}">${ic('plus')}Adicionar posto</button></div><div class="hint">1º escolha o posto, 2º marque os quartos dele. Para o mesmo posto em horários separados, toque em Adicionar posto de novo: cada linha é independente.</div>`;
   return `<div class="ptabs"><button type="button" class="${tab === 'dia' ? 'on' : ''}" data-act="qtab" data-v="dia">Durante o dia</button><button type="button" class="${tab === 'noite' ? 'on' : ''}" data-act="qtab" data-v="noite">À noite</button></div>${body}`;
 }
 function postPickSheet() {
@@ -843,10 +845,10 @@ const A = {
   'tp-time': (el) => { const e = S.d.events.find((x) => x.id === el.dataset.id); if (!e) return; S.pt = { date: e.date, id: e.id, from: e.from || DAY_DEF.from, to: e.to || DAY_DEF.to }; swapSheet('ptime', { date: e.date }); },
   'tp-del': (el) => { const e = S.d.events.find((x) => x.id === el.dataset.id); if (!e) return; S.d.events = S.d.events.filter((x) => x !== e); save(); render(); renderSheet(); toast('Posto removido', '', () => { S.d.events.push(e); save(); render(); renderSheet(); }); },
   // ---- postos da noite
-  'tn-add': (el) => { S.pk = { date: el.dataset.date, kind: 'noite', old: null, post: activePost() }; swapSheet('ppick', { date: el.dataset.date }); },
-  'tn-post': (el) => { const date = S.sheet.date; const old = el.dataset.post; S.pk = { date, kind: 'noite', old, post: old }; swapSheet('ppick', { date }); },
-  'tn-slots': (el) => { const date = S.sheet.date; const post = el.dataset.post; S.ps = { date, post, slots: S.d.events.filter((x) => x.type === 'quarto' && x.date === date && (x.post || '') === post).map((x) => x.slot) }; swapSheet('qslots', { date }); },
-  'tn-del': (el) => { const date = S.sheet.date; const post = el.dataset.post; const gone = S.d.events.filter((x) => x.type === 'quarto' && x.date === date && (x.post || '') === post); S.d.events = S.d.events.filter((x) => !gone.includes(x)); save(); render(); renderSheet(); toast('Quartos removidos', '', () => { S.d.events.push(...gone); save(); render(); renderSheet(); }); },
+  'tn-add': (el) => { S.pk = { date: el.dataset.date, kind: 'noite', old: null, post: activePost(), row: C.uid() }; swapSheet('ppick', { date: el.dataset.date }); },
+  'tn-post': (el) => { const date = S.sheet.date; const rkv = el.dataset.rk; S.pk = { date, kind: 'noite', old: el.dataset.post, rkv, post: el.dataset.post }; swapSheet('ppick', { date }); },
+  'tn-slots': (el) => { const date = S.sheet.date; const rkv = el.dataset.rk; const evs = S.d.events.filter((x) => x.type === 'quarto' && x.date === date && rkOf(x) === rkv); S.ps = { date, post: el.dataset.post, rkv, slots: evs.map((x) => x.slot) }; swapSheet('qslots', { date }); },
+  'tn-del': (el) => { const date = S.sheet.date; const rkv = el.dataset.rk; const gone = S.d.events.filter((x) => x.type === 'quarto' && x.date === date && rkOf(x) === rkv); S.d.events = S.d.events.filter((x) => !gone.includes(x)); save(); render(); renderSheet(); toast('Quartos removidos', '', () => { S.d.events.push(...gone); save(); render(); renderSheet(); }); },
   // ---- escolher posto
   'pk-role': (el) => { S.pk.post = el.dataset.v; if (!needsWhere(el.dataset.v)) S.pk.where = ''; renderSheet(); },
   'pk-where': (el) => { S.pk.where = el.dataset.v; renderSheet(); },
@@ -865,16 +867,23 @@ const A = {
       save(); render(); swapSheet('quartos', back); return;
     }
     // noite
-    if (k.old === null) { S.ps = { date: k.date, post: k.post, slots: [] }; swapSheet('qslots', { date: k.date }); return; }
-    if (k.post !== k.old) { S.d.events.filter((x) => x.type === 'quarto' && x.date === k.date && (x.post || '') === k.old).forEach((x) => { const dup = S.d.events.find((y) => y !== x && y.type === 'quarto' && y.date === k.date && y.slot === x.slot && (y.post || '') === k.post); if (dup) S.d.events = S.d.events.filter((y) => y !== x); else x.post = k.post; }); save(); render(); toast('Posto trocado ✅'); }
+    if (k.old === null) { S.ps = { date: k.date, post: k.post, row: k.row, slots: [] }; swapSheet('qslots', { date: k.date }); return; }
+    if (k.post !== k.old) { const nid = String(k.rkv).startsWith('p:') ? C.uid() : k.rkv; S.d.events.filter((x) => x.type === 'quarto' && x.date === k.date && rkOf(x) === k.rkv).forEach((x) => { x.post = k.post; x.row = nid; }); save(); render(); toast('Posto trocado ✅'); }
     swapSheet('quartos', back);
   },
   'ps-toggle': (el) => { const q = el.dataset.q; const a = S.ps.slots; const i = a.indexOf(q); if (i >= 0) a.splice(i, 1); else a.push(q); renderSheet(); },
   'ps-cancel': () => { swapSheet('quartos', { date: S.ps.date, back: S.qctx && S.qctx.back }); },
   'ps-ok': () => {
-    const k = S.ps; const post = k.post || ''; const sel = new Set(k.slots);
-    S.d.events = S.d.events.filter((x) => !(x.type === 'quarto' && x.date === k.date && (x.post || '') === post && !sel.has(x.slot)));
-    for (const slot of sel) { if (!S.d.events.some((x) => x.type === 'quarto' && x.date === k.date && x.slot === slot && (x.post || '') === post)) { const blank = S.d.events.find((x) => x.type === 'quarto' && x.date === k.date && x.slot === slot && !x.post); if (blank && post) blank.post = post; else S.d.events.push({ id: C.uid(), type: 'quarto', date: k.date, slot, post }); } }
+    const k = S.ps; const post = k.post || ''; const sel = new Set(k.slots); const legacy = !k.rkv || String(k.rkv).startsWith('p:'); const rid = legacy ? (k.row || C.uid()) : k.rkv;
+    const inRow = (x) => x.type === 'quarto' && x.date === k.date && (k.rkv ? rkOf(x) === k.rkv : x.row === rid);
+    S.d.events = S.d.events.filter((x) => !(inRow(x) && !sel.has(x.slot)));
+    S.d.events = S.d.events.filter((x) => !(x.type === 'quarto' && x.date === k.date && sel.has(x.slot) && (x.post || '') === post && !inRow(x)));
+    for (const slot of sel) {
+      const ex = S.d.events.find((x) => inRow(x) && x.slot === slot);
+      if (ex) { ex.row = rid; continue; }
+      const blank = S.d.events.find((x) => x.type === 'quarto' && x.date === k.date && x.slot === slot && !x.post);
+      if (blank && post) { blank.post = post; blank.row = rid; } else S.d.events.push({ id: C.uid(), type: 'quarto', date: k.date, slot, post, row: rid });
+    }
     if (post) { S.d.prefs.lastPost = post; askNotifyPermission(); }
     save(); render(); swapSheet('quartos', { date: k.date, back: S.qctx && S.qctx.back }); toast('Quartos salvos ✅');
   },
@@ -1052,7 +1061,7 @@ const FORMS = {
   'ev-save'() {
     const e = { ...S.draft }; const T = C.TYPES[e.type]; if (!e.date) return toast('Informe a data', 'err');
     if (T.range) { const n = Math.max(1, parseInt(e._days) || 1); e.end = n > 1 ? C.addDays(e.date, n - 1) : undefined; } else delete e.end; delete e._days;
-    if (e.type === 'obs' && !(e.note || '').trim()) return toast('Escreva a observação', 'err');
+    if (e.type === 'obs' && !(e.note || '').trim()) return toast('Escreva a anotação', 'err');
     if (e.type === 'ocorrencia' && !(e.title || '').trim() && !(e.note || '').trim() && !e.photo) return toast('Descreva a ocorrência', 'err');
     if (e.type === 'extra') { e.value = Number(e.value) || 0; e.paid = !!e.paid; }
     if (e.type === 'permuta') e.who = (e.who || '').trim();
