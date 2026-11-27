@@ -120,7 +120,7 @@ export function renderReport(rep, profile = {}, { paged = true, opts = {} } = {}
     s.rows.forEach((r, i) => {
       const mm = meas[si][i]; if (paged && y + mm.h > PH - 110) { foot(); mk(PH); if (s.title) { y += 10; txt(s.title.toUpperCase() + ' (cont.)', M, y + 20, F('800', 22), '#475569'); y += 44; } }
       if (i % 2 === 0) { c.fillStyle = '#f8fafc'; c.fillRect(M - 12, y, W - 2 * M + 24, mm.h); }
-      const base = y + 16 + 26; txt(fmtShort(r.date), X1, base, F('800', 28)); if (r.dow) txt(r.dow, X1 + 100, base, F('600', 22), '#94a3b8');
+      const base = y + 16 + 26; const mid = y + mm.h / 2 + 10; txt(fmtShort(r.date), X1, mid, F('800', 28)); if (r.dow) txt(r.dow, X1 + 100, mid, F('600', 22), '#94a3b8');
       mm.ls.forEach((l, k) => { if (l.tag) txt(l.tag, X2, base + k * LH, F('800', 20), '#94a3b8'); txt(l.text, X2 + (r.lines.some((x) => x.tag) ? 150 : 0), base + k * LH, F('700', 26), '#0f172a'); });
       y += mm.h;
     });

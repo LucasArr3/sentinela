@@ -383,10 +383,11 @@ function reportView() {
   const { y, m } = S.rep; const o = reportOpts(S.d.prefs); const rep = buildReport(S.d, y, m); const text = reportText(rep, S.d.profile, o); const model = reportModel(rep, S.d.profile, o);
   const same = (a, b) => Object.keys(REPORT_DEFAULT).every((k) => a[k] === b[k]); const cur = RP_PRE.find(([k]) => same(o, REPORT_PRESETS[k]));
   const seg = (act, items, val) => `<div class="seg">${items.map(([v, l]) => `<button class="${val === v ? 'on' : ''}" data-act="${act}" data-v="${v}">${l}</button>`).join('')}</div>`;
-  const cfg = `<details class="sub" data-sec="rpcfg" ${S.open.has('rpcfg') ? 'open' : ''}><summary>Escolher o que mostrar</summary><div class="col" style="margin-top:10px;gap:12px">
-   <div><div class="b" style="margin-bottom:8px">Postos</div>${seg('rp-show', [['ambos', 'Diurno e noturno'], ['dia', 'Só diurno'], ['noite', 'Só noturno']], o.show)}</div>
-   <div><div class="b" style="margin-bottom:8px">Organizar</div>${seg('rp-group', [['tipo', 'Por tipo'], ['dia', 'Por dia']], o.group)}</div>
-   <div><div class="b" style="margin-bottom:8px">Dados</div><div class="chips">${RP_TOG.map(([k, l]) => `<button type="button" class="chip ${o[k] ? 'on' : ''}" data-act="rp-tog" data-k="${k}">${l}</button>`).join('')}</div></div>
+  const fsum = `${({ ambos: 'Diurno e noturno', dia: 'Só diurno', noite: 'Só noturno' })[o.show]} · ${o.group === 'tipo' ? 'Por tipo' : 'Por dia'}`;
+  const cfg = `<details class="rfil" data-sec="rpcfg" ${S.open.has('rpcfg') ? 'open' : ''}><summary>${ic('settings')}<b>Filtros</b><span>${fsum}</span><i>⌄</i></summary><div class="rfbody">
+   <div class="rfl">Postos</div>${seg('rp-show', [['ambos', 'Diurno e noturno'], ['dia', 'Só diurno'], ['noite', 'Só noturno']], o.show)}
+   <div class="rfl">Organizar</div>${seg('rp-group', [['tipo', 'Por tipo'], ['dia', 'Por dia']], o.group)}
+   <div class="rfl">Dados</div><div class="chips xs">${RP_TOG.map(([k, l]) => `<button type="button" class="chip ${o[k] ? 'on' : ''}" data-act="rp-tog" data-k="${k}">${l}</button>`).join('')}</div>
   </div></details>`;
   const secs = model.sections.filter((s) => s.rows.length).map((s) => `${s.title ? `<div class="h2 rsh">${s.icon} ${esc(s.title)}</div>` : ''}<div class="rlist">${s.rows.map((r) => `<div class="rrow"><div class="rdt"><b>${C.fmtShort(r.date)}</b>${r.dow ? `<span>${r.dow}</span>` : ''}</div><div class="rinf">${r.lines.map((l) => `<div class="rl">${l.tag ? `<i>${l.tag}</i>` : ''}${esc(l.text)}</div>`).join('')}</div></div>`).join('')}</div>`).join('');
   return `<div class="calhead"><button class="ibtn" data-act="rep-prev" aria-label="Mês anterior">${ic('chevL')}</button><h2 style="text-align:center">${C.MONTHS[m]} <span class="muted" style="font-weight:600">${y}</span></h2><button class="ibtn" data-act="rep-next" aria-label="Próximo mês">${ic('chevR')}</button></div>
