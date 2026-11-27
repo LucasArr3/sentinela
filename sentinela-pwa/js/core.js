@@ -36,13 +36,13 @@ export const scaleLabel = (sc) => (sc.preset !== 'custom' ? sc.preset : `${sc.wo
 
 // ---------- Eventos ----------
 export const TYPES = {
-  extra: { label: 'Extra', plural: 'Extras', color: '#6fcf97', icon: 'coins', emoji: '💰', range: false },
-  permuta: { label: 'Permuta', plural: 'Permutas', color: '#e0b25a', icon: 'swap', emoji: '🔁', range: false },
+  extra: { label: 'Extra', plural: 'Extras', color: '#F2B33D', icon: 'coins', emoji: '💰', range: false },
+  permuta: { label: 'Permuta', plural: 'Permutas', color: '#FF7A59', icon: 'swap', emoji: '🔁', range: false },
   posto: { label: 'Posto do dia', plural: 'Postos do dia', color: '#7aa8cf', icon: 'shield', emoji: '🛡️', range: false },
   quarto: { label: 'Quarto de hora', plural: 'Quartos', color: '#7aa8cf', icon: 'clock', emoji: '⏱️', range: false },
-  folga: { label: 'Folga', plural: 'Folgas', color: '#74b9c9', icon: 'moon', emoji: '🌙', range: true },
-  atestado: { label: 'Atestado médico', plural: 'Atestados', color: '#e07a7a', icon: 'pulse', emoji: '🏥', range: true },
-  ferias: { label: 'Férias', plural: 'Férias', color: '#e39ab8', icon: 'sun', emoji: '🏖️', range: true },
+  folga: { label: 'Folga', plural: 'Folgas', color: '#2FC4B2', icon: 'coffee', emoji: '🌙', range: true },
+  atestado: { label: 'Atestado médico', plural: 'Atestados', color: '#F0506E', icon: 'medical', emoji: '🏥', range: true },
+  ferias: { label: 'Férias', plural: 'Férias', color: '#E879C6', icon: 'umbrella', emoji: '🏖️', range: true },
   obs: { label: 'Observação', plural: 'Observações', color: '#8b8b92', icon: 'note', emoji: '📝', range: false },
   ocorrencia: { label: 'Ocorrência', plural: 'Ocorrências', color: '#c9788a', icon: 'book', emoji: '📒', range: false },
 };
@@ -80,10 +80,10 @@ export function nextQuarto(state, now = new Date()) {
   return best;
 }
 // Cores do calendário: mesma luminosidade para tudo combinar
-export let EXTRA_D = '#6fcf97';
-export let EXTRA_N = '#8da2f2';
+export let EXTRA_D = '#F2B33D';
+export let EXTRA_N = '#8B8CF5';
 // Cores padrão e personalização (prefs.colors). Chaves: extraD, extraN, permuta, folga, atestado, ferias, quarto
-export const DEFAULT_COLORS = { extraD: '#6fcf97', extraN: '#8da2f2', permuta: '#e0b25a', folga: '#74b9c9', atestado: '#e07a7a', ferias: '#e39ab8', quarto: '#7aa8cf', plantao: '' };
+export const DEFAULT_COLORS = { extraD: '#F2B33D', extraN: '#8B8CF5', permuta: '#FF7A59', folga: '#2FC4B2', atestado: '#F0506E', ferias: '#E879C6', quarto: '#7aa8cf', plantao: '' };
 export const COLOR_LABELS = { plantao: 'Plantão', extraD: 'Extra diurna', extraN: 'Extra noturna', permuta: 'Permuta', folga: 'Folga', atestado: 'Atestado', ferias: 'Férias', quarto: 'Quarto de hora' };
 export function applyColors(custom) {
   const c = { ...DEFAULT_COLORS, ...(custom || {}) }; const ok = (v) => /^#[0-9a-f]{6}$/i.test(v);
@@ -128,14 +128,31 @@ export function dayInfo(date, state) {
   const works = ['plantao', 'permuta_in', 'extra'].includes(status) || (extra && status === 'plantao');
   return { date, scheduled, status, works, events: evs };
 }
+/** Situações do dia que viram marcador no canto da célula (o dia de plantão mantém a própria cor). */
+export function dayMarks(info) {
+  const ev = info.events; const out = [];
+  if (ev.some((e) => e.type === 'atestado')) out.push({ k: 'atestado', color: TYPES.atestado.color, icon: 'medical', label: 'Atestado' });
+  if (ev.some((e) => e.type === 'permuta')) out.push({ k: 'permuta', color: TYPES.permuta.color, icon: 'swap', label: 'Permuta' });
+  if (ev.some((e) => e.type === 'ferias')) out.push({ k: 'ferias', color: TYPES.ferias.color, icon: 'umbrella', label: 'Férias' });
+  if (ev.some((e) => e.type === 'folga')) out.push({ k: 'folga', color: TYPES.folga.color, icon: 'coffee', label: 'Folga' });
+  const ex = ev.find((e) => e.type === 'extra');
+  if (ex) { const n = ex.turno === 'noturna'; out.push({ k: n ? 'extraN' : 'extraD', color: n ? EXTRA_N : EXTRA_D, icon: n ? 'moon' : (ex.turno === 'h24' ? 'bolt' : 'sun'), label: n ? 'Extra noturna' : 'Extra diurna' }); }
+  return out;
+}
+/** Cor/estado da célula: dia de plantão (ou plantão assumido) fica com a cor de plantão; atestado, férias e folga em dia livre ficam neutros. */
+export function cellStatus(info) {
+  if (info.scheduled || info.status === 'permuta_in') return 'plantao';
+  if (['atestado', 'ferias', 'folga'].includes(info.status)) return 'livre';
+  return info.status;
+}
 export const STATUS = {
   plantao: { label: 'Plantão', color: 'var(--accent)' },
-  extra: { label: 'Extra', color: '#6fcf97' },
-  permuta_in: { label: 'Assumiu plantão (permuta)', color: '#e0b25a' },
-  permuta_out: { label: 'Passou plantão (permuta)', color: '#e0b25a' },
-  folga: { label: 'Folga abonada', color: '#74b9c9' },
-  atestado: { label: 'Atestado médico', color: '#e07a7a' },
-  ferias: { label: 'Férias', color: '#e39ab8' },
+  extra: { label: 'Extra', color: '#F2B33D' },
+  permuta_in: { label: 'Assumiu plantão (permuta)', color: '#FF7A59' },
+  permuta_out: { label: 'Passou plantão (permuta)', color: '#FF7A59' },
+  folga: { label: 'Folga abonada', color: '#2FC4B2' },
+  atestado: { label: 'Atestado médico', color: '#F0506E' },
+  ferias: { label: 'Férias', color: '#E879C6' },
   livre: { label: 'Folga', color: 'var(--muted)' },
 };
 
