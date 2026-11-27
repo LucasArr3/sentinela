@@ -36,6 +36,12 @@ public class AlarmService extends Service {
     static final String ACTION_STOPPED = "br.com.sentinela.tatico.ALARM_STOPPED";
     private static final String CHANNEL = "sentinela_alarme";
     private static final int NOTIF_ID = 7001;
+    private static final int WATCH_ID = 7002;
+    private static final String WATCH_CHANNEL = "sentinela_relogio";
+    /** Verdadeiro enquanto o alarme está vibrando/tocando (a tela principal usa para mostrar a tela de alarme). */
+    static volatile boolean ringing = false;
+    static volatile Bundle ringingExtras = null;
+    private Runnable soundTask;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private MediaPlayer player;
@@ -74,6 +80,48 @@ public class AlarmService extends Service {
         ch.enableVibration(false);
         ch.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
         nm.createNotificationChannel(ch);
+    }
+
+    /** Canal que faz o relógio (Galaxy Watch) vibrar: o aviso espelhado do celular é "alertante" e curto. */
+    private static void ensureWatchChannel(Context c) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return;
+        NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
+        if (nm.getNotificationChannel(WATCH_CHANNEL) != null) return;
+        NotificationChannel ch = new NotificationChannel(WATCH_CHANNEL, "Aviso no relógio", NotificationManager.IMPORTANCE_HIGH);
+        ch.setDescription("Aviso do alarme que aparece e vibra no smartwatch");
+        ch.setSound(null, null);
+        ch.enableVibration(true);
+        ch.setVibrationPattern(new long[]{0, 600, 300, 600, 300, 600});
+        ch.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
+        nm.createNotificationChannel(ch);
+    }
+
+    private void postWatch(Bundle b) {
+        try {
+            ensureWatchChannel(this);
+            String title = b != null ? b.getString(AlarmScheduler.EXTRA_TITLE, "Alarme") : "Alarme";
+            String body = b != null ? b.getString(AlarmScheduler.EXTRA_BODY, "") : "";
+            int imm = PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT;
+            PendingIntent stop = PendingIntent.getService(this, 12, new Intent(this, AlarmService.class).setAction(ACTION_STOP), imm);
+            PendingIntent snooze = PendingIntent.getService(this, 13, new Intent(this, AlarmService.class).setAction(ACTION_SNOOZE), imm);
+            Notification n = new NotificationCompat.Builder(this, WATCH_CHANNEL)
+                    .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
+                    .setContentTitle(title)
+                    .setContentText(body)
+                    .setCategory(NotificationCompat.CATEGORY_ALARM)
+                    .setPriority(NotificationCompat.PRIORITY_MAX)
+                    .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                    .setVibrate(new long[]{0, 600, 300, 600, 300, 600})
+                    .setOngoing(false)
+                    .setAutoCancel(true)
+                    .setTimeoutAfter(AlarmStore.autostopMin(this) * 60_000L)
+                    .addAction(0, "Desligar", stop)
+                    .addAction(0, "Soneca", snooze)
+                    .build();
+            NotificationManagerCompat.from(this).notify(WATCH_ID, n);
+        } catch (SecurityException ignored) {
+            // sem permissão de notificação
+        }
     }
 
     static Notification buildNotification(Context c, Bundle b) {
@@ -133,10 +181,35 @@ public class AlarmService extends Service {
             wakeLock.acquire((autostopMin + 1) * 60_000L);
         }
         requestFocus();
-        startSound(b != null ? b.getString(AlarmScheduler.EXTRA_SOUND, "sirene_lamento") : "sirene_lamento");
-        startVibration();
+        ringing = true;
+        ringingExtras = b;
+        final String sound = b != null ? b.getString(AlarmScheduler.EXTRA_SOUND, "sirene_lamento") : "sirene_lamento";
+        String mode = AlarmStore.vibMode(this);
+        if ("vib".equals(mode)) {
+            startVibration();
+        } else if ("som".equals(mode)) {
+            startSound(sound);
+            startVibration();
+        } else {
+            startVibration();
+            soundTask = () -> startSound(sound);
+            handler.postDelayed(soundTask, AlarmStore.vibLead(this) * 1000L);
+        }
+        if (AlarmStore.watch(this)) postWatch(b);
+        showScreen(b);
         autoStopTask = this::stopAlarm;
         handler.postDelayed(autoStopTask, autostopMin * 60_000L);
+    }
+
+    /** Abre a tela de alarme direto (além do aviso em tela cheia), se o sistema permitir. */
+    private void showScreen(Bundle b) {
+        try {
+            Intent act = new Intent(this, AlarmActivity.class).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            if (b != null) act.putExtras(b);
+            startActivity(act);
+        } catch (Exception ignored) {
+            // bloqueado pelo sistema: o aviso em tela cheia cobre
+        }
     }
 
     private void startSound(String sound) {
@@ -200,6 +273,8 @@ public class AlarmService extends Service {
     }
 
     private void stopPlayback() {
+        if (soundTask != null) handler.removeCallbacks(soundTask);
+        soundTask = null;
         if (rampTask != null) handler.removeCallbacks(rampTask);
         if (autoStopTask != null) handler.removeCallbacks(autoStopTask);
         rampTask = null;
@@ -231,6 +306,9 @@ public class AlarmService extends Service {
             stopForeground(true);
         }
         NotificationManagerCompat.from(this).cancel(NOTIF_ID);
+        NotificationManagerCompat.from(this).cancel(WATCH_ID);
+        ringing = false;
+        ringingExtras = null;
         sendBroadcast(new Intent(ACTION_STOPPED).setPackage(getPackageName()));
         current = null;
         stopSelf();

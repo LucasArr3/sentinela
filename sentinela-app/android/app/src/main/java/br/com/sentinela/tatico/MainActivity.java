@@ -20,6 +20,16 @@ public class MainActivity extends BridgeActivity {
         grab(intent);
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (AlarmService.ringing) {
+            Intent a = new Intent(this, AlarmActivity.class).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            if (AlarmService.ringingExtras != null) a.putExtras(AlarmService.ringingExtras);
+            startActivity(a);
+        }
+    }
+
     /** Toque no widget: guarda o pedido para o app abrir direto no quarto/alarme. */
     private void grab(Intent i) {
         if (i == null || !i.hasExtra("open")) return;

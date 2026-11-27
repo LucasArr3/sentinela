@@ -909,3 +909,19 @@ details[data-sec=daymore] .add i{width:30px;height:30px;border-radius:10px}
 :root[data-layout=moderno] .cal[data-cs=circle] .cell.hasn::before{display:none}
 :root[data-layout=moderno] .cal[data-cs=circle] .cell.hasn .n{position:relative}
 :root[data-layout=moderno] .cal[data-cs=circle] .cell.hasn .n::after{content:"";display:block!important;position:absolute;top:-1px;right:-1px;width:9px;height:9px;border-radius:50%;background:#f5a524;box-shadow:0 0 0 2px var(--gap);margin:0}
+
+/* ===== página Alarmes ===== */
+.ahero{padding:18px 20px}.ahero .al{font-size:11px;font-weight:900;letter-spacing:.14em;color:var(--accent)}.ahero.on .al{color:var(--ok)}
+.ahero .at2{font-size:54px;font-weight:900;letter-spacing:-.03em;line-height:1.05;margin-top:4px;font-variant-numeric:tabular-nums}
+.ahero .as{font-size:15px;margin:2px 0 4px}
+.abanner{border:1px solid color-mix(in srgb,var(--danger) 55%,transparent);background:color-mix(in srgb,var(--danger) 10%,var(--surface))}.abanner b{display:flex;align-items:center;gap:8px}
+.alist{padding:6px 14px}
+.arow{border-top:1px solid var(--line)}.arow:first-child{border-top:0}
+.arow .ahd{width:100%;display:grid;grid-template-columns:104px minmax(0,1fr) 84px;align-items:center;column-gap:8px;height:52px;text-align:left}
+.arow .at{font-size:13.5px;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.arow .ahd b{font-size:15px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.arow .ab{display:inline-flex;align-items:center;justify-content:center;gap:5px;height:30px;border-radius:99px;font-size:12px;font-weight:800;background:var(--surface2);border:1px solid var(--line);justify-self:end;width:84px}.arow .ab svg{width:13px;height:13px}.arow .ab.off{color:var(--muted);font-weight:700}
+.arow.cur .at,.arow.cur .ahd b{color:#f5a524}.arow.cur .ab{color:#f5a524;border-color:color-mix(in srgb,#f5a524 45%,transparent)}
+.arow.past{opacity:.5}.arow.past .at,.arow.past .ahd b,.arow.past .ab{text-decoration:line-through}
+.arow .aed{display:flex;flex-direction:column;gap:14px;padding:4px 0 16px}
+.qcard .gr.past .gt,.qcard .gr.past .gp b{text-decoration:line-through}

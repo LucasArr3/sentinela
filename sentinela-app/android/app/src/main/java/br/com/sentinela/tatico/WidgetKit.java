@@ -258,6 +258,13 @@ final class WidgetKit {
         return buildPlantao(c, id, g, w, h, sample);
     }
 
+    /** Texto riscado: o quarto já passou. */
+    private static CharSequence strike(String t) {
+        android.text.SpannableString sp = new android.text.SpannableString(t);
+        sp.setSpan(new android.text.style.StrikethroughSpan(), 0, t.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        return sp;
+    }
+
     private static void size(RemoteViews v, int id, float sp, float f) {
         v.setTextViewTextSize(id, TypedValue.COMPLEX_UNIT_SP, sp * f);
     }
@@ -301,9 +308,10 @@ final class WidgetKit {
             Row r = all.get(k);
             boolean cur = k == an[0];
             v.setViewVisibility(QR[i], View.VISIBLE);
-            v.setTextViewText(QT[i], r.l);
-            v.setTextViewText(QP[i], r.p);
-            v.setTextViewText(QA[i], r.past ? "✓" : (r.on ? "🔔 " + hhmm(r.a) : "sem alarme"));
+            String alarmTxt = r.on ? "🔔 " + hhmm(r.a) : "sem alarme";
+            v.setTextViewText(QT[i], r.past ? strike(r.l) : r.l);
+            v.setTextViewText(QP[i], r.past ? strike(r.p) : r.p);
+            v.setTextViewText(QA[i], r.past ? strike(alarmTxt) : alarmTxt);
             v.setViewVisibility(QA[i], showA ? View.VISIBLE : View.GONE);
             v.setTextColor(QT[i], r.past ? dim : (cur ? t.accent : t.muted));
             v.setTextColor(QP[i], r.past ? dimText : (cur ? t.accent : t.text));

@@ -30,14 +30,14 @@ const PRESETS = [
 const FIXED_PALETTE = ['safira', 'vivido', 'grafite'];
 const presetOf = (pr) => { const lay = pr.layout || 'moderno'; return PRESETS.find((x) => x.layout === lay && (FIXED_PALETTE.includes(lay) || x.theme === pr.theme)) || PRESETS[0]; };
 const THEME_BG = { escuro: '#000000', safira: '#050c20', dark: '#050505', obsidiana: '#030304', tatico: '#04070f', ouro: '#050505', oliva: '#070906', night: '#000000', light: '#f4f4f5' };
-const VIEWS = { dashboard: ['Início', 'home'], calendar: ['Calendário', 'calendar'], plantao: ['Plantão', 'shield'], quartos: ['Quartos', 'clock'], finance: ['Finanças', 'wallet'], summary: ['Resumos', 'chat'], report: ['Relatório', 'note'], livro: ['Ocorrências', 'book'], more: ['Mais', 'menu'], settings: ['Ajustes', 'settings'] };
+const VIEWS = { dashboard: ['Início', 'home'], calendar: ['Calendário', 'calendar'], plantao: ['Plantão', 'shield'], quartos: ['Alarmes', 'bell'], finance: ['Finanças', 'wallet'], summary: ['Resumos', 'chat'], report: ['Relatório', 'note'], livro: ['Ocorrências', 'book'], more: ['Mais', 'menu'], settings: ['Ajustes', 'settings'] };
 const save = () => { if (S.d) S.d.mod = Date.now(); if (S.uid && !Store.save(S.uid, S.d)) toast('Não foi possível salvar (armazenamento cheio?)', 'err'); syncAlarmsSoon(); cloudPushSoon(); if (!S.warnedFull && Store.usage().pct > 90) { S.warnedFull = true; toast('Armazenamento quase cheio: exporte um backup e apague fotos antigas', 'err'); } };
 // ---- alarmes nativos (Android): reenvia a lista dos próximos 14 dias sempre que algo muda ----
 let syncT = null;
 function syncAlarmsSoon() { if (!isNative()) return; clearTimeout(syncT); syncT = setTimeout(syncAlarms, 900); }
 async function syncAlarms() {
   if (!isNative() || !S.uid || !S.d || !S.d.onboarded) return;
-  try { const list = buildAlarms(S.d, new Date(), 14); await NativeAlarm.schedule(list, { snoozeMin: S.d.prefs.snooze, ramp: S.d.prefs.ramp, autostopMin: S.d.prefs.autostop }); S.alarmSync = { n: list.length }; } catch (e) { S.alarmSync = { err: e.message || 'falha ao agendar' }; }
+  try { const list = buildAlarms(S.d, new Date(), 14); await NativeAlarm.schedule(list, { snoozeMin: S.d.prefs.snooze, ramp: S.d.prefs.ramp, autostopMin: S.d.prefs.autostop, vibMode: S.d.prefs.vibMode || 'vibsom', vibLead: S.d.prefs.vibLead || 15, watch: S.d.prefs.watch !== false }); S.alarmSync = { n: list.length }; } catch (e) { S.alarmSync = { err: e.message || 'falha ao agendar' }; }
   try { await NativeAlarm.widget(buildWidget(S.d)); } catch { /* widget é opcional */ }
   if (S.view === 'settings') renderView();
 }
@@ -293,7 +293,31 @@ function quartosSheet(date) {
   const back = S.sheet && S.sheet.back;
   return `<div class="grab"></div><div class="row">${back ? `<button class="ibtn" data-act="q-back" aria-label="Voltar">${ic('chevL')}</button>` : ''}<div class="sp"><div class="muted sm">${C.relDays(date)}</div><h3>Postos · ${C.dateLong(date)}</h3></div><button class="ibtn" data-act="close">${ic('x')}</button></div><div class="col" style="margin-top:14px">${qTables(date)}<button class="btn blk" data-act="roster-open" data-date="${date}">${ic('camera')}Ler de uma foto da escala</button></div>`;
 }
+const WAKE = [['vibsom', 'Vibrar e depois tocar'], ['vib', 'Só vibrar'], ['som', 'Só tocar']];
+function alarmesTop() {
+  const d = S.d, pr = d.prefs, nat = isNative(); const now = new Date(); const nm = now.getTime();
+  const W = buildWidget(d, now).quartos; let an = W.findIndex((x) => x.e > nm); if (an < 0) an = W.length - 1;
+  let grp = []; if (W.length && !(W[an].e <= nm && nm - W[an].e > 12 * 3600e3)) { let lo = an, hi = an; while (lo > 0 && W[lo].s - W[lo - 1].e < 9 * 3600e3) lo--; while (hi < W.length - 1 && W[hi + 1].s - W[hi].e < 9 * 3600e3) hi++; grp = W.slice(lo, hi + 1); }
+  const cur = W[an] && W[an].e > nm ? W[an] : null; const vm = pr.vibMode || 'vibsom'; const vl = pr.vibLead || 15; const st = S.alarmStatus; const bad = nat && st && (!st.fullScreen || !st.notifications || !st.battery);
+  const banner = bad ? `<div class="card col abanner"><b>${ic('alert')} O alarme pode não aparecer na tela bloqueada</b><div class="muted sm">Para a tela de desligar abrir sozinha quando o alarme tocar, permita o que está marcado “ajustar” abaixo.</div>${natChecks()}</div>` : '';
+  const hero = cur ? `<div class="card ahero ${cur.s <= nm ? 'on' : ''}"><div class="al">${cur.s <= nm ? 'QUARTO EM ANDAMENTO' : 'PRÓXIMO ALARME'}</div><div class="at2">${cur.s <= nm ? hmOf(new Date(cur.s)) : (cur.on ? hmOf(new Date(cur.a)) : '—')}</div><div class="as"><b>${esc(cur.p || 'Sem posto')}</b> · ${esc(cur.l)}</div><div class="muted sm">${cur.s <= nm ? 'termina em ' + fmtDur(cur.e - nm) : (cur.on ? 'toca em ' + fmtDur(cur.a - nm) : 'alarme desligado para este quarto')}</div></div>` : `<div class="card ahero"><div class="al">PRÓXIMO ALARME</div><div class="muted sm" style="margin-top:6px">Nenhum quarto marcado a partir de agora. Marque os quartos em Postos e eles aparecem aqui.</div></div>`;
+  const editor = (qi) => { const q = d.quarters[qi]; if (!q) return ''; const lead = q.lead ?? pr.lead ?? 15; return `<div class="aed"><label class="tgl"><span><div class="b">Alarme ligado</div><div class="muted xs">Vale para todos os dias neste quarto</div></span><input type="checkbox" data-bind="quarters.${qi}.alarm" ${q.alarm !== false ? 'checked' : ''}></label><div><div class="b" style="margin-bottom:8px">Quanto tempo antes</div><div class="chips">${[0, 5, 10, 15, 20, 30].map((m) => `<button type="button" class="chip ${lead === m ? 'on' : ''}" data-act="qa-lead" data-qi="${qi}" data-v="${m}">${m ? m + ' min' : 'na hora'}</button>`).join('')}</div></div><div class="row"><select class="sp" data-bind="quarters.${qi}.sound" aria-label="Som"><option value="">Som padrão</option>${sndOpts(q.sound)}</select><button class="ibtn" data-act="snd-test" data-qi="${qi}" aria-label="Ouvir som">${ic('volume')}</button></div></div>`; };
+  const rows = grp.map((x) => { const past = x.e <= nm; const open = S.qaOpen === x.i; return `<div class="arow ${past ? 'past' : ''} ${x === cur ? 'cur' : ''}" ${open ? 'id="qaopen"' : ''}><button type="button" class="ahd" data-act="qa-tog" data-qi="${x.i}"><span class="at">${esc(x.l)}</span><b>${esc(x.p || 'Sem posto')}</b><span class="ab ${x.on ? '' : 'off'}">${ic(x.on ? 'bell' : 'bellOff')}${x.on ? hmOf(new Date(x.a)) : 'sem'}</span></button>${open ? editor(x.i) : ''}</div>`; }).join('');
+  const night = `<div class="h2">Esta noite</div><div class="card alist">${rows || '<div class="muted sm" style="padding:6px 2px">Nenhum quarto marcado. Toque em Postos para marcar.</div>'}</div>${grp.length ? '<div class="muted xs" style="margin:-4px 4px 0">Toque num quarto para mudar o alarme dele. Os que já passaram aparecem riscados.</div>' : ''}`;
+  const wake = `<div class="h2">Como o alarme acorda você</div><div class="card col" style="gap:14px"><div><div class="b" style="margin-bottom:8px">Modo</div><div class="seg">${WAKE.map(([v, l]) => `<button class="${vm === v ? 'on' : ''}" data-act="almode" data-v="${v}">${l}</button>`).join('')}</div></div>
+   ${vm === 'vibsom' ? `<div><div class="b" style="margin-bottom:8px">Vibrar antes de tocar</div><div class="chips">${[5, 10, 15, 30, 60].map((n) => `<button type="button" class="chip ${vl === n ? 'on' : ''}" data-act="alvib" data-v="${n}">${n} s</button>`).join('')}</div><div class="muted xs" style="margin-top:6px">Vibra por ${vl} s; se você não desligar, começa o som (a vibração continua).</div></div>` : `<div class="muted xs">${vm === 'vib' ? 'Só vibra, sem som: bom para não acordar o alojamento. Continua vibrando até você desligar.' : 'Toca o som e vibra ao mesmo tempo.'}</div>`}
+   <label class="tgl"><span><div class="b">Avisar no relógio (Galaxy Watch)</div><div class="muted xs">Manda o alarme com Desligar e Soneca para o smartwatch. No app Galaxy Wearable, deixe as notificações do Sentinela ligadas; o modo sono do relógio bloqueia o aviso.</div></span><input type="checkbox" data-bind="prefs.watch" ${pr.watch !== false ? 'checked' : ''}></label>
+   <div class="grid2"><label class="f">Avisar antes (min)<input type="number" min="0" max="120" inputmode="numeric" data-bind="prefs.lead" data-num value="${pr.lead}"></label><label class="f">Som padrão<select data-bind="prefs.sound">${sndOpts(pr.sound)}</select></label></div>
+   <div class="grid2"><label class="f">Soneca (min)<input type="number" min="1" max="30" inputmode="numeric" data-bind="prefs.snooze" data-num value="${pr.snooze}"></label><label class="f">Parar sozinho (min)<input type="number" min="1" max="30" inputmode="numeric" data-bind="prefs.autostop" data-num value="${pr.autostop}"></label></div>
+   <label class="tgl"><span><div class="b">Volume crescente</div><div class="muted xs">Começa baixo e sobe em ~10 s, sem susto</div></span><input type="checkbox" data-bind="prefs.ramp" ${pr.ramp ? 'checked' : ''}></label>
+   ${nat ? `<button class="btn pri blk" data-act="nat-test">${ic('alert')}Testar agora (toca em 10 s)</button><div class="muted xs">No teste, bloqueie a tela do celular e confira se a tela de desligar aparece.</div>` : `<button class="btn pri blk" data-act="alarm-test">${ic('alert')}Testar alarme</button>`}</div>`;
+  const perms = nat ? `<div class="h2">Permissões</div><div class="card col">${natChecks()}<button class="btn sm" data-act="nat-refresh">Atualizar</button></div>` : '';
+  return `${banner}${hero}${night}${wake}${perms}<div class="h2">Calendário de quartos</div>`;
+}
 function quartosView() {
+  return alarmesTop() + quartosMonth();
+}
+function quartosMonth() {
   const { y, m } = S.qv; const t = C.today(); const key = C.ymKey(y, m);
   const all = C.monthDays(y, m).map((dt) => C.dayInfo(dt, S.d)).filter((i) => i.works || C.quartosOn(S.d, i.date).length);
   const hidden = all.filter((i) => i.date < t && !C.quartosOn(S.d, i.date).length).length; const days = S.qv.all ? all : all.filter((i) => i.date >= t || C.quartosOn(S.d, i.date).length);
@@ -795,7 +819,7 @@ function render() {
   const keep = window.scrollY;
   root.innerHTML = shell(); renderView(); window.scrollTo(0, keep);
 }
-function go(v) { S.view = v; S.anim = true; S.sheet && closeSheet(); render(); window.scrollTo(0, 0); if (v === 'quartos') setTimeout(() => $('#qtoday')?.scrollIntoView({ block: 'center' }), 60); }
+function go(v) { S.view = v; S.anim = true; S.sheet && closeSheet(); render(); window.scrollTo(0, 0); if (v === 'quartos') { loadAlarmStatus(); if (S.qaOpen != null) setTimeout(() => $('#qaopen')?.scrollIntoView({ block: 'center' }), 80); } }
 
 // ---------- TRAVA POR PIN ----------
 function renderLock() {
@@ -985,8 +1009,11 @@ const A = {
   'homeq': (el) => { S.d.prefs.homeQ = el.dataset.v; save(); render(); },
   'homefn': (el) => { S.d.prefs.homeFn = el.dataset.v; save(); render(); },
   'widget-add': async (el) => { try { await NativeAlarm.pinWidget(el.dataset.v); toast('Confirme na tela inicial do celular'); } catch (e) { toast((e && e.message) || 'Adicione pelo menu de widgets da tela inicial', 'err'); } },
-  'qa-open': (el) => { S.qa = +el.dataset.qi; openSheet('qalarm'); },
-  'qa-lead': (el) => { const q = S.d.quarters[S.qa]; q.lead = +el.dataset.v; save(); render(); renderSheet(); },
+  'qa-open': (el) => { S.qa = +el.dataset.qi; S.qaOpen = S.qa; go('quartos'); },
+  'qa-tog': (el) => { const i = +el.dataset.qi; S.qa = i; S.qaOpen = S.qaOpen === i ? null : i; renderView(); },
+  'almode': (el) => { S.d.prefs.vibMode = el.dataset.v; save(); renderView(); },
+  'alvib': (el) => { S.d.prefs.vibLead = +el.dataset.v; save(); renderView(); },
+  'qa-lead': (el) => { if (el.dataset.qi != null) S.qa = +el.dataset.qi; const q = S.d.quarters[S.qa]; q.lead = +el.dataset.v; save(); render(); if (S.sheet) renderSheet(); },
   'cal-view': (el) => { const pr = S.d.prefs; const cur = calMode(pr); const v = el.dataset.v; if (v === 'ano' && cur !== 'ano') pr.calPrevView = cur; applyCalMode(pr, v); save(); render(); toast('Calendário: ' + CAL_MODES.find((q) => q[0] === v)[1]); },
   'cal-yprev': () => { S.cal.y--; S.calTapped = null; renderView(); }, 'cal-ynext': () => { S.cal.y++; S.calTapped = null; renderView(); },
   'cal-month': (el) => { S.cal = { y: +el.dataset.y, m: +el.dataset.m }; S.calTapped = null; applyCalMode(S.d.prefs, S.d.prefs.calPrevView && S.d.prefs.calPrevView !== 'ano' ? S.d.prefs.calPrevView : 'padrao'); save(); render(); },
@@ -1204,7 +1231,7 @@ async function openFromWidget() {
   try {
     const r = await NativeAlarm.takeOpen(); if (!r || !r.open) return;
     S.sheet = null;
-    if (r.open === 'alarme' && S.d.quarters[+r.qi]) { S.qa = +r.qi; openSheet('qalarm'); } else A['q-open']({ dataset: { date: r.date || C.today(), tab: 'noite' } });
+    if (r.open === 'alarme' && S.d.quarters[+r.qi]) { S.qa = +r.qi; S.qaOpen = S.qa; } else S.qaOpen = null; go('quartos');
   } catch { /* sem pedido pendente */ }
 }
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') setTimeout(openFromWidget, 250); });

@@ -50,6 +50,15 @@ public class AlarmActivity extends Activity {
         tag.setTypeface(Typeface.DEFAULT_BOLD);
         tag.setGravity(Gravity.CENTER);
 
+        android.widget.TextClock clock = new android.widget.TextClock(this);
+        clock.setFormat24Hour("HH:mm");
+        clock.setFormat12Hour("HH:mm");
+        clock.setTextColor(Color.parseColor("#F5A524"));
+        clock.setTextSize(64);
+        clock.setTypeface(Typeface.DEFAULT_BOLD);
+        clock.setGravity(Gravity.CENTER);
+        clock.setPadding(0, dp(18), 0, 0);
+
         titleView = new TextView(this);
         titleView.setTextColor(Color.WHITE);
         titleView.setTextSize(34);
@@ -63,16 +72,17 @@ public class AlarmActivity extends Activity {
         bodyView.setGravity(Gravity.CENTER);
         bodyView.setPadding(0, 0, 0, dp(48));
 
-        Button stop = button("DESLIGAR", Color.parseColor("#E8E8EA"), Color.parseColor("#0A0A0A"), true);
+        Button stop = button("DESLIGAR", Color.parseColor("#F5A524"), Color.parseColor("#0A0A0A"), true);
         stop.setOnClickListener(v -> send(AlarmService.ACTION_STOP));
         Button snooze = button("SONECA " + AlarmStore.snoozeMin(this) + " MIN", Color.TRANSPARENT, Color.WHITE, false);
         snooze.setOnClickListener(v -> send(AlarmService.ACTION_SNOOZE));
 
         root.addView(tag);
+        root.addView(clock);
         root.addView(titleView);
         root.addView(bodyView);
-        root.addView(stop, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(72)));
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(64));
+        root.addView(stop, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(104)));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(68));
         lp.topMargin = dp(14);
         root.addView(snooze, lp);
         setContentView(root);
@@ -110,7 +120,7 @@ public class AlarmActivity extends Activity {
         Button b = new Button(this);
         b.setText(text);
         b.setTextColor(fg);
-        b.setTextSize(filled ? 20 : 16);
+        b.setTextSize(filled ? 28 : 17);
         b.setTypeface(Typeface.DEFAULT_BOLD);
         b.setAllCaps(false);
         GradientDrawable d = new GradientDrawable();

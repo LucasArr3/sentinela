@@ -62,6 +62,7 @@ public class SentinelaAlarmPlugin extends Plugin {
         JSArray alarms = call.getArray("alarms", new JSArray());
         AlarmStore.save(c, alarms,
                 call.getInt("snoozeMin", 5), call.getBoolean("ramp", true), call.getInt("autostopMin", 5));
+        AlarmStore.saveWake(c, call.getString("vibMode", "vibsom"), call.getInt("vibLead", 15), call.getBoolean("watch", true));
         int n = AlarmScheduler.scheduleAll(c);
         JSObject r = new JSObject();
         r.put("count", n);

@@ -33,6 +33,15 @@ final class AlarmStore {
         }
     }
 
+    /** Como acordar: "vibsom" (vibra e depois toca), "vib" (só vibra) ou "som" (só toca). */
+    static void saveWake(Context c, String mode, int vibLeadSec, boolean watch) {
+        sp(c).edit().putString("vibMode", mode).putInt("vibLead", vibLeadSec).putBoolean("watch", watch).apply();
+    }
+
+    static String vibMode(Context c) { return sp(c).getString("vibMode", "vibsom"); }
+    static int vibLead(Context c) { return Math.max(3, sp(c).getInt("vibLead", 15)); }
+    static boolean watch(Context c) { return sp(c).getBoolean("watch", true); }
+
     static int snoozeMin(Context c) { return Math.max(1, sp(c).getInt("snooze", 5)); }
     static boolean ramp(Context c) { return sp(c).getBoolean("ramp", true); }
     static int autostopMin(Context c) { return Math.max(1, sp(c).getInt("autostop", 5)); }
