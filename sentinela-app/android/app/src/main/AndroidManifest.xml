@@ -53,20 +53,20 @@
         </receiver>
 
         <!-- Widget do plantão (tela inicial) -->
-        <receiver android:name=".PlantaoWidget" android:exported="true">
+        <receiver android:name=".PlantaoWidget" android:label="Plantão" android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_info" />
         </receiver>
 
-        <receiver android:name=".QuartosWidget" android:exported="true">
+        <receiver android:name=".QuartosWidget" android:label="Quartos de hora" android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_info_quartos" />
         </receiver>
-        <receiver android:name=".ProximoWidget" android:exported="true">
+        <receiver android:name=".ProximoWidget" android:label="Próximo quarto" android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -75,7 +75,7 @@
         <activity
             android:name=".WidgetConfigActivity"
             android:exported="true"
-            android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
+            android:theme="@android:style/Theme.DeviceDefault.Wallpaper.NoTitleBar">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
             </intent-filter>

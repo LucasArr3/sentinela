@@ -8,8 +8,9 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:scaleType="fitXY"
-        android:src="@drawable/widget_shape" />
+        android:src="@drawable/widget_shape_md" />
     <LinearLayout
+        android:id="@+id/w_box"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:gravity="center_vertical"
@@ -19,10 +20,13 @@
             android:id="@+id/w_tag"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textSize="10sp"
+            android:textStyle="bold"
             android:letterSpacing="0.12"
             android:text="PRÓXIMO QUARTO"
-            android:textSize="10sp"
-            android:textStyle="bold" />
+            />
         <TextView
             android:id="@+id/p_hora"
             android:layout_width="match_parent"
@@ -31,7 +35,8 @@
             android:ellipsize="end"
             android:textSize="22sp"
             android:textStyle="bold"
-            android:layout_marginTop="4dp" />
+            android:layout_marginTop="2dp"
+            />
         <TextView
             android:id="@+id/p_posto"
             android:layout_width="match_parent"
@@ -40,7 +45,7 @@
             android:ellipsize="end"
             android:textSize="17sp"
             android:textStyle="bold"
-             />
+            />
         <TextView
             android:id="@+id/p_alarme"
             android:layout_width="match_parent"
@@ -48,9 +53,8 @@
             android:maxLines="1"
             android:ellipsize="end"
             android:textSize="12sp"
-            
-            android:layout_marginTop="2dp" />
-
+            android:layout_marginTop="2dp"
+            />
         <Chronometer
             android:id="@+id/p_count"
             android:layout_width="wrap_content"
