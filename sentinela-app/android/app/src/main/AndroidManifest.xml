@@ -72,6 +72,18 @@
             </intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_info_proximo" />
         </receiver>
+        <receiver android:name=".AlarmesWidget" android:label="Alarmes (próximo alarme)" android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_info_alarmes" />
+        </receiver>
+        <receiver android:name=".CentralWidget" android:label="Central do plantão" android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_info_central" />
+        </receiver>
         <activity
             android:name=".WidgetConfigActivity"
             android:exported="true"

@@ -7,4 +7,6 @@
     <string name="widget_desc">Status do plantão e próximo quarto de hora</string>
     <string name="widget_desc_quartos">Lista dos próximos quartos de hora com o horário do alarme</string>
     <string name="widget_desc_proximo">Próximo quarto de hora, posto e contagem regressiva</string>
+    <string name="widget_desc_central">Plantão em andamento com barra de tempo, quarto atual e próximo</string>
+    <string name="widget_desc_alarmes">Próximo alarme e a lista de quartos com horário, posto e interruptor</string>
 </resources>

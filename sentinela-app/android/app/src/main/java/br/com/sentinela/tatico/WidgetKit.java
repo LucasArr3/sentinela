@@ -78,7 +78,7 @@ final class WidgetKit {
         g.corner = p.getInt("r_" + id, 1);
         g.alarm = p.getBoolean("l_" + id, true);
         g.head = p.getBoolean("h_" + id, true);
-        g.ctl = p.getString("k_" + id, "bell");
+        g.ctl = p.getString("k_" + id, "alarmes".equals(kindOf(c, id)) ? "switch" : "bell");
         return g;
     }
 
@@ -240,6 +240,8 @@ final class WidgetKit {
         String n = info.provider.getClassName();
         if (n.endsWith("QuartosWidget")) return "quartos";
         if (n.endsWith("ProximoWidget")) return "proximo";
+        if (n.endsWith("AlarmesWidget")) return "alarmes";
+        if (n.endsWith("CentralWidget")) return "central";
         return "plantao";
     }
 
@@ -252,12 +254,14 @@ final class WidgetKit {
             h = o.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 0);
         }
         if (w <= 0) w = "proximo".equals(kind) ? 160 : 300;
-        if (h <= 0) h = "plantao".equals(kind) ? 120 : ("quartos".equals(kind) ? 230 : 160);
+        if (h <= 0) h = "plantao".equals(kind) || "central".equals(kind) ? 120 : ("quartos".equals(kind) || "alarmes".equals(kind) ? 230 : 160);
         return new int[]{w, h};
     }
 
     static RemoteViews build(Context c, int id, String kind, Cfg g, int w, int h, boolean sample) {
-        if ("quartos".equals(kind)) return buildQuartos(c, id, g, w, h, sample);
+        if ("quartos".equals(kind)) return buildQuartos(c, id, g, w, h, sample, false);
+        if ("alarmes".equals(kind)) return buildQuartos(c, id, g, w, h, sample, true);
+        if ("central".equals(kind)) return buildCentral(c, id, g, w, h, sample);
         if ("proximo".equals(kind)) return buildProximo(c, id, g, w, h, sample);
         return buildPlantao(c, id, g, w, h, sample);
     }
@@ -323,7 +327,7 @@ final class WidgetKit {
     private static final int[] QKR = {R.id.qr1_kr, R.id.qr2_kr, R.id.qr3_kr, R.id.qr4_kr, R.id.qr5_kr, R.id.qr6_kr, R.id.qr7_kr, R.id.qr8_kr};
     private static final int[] QA = {R.id.qr1_a, R.id.qr2_a, R.id.qr3_a, R.id.qr4_a, R.id.qr5_a, R.id.qr6_a, R.id.qr7_a, R.id.qr8_a};
 
-    private static RemoteViews buildQuartos(Context c, int id, Cfg g, int w, int h, boolean sample) {
+    private static RemoteViews buildQuartos(Context c, int id, Cfg g, int w, int h, boolean sample, boolean apq) {
         RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.widget_quartos);
         Th t = th(c, g);
         style(v, g, t);
@@ -341,7 +345,7 @@ final class WidgetKit {
             start = Math.max(0, an[0] - (n >= 4 ? 1 : 0));
             start = Math.min(start, all.size() - n);
         }
-        boolean showA = g.alarm && w >= 200;
+        boolean showA = (g.alarm || apq) && w >= 200;
         int dim = (t.muted & 0x00FFFFFF) | 0x88000000;
         int dimText = (t.text & 0x00FFFFFF) | 0x88000000;
         v.setViewVisibility(R.id.w_tag, tag && !head ? View.VISIBLE : View.GONE);
@@ -384,9 +388,15 @@ final class WidgetKit {
             v.setViewVisibility(QR[i], View.VISIBLE);
             String alarmTxt = sw ? (r.on ? hhmm(r.a) : "--:--") : (r.on ? "🔔 " + hhmm(r.a) : "sem alarme");
             String lab = r.l.replace(":00", "");
+            if (apq) {
+                String at = r.on ? hhmm(r.a) : "--:--";
+                v.setTextViewText(QT[i], r.past ? strike(at) : at);
+                v.setTextViewText(QA[i], r.past ? strike(lab) : lab);
+            } else {
             v.setTextViewText(QT[i], r.past ? strike(lab) : lab);
+            }
             v.setTextViewText(QP[i], r.past ? strike(r.p) : r.p);
-            v.setTextViewText(QA[i], r.past ? strike(alarmTxt) : alarmTxt);
+            if (!apq) v.setTextViewText(QA[i], r.past ? strike(alarmTxt) : alarmTxt);
             v.setViewVisibility(QA[i], showA ? View.VISIBLE : View.GONE);
             v.setViewVisibility(QS[i], sw && w >= 200 ? View.VISIBLE : View.GONE);
             if (sw) {
@@ -407,6 +417,95 @@ final class WidgetKit {
         v.setOnClickPendingIntent(R.id.widget_root, main);
         v.setOnClickPendingIntent(R.id.w_tag, main);
         v.setOnClickPendingIntent(R.id.w_vazio, main);
+        return v;
+    }
+
+    // ---------- Central do plantão
+    private static RemoteViews buildCentral(Context c, int id, Cfg g, int w, int h, boolean sample) {
+        RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.widget_central);
+        Th t = th(c, g);
+        style(v, g, t);
+        float f = tx(g) * clamp(Math.min(w / 270f, h / 130f), 0.8f, 1.5f);
+        long now = System.currentTimeMillis();
+        long[] ss = shiftState(c, now);
+        long shiftStart = 0;
+        try {
+            JSONArray sh = new JSONObject(AlarmStore.widgetJson(c)).optJSONArray("shifts");
+            if (sh != null) for (int i = 0; i < sh.length(); i++) {
+                JSONObject o = sh.optJSONObject(i);
+                if (o != null && o.optLong("s") <= now && now < o.optLong("e")) shiftStart = o.optLong("s");
+            }
+        } catch (Exception ignored) {
+            // sem dados
+        }
+        boolean serving = ss[0] > 0;
+        if (sample && !serving && ss[1] == 0) { serving = true; ss[0] = now + 7 * 3600000L; shiftStart = now - 17 * 3600000L; }
+        String tag, big, el, ev;
+        if (serving) {
+            tag = "EM SERVIÇO";
+            big = "faltam " + dur(ss[0] - now);
+            el = "TERMINA";
+            ev = hhmm(ss[0]);
+        } else if (ss[1] > 0) {
+            tag = "PRÓXIMO PLANTÃO";
+            big = new SimpleDateFormat("EEE dd/MM", new Locale("pt", "BR")).format(new Date(ss[1]));
+            el = "ENTRADA";
+            ev = hhmm(ss[1]);
+        } else {
+            tag = "SENTINELA TÁTICO";
+            big = "Abra o app";
+            el = "";
+            ev = "";
+        }
+        v.setTextViewText(R.id.w_tag, tag);
+        v.setTextColor(R.id.w_tag, t.muted);
+        v.setTextViewText(R.id.c_big, big);
+        v.setTextColor(R.id.c_big, t.text);
+        v.setTextViewText(R.id.c_el, el);
+        v.setTextColor(R.id.c_el, t.muted);
+        v.setTextViewText(R.id.c_ev, ev);
+        v.setTextColor(R.id.c_ev, t.text);
+        size(v, R.id.w_tag, 10, Math.min(f, 1.3f));
+        size(v, R.id.c_el, 10, Math.min(f, 1.3f));
+        size(v, R.id.c_big, 26, f);
+        size(v, R.id.c_ev, 20, f);
+        if (serving && shiftStart > 0 || (serving && sample)) {
+            int total = 24, fill = (int) Math.max(0, Math.min(total, Math.round(total * (double) (now - shiftStart) / (ss[0] - shiftStart))));
+            StringBuilder b = new StringBuilder();
+            for (int i = 0; i < total; i++) b.append('━');
+            android.text.SpannableString bar = new android.text.SpannableString(b.toString());
+            bar.setSpan(new android.text.style.ForegroundColorSpan(t.accent), 0, fill, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            bar.setSpan(new android.text.style.ForegroundColorSpan((t.muted & 0x00FFFFFF) | 0x55000000), fill, total, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            v.setTextViewText(R.id.c_bar, bar);
+            v.setViewVisibility(R.id.c_bar, View.VISIBLE);
+        } else {
+            v.setViewVisibility(R.id.c_bar, View.GONE);
+        }
+        Row cur = null, nx = null, nxa = null;
+        for (Row r : all(c, now)) {
+            if (r.past) continue;
+            if (r.s <= now) cur = r;
+            else if (nx == null) nx = r;
+            if (nxa == null && r.on && r.a > now) nxa = r;
+        }
+        if (cur == null && nx == null && sample) {
+            for (Row r : sampleRows(now, 8)) { if (r.past) continue; if (r.s <= now) cur = r; else if (nx == null) nx = r; if (nxa == null) nxa = r; }
+        }
+        String nowTxt = cur != null ? "Agora: " + cur.p + " · " + cur.l.replace(":00", "") : (nx != null ? "Próximo: " + nx.p + " · " + nx.l.replace(":00", "") : "");
+        String nextTxt = cur != null && nx != null ? "próx. " + nx.p + " " + hhmm(nx.s) : "";
+        v.setTextViewText(R.id.c_now, nowTxt);
+        v.setTextColor(R.id.c_now, t.accent);
+        v.setTextViewText(R.id.c_next, nextTxt);
+        v.setTextColor(R.id.c_next, t.muted);
+        size(v, R.id.c_now, 14, f);
+        size(v, R.id.c_next, 12, f);
+        v.setViewVisibility(R.id.c_row, nowTxt.isEmpty() || h < 95 ? View.GONE : View.VISIBLE);
+        String foot = nxa != null ? "🔔 próximo alarme " + hhmm(nxa.a) + " · em " + dur(nxa.a - now) : "";
+        v.setTextViewText(R.id.c_foot, foot);
+        v.setTextColor(R.id.c_foot, t.muted);
+        size(v, R.id.c_foot, 12, f);
+        v.setViewVisibility(R.id.c_foot, foot.isEmpty() || !g.alarm || h < 120 ? View.GONE : View.VISIBLE);
+        v.setOnClickPendingIntent(R.id.widget_root, act(c, id, 4, "quartos", cur != null ? cur : nx));
         return v;
     }
 
@@ -533,7 +632,7 @@ final class WidgetKit {
 
     static void refreshAll(Context c) {
         AppWidgetManager m = AppWidgetManager.getInstance(c);
-        Class<?>[] kinds = {PlantaoWidget.class, QuartosWidget.class, ProximoWidget.class};
+        Class<?>[] kinds = {PlantaoWidget.class, QuartosWidget.class, ProximoWidget.class, AlarmesWidget.class, CentralWidget.class};
         for (Class<?> k : kinds) {
             int[] ids = m.getAppWidgetIds(new ComponentName(c, k));
             for (int id : ids) updateOne(c, id);

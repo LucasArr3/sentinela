@@ -364,7 +364,7 @@ public class SentinelaAlarmPlugin extends Plugin {
     @PluginMethod
     public void pinWidget(PluginCall call) {
         String kind = call.getString("kind", "plantao");
-        Class<?> cls = "quartos".equals(kind) ? QuartosWidget.class : ("proximo".equals(kind) ? ProximoWidget.class : PlantaoWidget.class);
+        Class<?> cls = "quartos".equals(kind) ? QuartosWidget.class : ("proximo".equals(kind) ? ProximoWidget.class : ("alarmes".equals(kind) ? AlarmesWidget.class : ("central".equals(kind) ? CentralWidget.class : PlantaoWidget.class)));
         android.appwidget.AppWidgetManager m = android.appwidget.AppWidgetManager.getInstance(getContext());
         if (Build.VERSION.SDK_INT >= 26 && m.isRequestPinAppWidgetSupported()) {
             m.requestPinAppWidget(new android.content.ComponentName(getContext(), cls), null, null);
