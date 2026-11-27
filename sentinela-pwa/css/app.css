@@ -1094,3 +1094,19 @@ input[type=color][data-tagdraft]{width:42px;height:34px;padding:0;border-radius:
 .layg{grid-template-columns:repeat(4,1fr);gap:6px}.layc{padding:6px 3px;gap:5px;border-radius:12px}.layc span{height:22px;border-radius:7px}.layc small{font-size:10px;text-align:center;line-height:1.15}
 .calg{grid-template-columns:repeat(5,1fr);gap:6px}.calc{padding:7px 2px 6px;gap:4px;border-radius:12px}.calc small{font-size:10px}.calc svg{width:24px;height:24px}
 .sec[data-sec=aparencia],.sec[data-sec=marcadores]{overflow:visible}
+
+/* calendário: visões e estilo no próprio calendário */
+.caltb{display:flex;align-items:center;gap:8px;margin:2px 0 8px}.caltbc{flex:1;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.caltbc::-webkit-scrollbar{display:none}.caltbc .chip{flex:none}
+.calstyle{flex:none;width:36px;height:36px}.calstyle.on{border-color:var(--accent);color:var(--accent)}
+.calpanel{display:flex;flex-direction:column;gap:7px;padding:12px;margin:0 0 10px;border:1px solid var(--line);border-radius:16px;background:var(--surface)}
+.mcal .caltb,.mcal .calpanel{display:none}
+/* situações do app: lista compacta, cores redondas */
+.mkgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.mkc{display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid var(--line);border-radius:12px;background:var(--surface2);font-size:12.5px;font-weight:600;min-width:0}
+.mkc .sp{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mkc .mki{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;color:#fff}.mkc .mki svg{width:12px;height:12px;stroke-width:2.6}
+.mkc .mkd0{flex:none;width:22px;height:22px;border-radius:50%;border:1px solid var(--line)}
+input[type=color].x,.mkc input[type=color],.mkrow input[type=color]{-webkit-appearance:none;appearance:none;width:22px;height:22px;padding:0;border:2px solid var(--line);border-radius:50%;background:none;flex:none;cursor:pointer;overflow:hidden}
+.mkc input[type=color]::-webkit-color-swatch-wrapper,.mkrow input[type=color]::-webkit-color-swatch-wrapper{padding:0}
+.mkc input[type=color]::-webkit-color-swatch,.mkrow input[type=color]::-webkit-color-swatch{border:0;border-radius:50%}
+.mkrow .mki{width:26px;height:26px}.mkrow .mki svg{width:13px;height:13px}
