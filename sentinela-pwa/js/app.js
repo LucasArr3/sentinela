@@ -444,29 +444,36 @@ function daySummary(date) {
   const nit = qGroups(date).map((g) => { const q = d.quarters.find((x) => x.id === g.slot); const t = q ? (C.qLabel(q)) : g.slot; return `<div class="dsr"><i class="dsd" style="background:${C.TYPES.quarto.color}"></i><div class="sp"><div class="t">${esc(t)} · ${esc(g.posts.length ? g.posts.join(' + ') : '—')}</div></div></div>`; }).join('');
   const qh = nit ? `<div class="dsec">Quartos de hora</div>${nit}` : '';
   const SIT = ['atestado', 'permuta', 'folga', 'ferias', 'marca'];
-  const sit = i.events.filter((e) => SIT.includes(e.type) && (e.type !== 'marca' || tagOf(e.tag))).map((e) => { const T = C.TYPES[e.type]; const sub = evSub(e); const col = evColor(e); const icn = e.type === 'marca' ? (tagOf(e.tag).icon || 'target') : (C.MARK_ICONS[e.type] || T.icon); return `<div class="dsr sit"><span class="sti" style="background:${col}">${ic(icn)}</span><div class="sp" style="min-width:0"><div class="t">${esc(evTitle(e))}</div>${sub ? `<div class="muted xs">${esc(sub)}</div>` : ''}</div></div>`; }).join('');
+  const sit = i.events.filter((e) => SIT.includes(e.type) && (e.type !== 'marca' || tagOf(e.tag))).map((e) => { const sub = evSub(e); const col = evColor(e); const icn = e.type === 'marca' ? (tagOf(e.tag).icon || 'target') : (C.MARK_ICONS[e.type] || C.TYPES[e.type].icon); const mk = d.prefs.sumIcons ? `<span class="sti" style="background:${col}">${ic(icn)}</span>` : `<i class="sdot" style="background:${col}"></i>`; return `<div class="dsr sit ${d.prefs.sumIcons ? '' : 'nic'}">${mk}<div class="sp" style="min-width:0"><div class="t">${esc(evTitle(e))}</div>${sub ? `<div class="muted xs">${esc(sub)}</div>` : ''}</div></div>`; }).join('');
   const rows = evs.filter((e) => e.type !== 'extra' && !SIT.includes(e.type)).map((e) => { const T = C.TYPES[e.type]; const sub = e.type === 'ocorrencia' ? [e.cat, e.place].filter(Boolean).join(' · ') : evSub(e); return `<div class="dsr"><i class="dsd" style="background:${T.color}"></i><div class="sp" style="min-width:0"><div class="t">${esc(evTitle(e))}</div>${sub ? `<div class="muted xs" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(sub)}</div>` : ''}</div></div>`; }).join('');
   if (infoStyle() !== 'cartoes') { const its = renderItems(dayItems(date), infoStyle()); const meta = [hol, i.status === 'plantao' ? `Plantão ${d.scale.hours}h · ${d.scale.start}` : (i.status === 'extra' ? (i.events.find((e) => e.type === 'extra')?.turno === 'noturna' ? 'Extra noturna' : 'Extra diurna') : '')].filter(Boolean).join(' · '); const rws = evs.filter((e) => e.type !== 'extra').map((e) => `<div class="ir ev"><b>${esc(evTitle(e))}</b><span>${esc(e.type === 'ocorrencia' ? [e.cat, e.place].filter(Boolean).join(' · ') : evSub(e))}</span></div>`).join(''); return `<div class="dplain" role="button" tabindex="0" data-act="day" data-date="${date}"><div class="dch"><div class="sp" style="min-width:0"><div class="dct">${C.dateLong(date)}</div>${meta ? `<div class="dcs">${esc(meta)}</div>` : ''}</div><span class="dgear" aria-hidden="true">${ic('settings')}</span></div>${its}${rws ? `<div class="ilist">${rws}</div>` : ''}</div>`; }
   return `<div class="dcard" role="button" tabindex="0" data-act="day" data-date="${date}"><div class="dch"><div class="sp" style="min-width:0"><div class="dct">${C.dateLong(date)}</div><div class="dcs">Resumo do dia</div></div><span class="dgear" aria-hidden="true">${ic('settings')}</span></div>${chips.length ? `<div class="row wrap" style="gap:6px">${chips.join('')}</div>` : ''}${sit ? `<div class="dsec">Situação do dia</div>${sit}` : ''}${tm ? `<div class="dsec">Durante o dia</div>${tm}` : ''}${qh}${rows ? `<div class="dsec">${evs.some((e) => e.type === 'obs') ? 'Anotações e registros' : 'Registros'}</div>${rows}` : ''}</div>`;
 }
 // ---------- resumo do mês (tudo que está marcado, tipo agenda) ----------
 function monthCard(x) {
-  const col = (ck) => (S.d.prefs.colors && S.d.prefs.colors[ck]) || C.DEFAULT_COLORS[ck];
-  const G = [['plantao', 'Plantões', S.d.prefs.colors?.plantao || (getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#3b82f6'), 'shield'], ['diurna', 'Extras diurnas', col('extraD'), C.MARK_ICONS.extraD], ['noturna', 'Extras noturnas', col('extraN'), C.MARK_ICONS.extraN], ['permuta', 'Permutas', col('permuta'), C.MARK_ICONS.permuta], ['folga', 'Folgas', col('folga'), C.MARK_ICONS.folga], ['atestado', 'Atestados', col('atestado'), C.MARK_ICONS.atestado], ['ferias', 'Férias', col('ferias'), C.MARK_ICONS.ferias], ['feriado', 'Feriados', holColor(), 'calendar']];
-  (S.d.tags || []).forEach((t) => G.push(['t:' + t.id, t.name, t.color, t.icon || 'target']));
-  const by = {}; G.forEach((g) => { by[g[0]] = []; });
-  for (const d of C.monthDays(x.y, x.m)) {
-    const i = C.dayInfo(d, S.d);
-    if (i.status === 'plantao' || (i.scheduled && !['extra', 'permuta_out', 'folga', 'atestado', 'ferias'].includes(i.status))) by.plantao.push(d);
-    for (const e of i.events) {
-      if (e.type === 'extra') by[e.turno === 'noturna' ? 'noturna' : 'diurna'].push(d);
-      else if (e.type === 'marca') (by['t:' + e.tag] || []).push(d);
-      else if (by[e.type]) by[e.type].push(d);
-    }
-    if (C.holidayName(d, S.d.holidays)) by.feriado.push(d);
-  }
-  const rows = G.filter((g) => by[g[0]].length).map(([k, l, c]) => { const days = [...new Set(by[k])]; return `<li><i style="background:${c}"></i><span class="ml">${esc(l)}</span><b class="mn">${days.length}</b><span class="md">${days.map((d) => `<button type="button" data-act="cal-pick" data-date="${d}">${+d.slice(8)}</button>`).join('')}</span></li>`; }).join('');
-  return `<div class="msum"><div class="mttl">Resumo de ${C.MONTHS[x.m].toLowerCase()}</div>${rows ? `<ul>${rows}</ul>` : '<div class="muted sm">Nada marcado neste mês.</div>'}</div>`;
+  const d = S.d; const col = (ck) => (d.prefs.colors && d.prefs.colors[ck]) || C.DEFAULT_COLORS[ck]; const key = C.ymKey(x.y, x.m); const days = C.monthDays(x.y, x.m); const last = days[days.length - 1];
+  const wd = (dt) => C.WD3[C.weekday(dt)].toLowerCase();
+  const dayLbl = (a, b) => (b && b !== a ? `<b>${+a.slice(8)}–${+b.slice(8)}</b>` : `<b>${+a.slice(8)}</b><small>${wd(a)}</small>`);
+  const G = [];
+  const inline = (k, l, c, icn, list, extra = '') => { if (list.length) G.push({ k, l, c, icn, n: list.length, extra, inline: [...new Set(list)] }); };
+  const lines = (k, l, c, icn, items, extra = '') => { if (items.length) G.push({ k, l, c, icn, n: items.length, extra, items }); };
+  const plantao = [], exD = [], exN = []; let vD = 0, vN = 0;
+  for (const dt of days) { const i = C.dayInfo(dt, d); if (i.status === 'plantao' || (i.scheduled && !['extra', 'permuta_out', 'folga', 'atestado', 'ferias'].includes(i.status))) plantao.push(dt); for (const e of i.events) if (e.type === 'extra') { if (e.turno === 'noturna') { exN.push(dt); vN += Number(e.value) || 0; } else { exD.push(dt); vD += Number(e.value) || 0; } } }
+  inline('plantao', 'Plantões', d.prefs.colors?.plantao || (getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#3b82f6'), 'shield', plantao);
+  inline('diurna', 'Extras diurnas', col('extraD'), C.MARK_ICONS.extraD, exD, vD ? C.brl(vD) : '');
+  inline('noturna', 'Extras noturnas', col('extraN'), C.MARK_ICONS.extraN, exN, vN ? C.brl(vN) : '');
+  const ev = (type) => d.events.filter((e) => e.type === type && e.date <= last && (e.end || e.date) >= `${key}-01`).sort((a, b) => a.date.localeCompare(b.date));
+  const clip = (e) => [e.date < `${key}-01` ? `${key}-01` : e.date, (e.end || e.date) > last ? last : (e.end || e.date)];
+  const item = (e, detail) => { const [a, b] = clip(e); return { a, b, detail }; };
+  lines('permuta', 'Permutas', col('permuta'), C.MARK_ICONS.permuta, ev('permuta').map((e) => item(e, `${e.dir === 'passei' ? 'Passei para' : 'Assumi de'} ${e.who || 'colega'}${e.settled ? '' : ' · em aberto'}${e.returnDate ? ' · dev. ' + C.fmtShort(e.returnDate) : ''}`)));
+  lines('folga', 'Folgas', col('folga'), C.MARK_ICONS.folga, ev('folga').map((e) => item(e, [e.reason, e.note].filter(Boolean).join(' · '))));
+  lines('atestado', 'Atestados', col('atestado'), C.MARK_ICONS.atestado, ev('atestado').map((e) => { const n = C.evDays(e); return item(e, [n > 1 ? n + ' dias' : '', e.cid ? 'CID ' + e.cid : '', e.note].filter(Boolean).join(' · ')); }));
+  lines('ferias', 'Férias', col('ferias'), C.MARK_ICONS.ferias, ev('ferias').map((e) => { const n = C.evDays(e); return item(e, [n > 1 ? n + ' dias' : '', e.note].filter(Boolean).join(' · ')); }));
+  lines('feriado', 'Feriados', holColor(), 'calendar', days.filter((dt) => C.holidayName(dt, d.holidays)).map((dt) => ({ a: dt, b: dt, detail: C.holidayName(dt, d.holidays) })));
+  for (const t of d.tags || []) lines('t:' + t.id, t.name, t.color, t.icon || 'target', d.events.filter((e) => e.type === 'marca' && e.tag === t.id && e.date.startsWith(key)).sort((a, b) => a.date.localeCompare(b.date)).map((e) => item(e, e.note || '')));
+  const mk = (g) => (d.prefs.sumIcons ? `<span class="sti" style="background:${g.c}">${ic(g.icn || 'target')}</span>` : `<i class="sdot" style="background:${g.c}"></i>`);
+  const body = G.map((g) => `<div class="mg"><div class="mgh">${mk(g)}<b>${esc(g.l)}</b><span class="mgn">${g.n}${g.extra ? ' · ' + esc(g.extra) : ''}</span></div>${g.inline ? `<div class="mgi">${g.inline.map((dt) => `<button type="button" data-act="cal-pick" data-date="${dt}">${+dt.slice(8)}</button>`).join('')}</div>` : g.items.map((it) => `<button type="button" class="mgl" data-act="cal-pick" data-date="${it.a}"><span class="mgd">${dayLbl(it.a, it.b)}</span><span class="mgt">${esc(it.detail || '—')}</span></button>`).join('')}</div>`).join('');
+  return `<div class="msum ${d.prefs.sumIcons ? 'wi' : ''}"><div class="mttl">Resumo de ${C.MONTHS[x.m].toLowerCase()} de ${x.y}</div>${body || '<div class="muted sm">Nada marcado neste mês.</div>'}</div>`;
 }
 function sumArea(x) {
   const m = S.calSum === 'mes';
@@ -573,6 +580,7 @@ function markGroups(mode) {
    ${markPref() === 'anel' && !circ ? '<div class="muted xs">O anel só aparece no formato Círculos; nos outros vira bolinhas.</div>' : ''}
    <div class="cpl">Ícones</div><div class="cpg c2">${mkBtn(mode, 'markIcons', '0', 'Sem ícones', !pr.markIcons)}${mkBtn(mode, 'markIcons', '1', 'Com ícones', !!pr.markIcons)}</div>
    <div class="cpl">Números</div><div class="cpg c2">${mkBtn(mode, 'numColor', 'cor', 'Coloridos', (pr.numColor || 'cor') === 'cor')}${mkBtn(mode, 'numColor', 'neutro', 'Neutros', pr.numColor === 'neutro')}</div>
+   <div class="cpl">Situação do dia e resumo do mês</div><div class="cpg c2">${mkBtn(mode, 'sumIcons', '0', 'Com pontos', !pr.sumIcons)}${mkBtn(mode, 'sumIcons', '1', 'Com ícones', !!pr.sumIcons)}</div>
    ${mkSwitch(mode, 'fillExtras', 'Pintar o dia com a cor da situação', !!pr.fillExtras)}${mkSwitch(mode, 'holMark', 'Marcar os feriados', pr.holMark !== false)}
    <div class="aline"><span>Cor do feriado</span><input type="color" class="cdot" data-color="feriado" value="${holColor()}" aria-label="Cor do feriado"></div>`;
 }
@@ -693,7 +701,8 @@ function tagRow(date, evs) {
   const tags = S.d.tags || []; const on = new Set(evs.filter((e) => e.type === 'marca').map((e) => e.tag)); const dr = S.tagDraft;
   const chips = tags.map((t) => `<button type="button" class="tagc ${on.has(t.id) ? 'on' : ''}" style="--tc:${t.color}" data-act="tag-toggle" data-id="${t.id}" data-date="${date}"><i>${ic(t.icon || 'target')}</i>${esc(t.name)}</button>`).join('');
   const form = dr ? `<div class="tagform"><input data-tagdraft="name" placeholder="Nome (ex.: Consulta, Curso)" value="${esc(dr.name)}" maxlength="24"><div class="row" style="gap:10px"><input type="color" data-tagdraft="color" value="${dr.color}" aria-label="Cor"><div class="icopick sp">${C.ICON_CHOICES.map((k) => `<button type="button" class="${dr.icon === k ? 'on' : ''}" data-act="tag-ico" data-v="${k}" aria-label="${k}">${ic(k)}</button>`).join('')}</div></div><div class="grid2"><button class="btn sm" data-act="tag-cancel">Cancelar</button><button class="btn sm pri" data-act="tag-save" data-date="${date}">Salvar e marcar</button></div></div>` : '';
-  return `<div class="tagrow">${chips}<button type="button" class="tagc tagadd" data-act="tag-new">${ic('plus')}${tags.length ? 'Novo' : 'Criar marcador'}</button></div>${form}`;
+  const notes = evs.filter((e) => e.type === 'marca' && tagOf(e.tag)).map((e) => { const t = tagOf(e.tag); return `<label class="tnote"><i style="background:${t.color}"></i><input data-marknote="${e.id}" value="${esc(e.note || '')}" maxlength="60" placeholder="Nota de ${esc(t.name)} (ex.: ortopedista, 14h)"></label>`; }).join('');
+  return `<div class="tagrow">${chips}<button type="button" class="tagc tagadd" data-act="tag-new">${ic('plus')}${tags.length ? 'Novo' : 'Criar marcador'}</button></div>${notes}${form}`;
 }
 function daySheet(date) {
   const i = C.dayInfo(date, S.d); const st = C.STATUS[i.status]; const hol = C.holidayName(date, S.d.holidays); const qs = C.quartosOn(S.d, date); const evs = i.events.filter((e) => e.type !== 'quarto');
@@ -1044,7 +1053,7 @@ const A = {
   'cal-style': (el) => { applyCalMode(S.d.prefs, el.dataset.v); save(); render(); },
   'mk-quick': (el) => { S.d.prefs.markStyle = el.dataset.v; save(); render(); },
   'ap-default': () => pvSet((pr) => { pr.theme = 'dark'; pr.layout = 'moderno'; applyCalMode(pr, 'circulos'); pr.markStyle = 'anel'; pr.markIcons = false; pr.plantaoFill = 'cheio'; pr.numColor = 'cor'; pr.fillExtras = false; pr.holMark = true; }, 'Padrão do app'),
-  'mk-set': (el) => { const k = el.dataset.k; let v = el.dataset.v; if (k === 'markIcons') v = v === '1'; if (el.dataset.pv) pvSet((pr) => { pr[k] = v; }, ({ none: 'Sem marcação', anel: 'Anel', risco: 'Risco', bolinha: 'Bolinha', cheio: 'Plantão cheio', vazado: 'Plantão vazado', cor: 'Números coloridos', neutro: 'Números neutros', true: 'Com ícones', false: 'Sem ícones' })[String(v)] || 'Marcação'); else { S.d.prefs[k] = v; save(); render(); } },
+  'mk-set': (el) => { const k = el.dataset.k; let v = el.dataset.v; if (k === 'markIcons' || k === 'sumIcons') v = v === '1'; if (el.dataset.pv) pvSet((pr) => { pr[k] = v; }, ({ none: 'Sem marcação', anel: 'Anel', risco: 'Risco', bolinha: 'Bolinha', cheio: 'Plantão cheio', vazado: 'Plantão vazado', cor: 'Números coloridos', neutro: 'Números neutros', true: 'Com ícones', false: 'Sem ícones' })[String(v)] || 'Marcação'); else { S.d.prefs[k] = v; save(); render(); } },
   'cal-more': () => { S.calMore = !S.calMore; renderView(); },
   'cal-sum': (el) => { S.calSum = el.dataset.v; renderView(); },
   'mk-style': (el) => { const v = el.dataset.v; pvSet((pr) => { pr.markStyle = v; }, ({ anel: 'Anel', risco: 'Risco', bolinha: 'Bolinha', vazado: 'Vazado', cheia: 'Cheio' })[v]); },
@@ -1378,6 +1387,7 @@ document.addEventListener('change', async (ev) => {
   if (t.dataset.rpk) { const o = reportOpts(S.d.prefs); S.d.prefs.report = { ...o, [t.dataset.rpk]: t.checked }; save(); renderView(); renderSheet(); return; }
   if (t.dataset.qlead !== undefined) { const q = S.d.quarters[+t.dataset.qlead]; if (q) { const n = Math.max(0, Math.min(720, Math.round(Number(t.value) || 0))); q.lead = n; delete q.at; save(); render(); } return; }
   if (t.dataset.qat !== undefined) { const q = S.d.quarters[+t.dataset.qat]; if (q) { if (/^\d{2}:\d{2}$/.test(t.value)) q.at = t.value; else delete q.at; save(); render(); } return; }
+  if (t.dataset.marknote) { const e = S.d.events.find((x) => x.id === t.dataset.marknote); if (e) { e.note = t.value.trim(); save(); render(); } return; }
   if (t.dataset.tagdraft) { if (S.tagDraft) S.tagDraft[t.dataset.tagdraft] = t.value; return; }
   if (t.dataset.tagcolor) { const x = tagOf(t.dataset.tagcolor); if (x) { x.color = t.value; save(); render(); } return; }
   if (t.dataset.tagname !== undefined) { const x = tagOf(t.dataset.tagname); if (x && t.value.trim()) { x.name = t.value.trim(); save(); render(); } return; }

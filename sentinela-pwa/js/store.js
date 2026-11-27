@@ -27,7 +27,7 @@ export const defaultData = (name = '') => ({
   quarters: DEFAULT_QUARTERS.map((q) => ({ ...q })), posts: [...DEFAULT_POSTS], dayPosts: [...DEFAULT_DAY_POSTS], dayNeedWhere: [...DEFAULT_NEED_WHERE], holidays: [], customSounds: [], tags: [],
   scale: defaultScale(today()),
   money: { diurna: 219, noturna: 219 },
-  prefs: { theme: 'dark', accent: '', speak: false, waPhone: '', waKind: 'completo', lastPost: '', reminders: true, lead: 15, sound: DEFAULT_SOUND, shiftReminder: 0, shiftSound: 'carrilhao', snooze: 5, ramp: true, autostop: 5, markStyle: 'anel', markIcons: false, plantaoFill: 'cheio', numColor: 'cor', holMark: true, fillExtras: false, markV: 4, watchRate: 'c', icons: {}, vibMode: 'vibsom', vibLead: 15, watch: true, alvorada: true, wake: false, cellStyle: 'circle', colors: {}, layout: 'moderno', infoStyle: 'cartoes', calCard: true, ai: { provider: 'gemini', key: '', model: '' } },
+  prefs: { theme: 'dark', accent: '', speak: false, waPhone: '', waKind: 'completo', lastPost: '', reminders: true, lead: 15, sound: DEFAULT_SOUND, shiftReminder: 0, shiftSound: 'carrilhao', snooze: 5, ramp: true, autostop: 5, markStyle: 'anel', markIcons: false, sumIcons: false, plantaoFill: 'cheio', numColor: 'cor', holMark: true, fillExtras: false, markV: 4, watchRate: 'c', icons: {}, vibMode: 'vibsom', vibLead: 15, watch: true, alvorada: true, wake: false, cellStyle: 'circle', colors: {}, layout: 'moderno', infoStyle: 'cartoes', calCard: true, ai: { provider: 'gemini', key: '', model: '' } },
   events: [],
 });
 

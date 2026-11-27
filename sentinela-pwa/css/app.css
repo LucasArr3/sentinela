@@ -1195,3 +1195,25 @@ input[type=color].x,.mkc input[type=color],.mkrow input[type=color]{-webkit-appe
 :root[data-nc=neutro][data-pf=vazado] .cal[data-cs=circle] .cell .n{color:var(--text)!important}
 :root .cal[data-cs=clean] .cell.sel,:root .cal[data-cs=clean] .cell.today{outline:none!important;box-shadow:none!important}
 :root[data-layout][data-theme] .cal[data-cs=clean][id] .cell.today,:root[data-layout][data-theme] .cal[data-cs=clean][id] .cell.sel{box-shadow:none!important;outline:none!important}
+
+/* ===== situação do dia e resumo do mês: listas finas, pontos ou ícones ===== */
+.dsr.sit.nic{gap:10px;align-items:flex-start;padding:6px 0}
+.sdot{flex:none;width:8px;height:8px;border-radius:50%;margin-top:6px}
+.msum{margin:2px 4px 0}
+.msum .mttl{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:800;color:var(--muted);padding:2px 0 4px}
+.msum .mg{padding:9px 0;border-top:1px solid var(--line)}
+.msum .mg:first-of-type{border-top:0}
+.msum .mgh{display:grid;grid-template-columns:auto 1fr auto;column-gap:9px;align-items:center;font-size:14px}
+.msum .mgh .sdot{margin-top:0}
+.msum .mgh .sti{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;color:#fff}.msum .mgh .sti svg{width:12px;height:12px;stroke-width:2.6}
+.msum .mgn{color:var(--muted);font-size:12.5px;font-weight:600;font-variant-numeric:tabular-nums}
+.msum .mgi{padding:5px 0 0 17px;color:var(--muted);line-height:1.6;font-size:13px}
+.msum.wi .mgi{padding-left:31px}
+.msum .mgi button{display:inline;padding:0;margin:0 7px 0 0;border:0;background:none;font:inherit;font-weight:600;color:var(--text);min-width:0;height:auto}
+.msum .mgi button:not(:last-child)::after{content:"·";margin-left:7px;color:var(--muted);font-weight:400}
+.msum .mgl{display:grid;grid-template-columns:62px minmax(0,1fr);column-gap:8px;align-items:baseline;width:100%;text-align:left;padding:4px 0 0 17px;border:0;background:none;font-size:13px;color:var(--text)}
+.msum.wi .mgl{padding-left:31px}
+.msum .mgd b{font-weight:700;font-variant-numeric:tabular-nums}.msum .mgd small{color:var(--muted);margin-left:5px;font-size:11px;text-transform:lowercase}
+.msum .mgt{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tnote{display:flex;align-items:center;gap:8px;margin-top:8px}.tnote i{flex:none;width:8px;height:8px;border-radius:50%}
+.tnote input{flex:1;height:38px;font-size:13.5px}
