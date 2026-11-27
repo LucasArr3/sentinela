@@ -1131,3 +1131,10 @@ input[type=color].x,.mkc input[type=color],.mkrow input[type=color]{-webkit-appe
 .mkpan{display:flex;flex-direction:column;gap:6px}
 .calg{grid-template-columns:repeat(4,1fr)}
 .calpanel{border:0;border-top:1px solid var(--line);border-radius:0;background:none;padding:10px 0 12px;margin:6px 0 8px}
+
+/* ===== Círculos: espaçado como na prévia — bolinhas/risquinhos ficam ABAIXO do círculo ===== */
+.cal[data-cs=circle] .cell{aspect-ratio:1/1.2;justify-content:flex-start;padding:4px 2px 0;gap:0}
+.cal[data-cs=circle] .cell .n{width:34px;height:34px;font-size:16px;flex:none}
+.cal[data-cs=circle] .cell .mkd,.cal[data-cs=circle] .cell .mkb{bottom:2px;left:2px;right:2px}
+.cal[data-cs=circle] .cell.mk2 .n{transform:none}
+.cal[data-cs=circle] .cell .mks{right:3px;top:2px}
