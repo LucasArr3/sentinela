@@ -151,10 +151,10 @@ public class WidgetConfigActivity extends Activity {
             panel.addView(hs, hl);
         }
         panel.addView(label("Quando o plantão acabar"));
-        panel.addView(seg(new String[]{"Resumo por 6 h", "Próximo plantão", "Último quarto"}, "proximo".equals(cfg.after) ? 1 : ("ultimo".equals(cfg.after) ? 2 : 0), new Pick() {
+        panel.addView(seg(new String[]{"Próximo plantão", "Resumo por 6 h", "Último quarto"}, "resumo".equals(cfg.after) ? 1 : ("ultimo".equals(cfg.after) ? 2 : 0), new Pick() {
             @Override
             public void on(int i) {
-                cfg.after = i == 1 ? "proximo" : (i == 2 ? "ultimo" : "resumo");
+                cfg.after = i == 1 ? "resumo" : (i == 2 ? "ultimo" : "proximo");
                 redraw();
             }
         }));

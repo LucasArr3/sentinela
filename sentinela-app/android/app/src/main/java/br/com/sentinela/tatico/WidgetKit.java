@@ -43,7 +43,7 @@ final class WidgetKit {
         int corner = 1;
         boolean alarm = true;
         boolean head = true;
-        String after = "resumo";
+        String after = "proximo";
         String ctl = "bell";
     }
 
@@ -79,7 +79,7 @@ final class WidgetKit {
         g.corner = p.getInt("r_" + id, 1);
         g.alarm = p.getBoolean("l_" + id, true);
         g.head = p.getBoolean("h_" + id, true);
-        g.after = p.getString("o_" + id, "resumo");
+        g.after = p.getString("o_" + id, "proximo");
         g.ctl = p.getString("k_" + id, "alarmes".equals(kindOf(c, id)) ? "switch" : "bell");
         return g;
     }
@@ -360,10 +360,10 @@ final class WidgetKit {
         boolean idle = !sample && (all.isEmpty() || allPast) && ss[0] == 0;
         boolean keep = idle && allPast && ("ultimo".equals(g.after) || ("resumo".equals(g.after) && now - lastEnd < 6 * 3600000L));
         boolean ended = idle && !keep;
+        if (ended && ss[1] > 0 && !"ultimo".equals(g.after)) return buildPlantao(c, id, g, w, h, sample);
         String dia = ss[1] > 0 ? new SimpleDateFormat("EEE dd/MM", new Locale("pt", "BR")).format(new Date(ss[1])) : "";
         String empty = "Nenhum quarto marcado";
-        if (ended && ss[1] > 0) empty = (allPast ? "Quartos concluídos ✓ · " : "") + "Plantão " + dia + " " + hhmm(ss[1]);
-        else if (ended && allPast) empty = "Quartos concluídos ✓";
+        if (ended && ss[1] > 0) empty = "Plantão " + dia + " " + hhmm(ss[1]);
         if (head) {
             Row nx = null;
             for (Row r : all) if (!r.past && r.on && r.a > now) { nx = r; break; }
@@ -372,7 +372,7 @@ final class WidgetKit {
                 v.setTextViewText(R.id.w_ht, hhmm(ss[1]));
                 v.setTextViewText(R.id.w_hr, "ENTRA EM");
                 v.setTextViewText(R.id.w_hv, dur(ss[1] - now));
-                empty = (keep ? "" : (allPast ? "Quartos concluídos ✓ · " : "Sem quartos marcados · ")) + dia;
+                empty = "";
             } else {
                 v.setTextViewText(R.id.w_hl, "PRÓXIMO ALARME");
                 v.setTextViewText(R.id.w_ht, nx != null ? hhmm(nx.a) : "--:--");
