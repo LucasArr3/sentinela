@@ -313,12 +313,17 @@ public class SentinelaAlarmPlugin extends Plugin {
         final Bundle b = new Bundle();
         b.putString(AlarmScheduler.EXTRA_TITLE, "Teste no relógio");
         b.putString(AlarmScheduler.EXTRA_BODY, "Se você leu isso no relógio, o aviso funciona.");
-        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                AlarmService.postWatch(c, b);
-            }
-        }, sec * 1000L);
+        final android.os.Handler h = new android.os.Handler(android.os.Looper.getMainLooper());
+        for (int k = 0; k < 4; k++) {
+            final int id = k % 2 == 0 ? 7002 : 7003;
+            h.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    AlarmService.postWatch(c, b, id);
+                    NotificationManagerCompat.from(c).cancel(id == 7002 ? 7003 : 7002);
+                }
+            }, sec * 1000L + k * 6000L);
+        }
         call.resolve();
     }
 

@@ -33,6 +33,9 @@ public class AlarmService extends Service {
     static final String ACTION_START = "br.com.sentinela.tatico.ALARM_START";
     static final String ACTION_STOP = "br.com.sentinela.tatico.ALARM_STOP";
     static final String ACTION_SNOOZE = "br.com.sentinela.tatico.ALARM_SNOOZE";
+    private static final int WATCH_ID2 = 7003;
+    private Runnable watchTask;
+    private boolean watchFlip;
     static final String ACTION_STOPPED = "br.com.sentinela.tatico.ALARM_STOPPED";
     private static final String CHANNEL = "sentinela_alarme";
     private static final int NOTIF_ID = 7001;
@@ -98,6 +101,10 @@ public class AlarmService extends Service {
 
     /** Aviso para o smartwatch (espelhado pelo celular). Estático para o teste também poder usar. */
     static void postWatch(Context c, Bundle b) {
+        postWatch(c, b, WATCH_ID);
+    }
+
+    static void postWatch(Context c, Bundle b, int notifId) {
         try {
             ensureWatchChannel(c);
             String title = b != null ? b.getString(AlarmScheduler.EXTRA_TITLE, "Alarme") : "Alarme";
@@ -121,7 +128,7 @@ public class AlarmService extends Service {
                     .addAction(0, "Desligar", stop)
                     .addAction(0, "Soneca", snooze)
                     .build();
-            NotificationManagerCompat.from(c).notify(WATCH_ID, n);
+            NotificationManagerCompat.from(c).notify(notifId, n);
         } catch (SecurityException ignored) {
             // sem permissão de notificação
         }
@@ -166,7 +173,24 @@ public class AlarmService extends Service {
         stopPlayback();
         current = b;
         // o aviso do relógio sai ANTES de acender a tela: o celular só espelha para o relógio com a tela apagada
-        if (AlarmStore.watch(this)) postWatch(this, b);
+        if (AlarmStore.watch(this)) {
+            postWatch(this, b, WATCH_ID);
+            watchFlip = false;
+            // repete o aviso a cada poucos segundos: cada aviso novo faz o relógio vibrar de novo
+            watchTask = new Runnable() {
+                @Override
+                public void run() {
+                    if (!ringing) return;
+                    int next = watchFlip ? WATCH_ID : WATCH_ID2;
+                    int old = watchFlip ? WATCH_ID2 : WATCH_ID;
+                    watchFlip = !watchFlip;
+                    postWatch(AlarmService.this, current, next);
+                    NotificationManagerCompat.from(AlarmService.this).cancel(old);
+                    handler.postDelayed(this, 6000);
+                }
+            };
+            handler.postDelayed(watchTask, 6000);
+        }
         ensureChannel(this);
         Notification n = buildNotification(this, b);
         try {
@@ -277,6 +301,8 @@ public class AlarmService extends Service {
     }
 
     private void stopPlayback() {
+        if (watchTask != null) handler.removeCallbacks(watchTask);
+        watchTask = null;
         if (soundTask != null) handler.removeCallbacks(soundTask);
         soundTask = null;
         if (rampTask != null) handler.removeCallbacks(rampTask);
@@ -311,6 +337,7 @@ public class AlarmService extends Service {
         }
         NotificationManagerCompat.from(this).cancel(NOTIF_ID);
         NotificationManagerCompat.from(this).cancel(WATCH_ID);
+        NotificationManagerCompat.from(this).cancel(WATCH_ID2);
         ringing = false;
         ringingExtras = null;
         sendBroadcast(new Intent(ACTION_STOPPED).setPackage(getPackageName()));
