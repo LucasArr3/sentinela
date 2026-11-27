@@ -43,6 +43,7 @@ export const TYPES = {
   folga: { label: 'Folga', plural: 'Folgas', color: '#2FC4B2', icon: 'coffee', emoji: '🌙', range: true },
   atestado: { label: 'Atestado médico', plural: 'Atestados', color: '#F0506E', icon: 'medical', emoji: '🏥', range: true },
   ferias: { label: 'Férias', plural: 'Férias', color: '#E879C6', icon: 'umbrella', emoji: '🏖️', range: true },
+  marca: { label: 'Marcador', plural: 'Marcadores', color: '#8b8b92', icon: 'target', emoji: '🏷️', range: false },
   obs: { label: 'Observação', plural: 'Observações', color: '#8b8b92', icon: 'note', emoji: '📝', range: false },
   ocorrencia: { label: 'Ocorrência', plural: 'Ocorrências', color: '#c9788a', icon: 'book', emoji: '📒', range: false },
 };
@@ -128,15 +129,21 @@ export function dayInfo(date, state) {
   const works = ['plantao', 'permuta_in', 'extra'].includes(status) || (extra && status === 'plantao');
   return { date, scheduled, status, works, events: evs };
 }
+export const MARK_ICON_DEFAULT = { atestado: 'medical', permuta: 'swap', ferias: 'umbrella', folga: 'coffee', extraD: 'sun', extraN: 'moon', extraH: 'bolt' };
+export let MARK_ICONS = { ...MARK_ICON_DEFAULT };
+export const ICON_CHOICES = ['medical', 'swap', 'umbrella', 'coffee', 'sun', 'moon', 'bolt', 'coins', 'book', 'users', 'target', 'bell', 'shield', 'clock', 'phone', 'mail', 'calendar', 'note', 'pulse', 'alert', 'check', 'home', 'wallet', 'chat'];
+export function applyIcons(custom) { MARK_ICONS = { ...MARK_ICON_DEFAULT, ...(custom || {}) }; for (const k of Object.keys(MARK_ICONS)) if (!ICON_CHOICES.includes(MARK_ICONS[k])) MARK_ICONS[k] = MARK_ICON_DEFAULT[k]; }
 /** Situações do dia que viram marcador no canto da célula (o dia de plantão mantém a própria cor). */
-export function dayMarks(info) {
+export function dayMarks(info, state) {
   const ev = info.events; const out = [];
-  if (ev.some((e) => e.type === 'atestado')) out.push({ k: 'atestado', color: TYPES.atestado.color, icon: 'medical', label: 'Atestado' });
-  if (ev.some((e) => e.type === 'permuta')) out.push({ k: 'permuta', color: TYPES.permuta.color, icon: 'swap', label: 'Permuta' });
-  if (ev.some((e) => e.type === 'ferias')) out.push({ k: 'ferias', color: TYPES.ferias.color, icon: 'umbrella', label: 'Férias' });
-  if (ev.some((e) => e.type === 'folga')) out.push({ k: 'folga', color: TYPES.folga.color, icon: 'coffee', label: 'Folga' });
+  if (ev.some((e) => e.type === 'atestado')) out.push({ k: 'atestado', color: TYPES.atestado.color, icon: MARK_ICONS.atestado, label: 'Atestado' });
+  if (ev.some((e) => e.type === 'permuta')) out.push({ k: 'permuta', color: TYPES.permuta.color, icon: MARK_ICONS.permuta, label: 'Permuta' });
+  if (ev.some((e) => e.type === 'ferias')) out.push({ k: 'ferias', color: TYPES.ferias.color, icon: MARK_ICONS.ferias, label: 'Férias' });
+  if (ev.some((e) => e.type === 'folga')) out.push({ k: 'folga', color: TYPES.folga.color, icon: MARK_ICONS.folga, label: 'Folga' });
   const ex = ev.find((e) => e.type === 'extra');
-  if (ex) { const n = ex.turno === 'noturna'; out.push({ k: n ? 'extraN' : 'extraD', color: n ? EXTRA_N : EXTRA_D, icon: n ? 'moon' : (ex.turno === 'h24' ? 'bolt' : 'sun'), label: n ? 'Extra noturna' : 'Extra diurna' }); }
+  if (ex) { const n = ex.turno === 'noturna'; out.push({ k: n ? 'extraN' : 'extraD', color: n ? EXTRA_N : EXTRA_D, icon: n ? MARK_ICONS.extraN : (ex.turno === 'h24' ? MARK_ICONS.extraH : MARK_ICONS.extraD), label: n ? 'Extra noturna' : 'Extra diurna' }); }
+  const tags = (state && state.tags) || [];
+  for (const e of ev) if (e.type === 'marca') { const t = tags.find((x) => x.id === e.tag); if (t && !out.some((o) => o.k === 'tag:' + t.id)) out.push({ k: 'tag:' + t.id, color: t.color, icon: t.icon || 'target', label: t.name }); }
   return out;
 }
 /** Cor/estado da célula: dia de plantão (ou plantão assumido) fica com a cor de plantão; atestado, férias e folga em dia livre ficam neutros. */

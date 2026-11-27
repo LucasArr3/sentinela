@@ -24,10 +24,10 @@ async function hashPw(pw, salt, iter) {
 export const defaultData = (name = '') => ({
   v: 1, onboarded: false,
   profile: { name, rank: '', matricula: '', unit: '', phone: '', alias: '' },
-  quarters: DEFAULT_QUARTERS.map((q) => ({ ...q })), posts: [...DEFAULT_POSTS], dayPosts: [...DEFAULT_DAY_POSTS], dayNeedWhere: [...DEFAULT_NEED_WHERE], holidays: [], customSounds: [],
+  quarters: DEFAULT_QUARTERS.map((q) => ({ ...q })), posts: [...DEFAULT_POSTS], dayPosts: [...DEFAULT_DAY_POSTS], dayNeedWhere: [...DEFAULT_NEED_WHERE], holidays: [], customSounds: [], tags: [],
   scale: defaultScale(today()),
   money: { diurna: 219, noturna: 219 },
-  prefs: { theme: 'dark', accent: '', speak: false, waPhone: '', waKind: 'completo', lastPost: '', reminders: true, lead: 15, sound: DEFAULT_SOUND, shiftReminder: 0, shiftSound: 'carrilhao', snooze: 5, ramp: true, autostop: 5, vibMode: 'vibsom', vibLead: 15, watch: true, alvorada: true, wake: false, cellStyle: 'classic', colors: {}, layout: 'moderno', infoStyle: 'cartoes', calCard: true, ai: { provider: 'gemini', key: '', model: '' } },
+  prefs: { theme: 'dark', accent: '', speak: false, waPhone: '', waKind: 'completo', lastPost: '', reminders: true, lead: 15, sound: DEFAULT_SOUND, shiftReminder: 0, shiftSound: 'carrilhao', snooze: 5, ramp: true, autostop: 5, markStyle: 'icone', icons: {}, vibMode: 'vibsom', vibLead: 15, watch: true, alvorada: true, wake: false, cellStyle: 'classic', colors: {}, layout: 'moderno', infoStyle: 'cartoes', calCard: true, ai: { provider: 'gemini', key: '', model: '' } },
   events: [],
 });
 
@@ -43,7 +43,7 @@ export const Store = {
       (d.events || []).forEach((e) => { if (e.post && map[e.post]) e.post = map[e.post]; });
     }
     if (d.prefs) { if (['tatico', 'safira'].includes(d.prefs.theme)) { d.prefs.theme = 'dark'; d.prefs.layout = 'safira'; } if (!['dark', 'escuro', 'light', 'night'].includes(d.prefs.theme)) d.prefs.theme = 'dark'; if (!['moderno', 'aurora', 'safira', 'vivido', 'grafite'].includes(d.prefs.layout)) d.prefs.layout = 'moderno'; if (d.prefs.layout === 'aurora' && !['dark', 'light'].includes(d.prefs.theme)) d.prefs.theme = 'light'; }
-    if (d.prefs && d.prefs.sound) d.prefs.sound = migrateSound(d.prefs.sound); if (Array.isArray(d.quarters)) d.quarters.forEach((q) => { if (q.sound) q.sound = migrateSound(q.sound); }); return { ...b, ...d, profile: { ...b.profile, ...d.profile }, scale: { ...b.scale, ...d.scale }, money: { ...b.money, ...d.money }, prefs: { ...b.prefs, ...d.prefs, accent: (d.prefs || {}).accent && !['#3b82f6', '#e8e8ea'].includes(d.prefs.accent) ? d.prefs.accent : '', ai: { ...b.prefs.ai, ...(d.prefs || {}).ai } }, quarters: Array.isArray(d.quarters) && d.quarters.length ? d.quarters : b.quarters, posts: Array.isArray(d.posts) ? d.posts : b.posts, holidays: Array.isArray(d.holidays) ? d.holidays : [], customSounds: Array.isArray(d.customSounds) ? d.customSounds : [] }; },
+    if (d.prefs && d.prefs.sound) d.prefs.sound = migrateSound(d.prefs.sound); if (Array.isArray(d.quarters)) d.quarters.forEach((q) => { if (q.sound) q.sound = migrateSound(q.sound); }); return { ...b, ...d, profile: { ...b.profile, ...d.profile }, scale: { ...b.scale, ...d.scale }, money: { ...b.money, ...d.money }, prefs: { ...b.prefs, ...d.prefs, accent: (d.prefs || {}).accent && !['#3b82f6', '#e8e8ea'].includes(d.prefs.accent) ? d.prefs.accent : '', ai: { ...b.prefs.ai, ...(d.prefs || {}).ai } }, quarters: Array.isArray(d.quarters) && d.quarters.length ? d.quarters : b.quarters, posts: Array.isArray(d.posts) ? d.posts : b.posts, holidays: Array.isArray(d.holidays) ? d.holidays : [], customSounds: Array.isArray(d.customSounds) ? d.customSounds : [], tags: Array.isArray(d.tags) ? d.tags : [] }; },
   save(id, data) { return wr(`${K}:data:${id}`, data); },
   async register({ name, email, password, guest = false }) {
     const users = this.users(); email = (email || '').trim().toLowerCase();
