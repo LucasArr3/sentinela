@@ -102,5 +102,5 @@ test('widget: próximos plantões e quartos para a tela inicial', () => {
   const w = buildWidget(s, now); assert.ok(w.shifts.length >= 3 && w.shifts[0].s <= now.getTime() && w.shifts[0].e > now.getTime()); // plantão em andamento
   assert.equal(new Date(w.shifts[0].s).getHours(), 7); assert.equal(w.shifts[0].e - w.shifts[0].s, 24 * 3600e3);
   assert.deepEqual([w.quartos.length, w.quartos[0].l, w.quartos[0].p], [1, '22:00–00:00', 'Bloco A']); assert.equal(new Date(w.quartos[0].e).getDate(), 24);
-  assert.deepEqual(buildWidget(s, new Date(2026, 10, 25, 9, 0)).quartos, []); // quarto já passou
+  assert.ok(buildWidget(s, new Date(2026, 10, 25, 9, 0)).quartos.every((x) => x.e <= new Date(2026, 10, 25, 9, 0).getTime())); // quarto já passou continua na lista (esmaecido no widget)
 });

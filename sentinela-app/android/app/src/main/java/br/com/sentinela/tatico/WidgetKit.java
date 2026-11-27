@@ -56,8 +56,10 @@ final class WidgetKit {
 
     static final class Row {
         long s, e, a;
-        String l = "", p = "";
+        String l = "", p = "", d = "";
+        int qi = -1;
         boolean on = true;
+        boolean past;
     }
 
     private static SharedPreferences sp(Context c) {
@@ -134,45 +136,98 @@ final class WidgetKit {
         return m + " min";
     }
 
-    /** Quartos que ainda não terminaram, em ordem (ou exemplos, na prévia). */
-    static List<Row> rows(Context c, long now, int max, boolean sample) {
+    /** Todos os quartos que o app mandou (inclusive os que já passaram), em ordem. */
+    private static List<Row> all(Context c, long now) {
         List<Row> out = new ArrayList<>();
         try {
             JSONObject j = new JSONObject(AlarmStore.widgetJson(c));
             JSONArray qs = j.optJSONArray("quartos");
-            if (qs != null) {
-                for (int i = 0; i < qs.length() && out.size() < max; i++) {
-                    JSONObject o = qs.optJSONObject(i);
-                    if (o == null || o.optLong("e") <= now) continue;
-                    Row r = new Row();
-                    r.s = o.optLong("s");
-                    r.e = o.optLong("e");
-                    r.a = o.optLong("a", r.s - 15 * 60000L);
-                    r.on = o.optBoolean("on", true);
-                    r.l = o.optString("l", "");
-                    String p = o.optString("p", "");
-                    r.p = p.isEmpty() ? "Sem posto" : p;
-                    out.add(r);
-                }
+            if (qs == null) return out;
+            for (int i = 0; i < qs.length(); i++) {
+                JSONObject o = qs.optJSONObject(i);
+                if (o == null) continue;
+                Row r = new Row();
+                r.s = o.optLong("s");
+                r.e = o.optLong("e");
+                r.a = o.optLong("a", r.s - 15 * 60000L);
+                r.on = o.optBoolean("on", true);
+                r.l = o.optString("l", "");
+                r.d = o.optString("d", "");
+                r.qi = o.optInt("i", -1);
+                String p = o.optString("p", "");
+                r.p = p.isEmpty() ? "Sem posto" : p;
+                r.past = r.e <= now;
+                out.add(r);
             }
         } catch (Exception ignored) {
             // sem dados ainda
         }
-        if (out.isEmpty() && sample) {
-            String[] l = {"18:00–20:00", "20:00–22:00", "00:00–02:00", "02:00–04:00", "04:00–06:00", "06:00–08:00"};
-            String[] p = {"G2", "Bloco C", "G2", "Portaria", "G2", "Bloco A"};
-            long base = now + 3 * 3600000L;
-            for (int i = 0; i < l.length && i < max; i++) {
-                Row r = new Row();
-                r.l = l[i];
-                r.p = p[i];
-                r.s = base + i * 2 * 3600000L;
-                r.e = r.s + 2 * 3600000L;
-                r.a = r.s - 15 * 60000L;
-                out.add(r);
-            }
+        return out;
+    }
+
+    private static List<Row> sampleRows(long now, int max) {
+        List<Row> out = new ArrayList<>();
+        String[] l = {"18:00–20:00", "20:00–22:00", "22:00–00:00", "00:00–02:00", "02:00–04:00", "04:00–06:00", "06:00–08:00", "08:00–10:00"};
+        String[] p = {"G2", "Bloco C", "G2", "Portaria", "G2", "Bloco A", "G2", "Bloco B"};
+        long base = now - 2 * 3600000L;
+        for (int i = 0; i < l.length && i < max; i++) {
+            Row r = new Row();
+            r.l = l[i];
+            r.p = p[i];
+            r.s = base + i * 2 * 3600000L;
+            r.e = r.s + 2 * 3600000L;
+            r.a = r.s - 15 * 60000L;
+            r.past = r.e <= now;
+            out.add(r);
         }
         return out;
+    }
+
+    /** Quartos que ainda não terminaram (ou exemplos, na prévia). */
+    static List<Row> rows(Context c, long now, int max, boolean sample) {
+        List<Row> out = new ArrayList<>();
+        for (Row r : all(c, now)) {
+            if (!r.past && out.size() < max) out.add(r);
+        }
+        if (out.isEmpty() && sample) {
+            for (Row r : sampleRows(now, 8)) if (!r.past && out.size() < max) out.add(r);
+        }
+        return out;
+    }
+
+    /** Todos os quartos da noite marcada, até os que já passaram. anchor = primeiro que ainda não acabou. */
+    static List<Row> night(Context c, long now, boolean sample, int[] anchor) {
+        List<Row> list = all(c, now);
+        if (list.isEmpty() && sample) list = sampleRows(now, 8);
+        anchor[0] = -1;
+        if (list.isEmpty()) return list;
+        int an = list.size() - 1;
+        for (int i = 0; i < list.size(); i++) {
+            if (!list.get(i).past) {
+                an = i;
+                break;
+            }
+        }
+        if (list.get(an).past && now - list.get(an).e > 12 * 3600000L) return new ArrayList<>();
+        int lo = an, hi = an;
+        while (lo > 0 && list.get(lo).s - list.get(lo - 1).e < 9 * 3600000L) lo--;
+        while (hi < list.size() - 1 && list.get(hi + 1).s - list.get(hi).e < 9 * 3600000L) hi++;
+        List<Row> g = new ArrayList<>(list.subList(lo, hi + 1));
+        anchor[0] = an - lo;
+        return g;
+    }
+
+    /** Toque: abre o app no ambiente dos quartos ("quartos") ou no alarme de um quarto ("alarme"). */
+    static PendingIntent act(Context c, int widgetId, int slot, String open, Row r) {
+        Intent in = new Intent(c, MainActivity.class);
+        in.setData(android.net.Uri.parse("sentinela://widget/" + widgetId + "/" + slot));
+        in.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        in.putExtra("open", open);
+        if (r != null) {
+            in.putExtra("date", r.d);
+            in.putExtra("qi", r.qi);
+        }
+        return PendingIntent.getActivity(c, 0, in, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
     }
 
     static String kindOf(Context c, int id) {
@@ -197,68 +252,77 @@ final class WidgetKit {
         return new int[]{w, h};
     }
 
-    static RemoteViews build(Context c, String kind, Cfg g, int w, int h, boolean sample) {
-        if ("quartos".equals(kind)) return buildQuartos(c, g, w, h, sample);
-        if ("proximo".equals(kind)) return buildProximo(c, g, w, h, sample);
-        return buildPlantao(c, g, w, h, sample);
+    static RemoteViews build(Context c, int id, String kind, Cfg g, int w, int h, boolean sample) {
+        if ("quartos".equals(kind)) return buildQuartos(c, id, g, w, h, sample);
+        if ("proximo".equals(kind)) return buildProximo(c, id, g, w, h, sample);
+        return buildPlantao(c, id, g, w, h, sample);
     }
 
     private static void size(RemoteViews v, int id, float sp, float f) {
         v.setTextViewTextSize(id, TypedValue.COMPLEX_UNIT_SP, sp * f);
     }
 
-    private static void open(RemoteViews v, Context c, int code) {
-        PendingIntent pi = PendingIntent.getActivity(c, code, new Intent(c, MainActivity.class), PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
-        v.setOnClickPendingIntent(R.id.widget_root, pi);
-    }
-
-
     // ---------- Quartos de hora
-    private static final int[] QR = {R.id.qr1, R.id.qr2, R.id.qr3, R.id.qr4, R.id.qr5, R.id.qr6};
-    private static final int[] QT = {R.id.qr1_t, R.id.qr2_t, R.id.qr3_t, R.id.qr4_t, R.id.qr5_t, R.id.qr6_t};
-    private static final int[] QP = {R.id.qr1_p, R.id.qr2_p, R.id.qr3_p, R.id.qr4_p, R.id.qr5_p, R.id.qr6_p};
-    private static final int[] QA = {R.id.qr1_a, R.id.qr2_a, R.id.qr3_a, R.id.qr4_a, R.id.qr5_a, R.id.qr6_a};
+    private static final int[] QR = {R.id.qr1, R.id.qr2, R.id.qr3, R.id.qr4, R.id.qr5, R.id.qr6, R.id.qr7, R.id.qr8};
+    private static final int[] QT = {R.id.qr1_t, R.id.qr2_t, R.id.qr3_t, R.id.qr4_t, R.id.qr5_t, R.id.qr6_t, R.id.qr7_t, R.id.qr8_t};
+    private static final int[] QP = {R.id.qr1_p, R.id.qr2_p, R.id.qr3_p, R.id.qr4_p, R.id.qr5_p, R.id.qr6_p, R.id.qr7_p, R.id.qr8_p};
+    private static final int[] QA = {R.id.qr1_a, R.id.qr2_a, R.id.qr3_a, R.id.qr4_a, R.id.qr5_a, R.id.qr6_a, R.id.qr7_a, R.id.qr8_a};
 
-    private static RemoteViews buildQuartos(Context c, Cfg g, int w, int h, boolean sample) {
+    private static RemoteViews buildQuartos(Context c, int id, Cfg g, int w, int h, boolean sample) {
         RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.widget_quartos);
         Th t = th(c, g);
         style(v, g, t);
         float f = tx(g);
+        long now = System.currentTimeMillis();
         boolean tag = h >= 70;
-        float avail = h - 28 - (tag ? 18 : 0);
-        int n = (int) clamp(avail / (38f * f), 1, 6);
-        List<Row> rows = rows(c, System.currentTimeMillis(), n, sample);
+        float avail = h - 28 - (tag ? 22 : 0);
+        int n = (int) clamp(avail / (36f * Math.max(1f, f)), 1, 8);
+        int[] an = new int[1];
+        List<Row> all = night(c, now, sample, an);
+        int start = 0;
+        if (all.size() > n) {
+            start = Math.max(0, an[0] - (n >= 4 ? 1 : 0));
+            start = Math.min(start, all.size() - n);
+        }
         boolean showA = g.alarm && w >= 200;
+        int dim = (t.muted & 0x00FFFFFF) | 0x88000000;
+        int dimText = (t.text & 0x00FFFFFF) | 0x88000000;
         v.setViewVisibility(R.id.w_tag, tag ? View.VISIBLE : View.GONE);
         v.setTextColor(R.id.w_tag, t.muted);
         v.setTextViewText(R.id.w_vazio, "Nenhum quarto marcado");
         v.setTextColor(R.id.w_vazio, t.muted);
-        v.setViewVisibility(R.id.w_vazio, rows.isEmpty() ? View.VISIBLE : View.GONE);
-        for (int i = 0; i < 6; i++) {
-            if (i >= rows.size()) {
+        v.setViewVisibility(R.id.w_vazio, all.isEmpty() ? View.VISIBLE : View.GONE);
+        for (int i = 0; i < 8; i++) {
+            int k = start + i;
+            if (i >= n || k >= all.size()) {
                 v.setViewVisibility(QR[i], View.GONE);
                 continue;
             }
-            Row r = rows.get(i);
-            boolean first = i == 0;
+            Row r = all.get(k);
+            boolean cur = k == an[0];
             v.setViewVisibility(QR[i], View.VISIBLE);
             v.setTextViewText(QT[i], r.l);
             v.setTextViewText(QP[i], r.p);
-            v.setTextViewText(QA[i], r.on ? "🔔 " + hhmm(r.a) : "sem alarme");
+            v.setTextViewText(QA[i], r.past ? "✓" : (r.on ? "🔔 " + hhmm(r.a) : "sem alarme"));
             v.setViewVisibility(QA[i], showA ? View.VISIBLE : View.GONE);
-            v.setTextColor(QT[i], first ? t.accent : t.muted);
-            v.setTextColor(QP[i], first ? t.accent : t.text);
-            v.setTextColor(QA[i], first ? t.accent : t.muted);
+            v.setTextColor(QT[i], r.past ? dim : (cur ? t.accent : t.muted));
+            v.setTextColor(QP[i], r.past ? dimText : (cur ? t.accent : t.text));
+            v.setTextColor(QA[i], r.past ? dim : (cur ? t.accent : t.muted));
             size(v, QT[i], 14, f);
             size(v, QP[i], 15, f);
             size(v, QA[i], 13, f);
+            v.setOnClickPendingIntent(QR[i], act(c, id, 10 + i, r.qi >= 0 ? "alarme" : "quartos", r));
         }
-        open(v, c, 8);
+        Row ar = !all.isEmpty() && an[0] >= 0 ? all.get(an[0]) : null;
+        PendingIntent main = act(c, id, 1, "quartos", ar);
+        v.setOnClickPendingIntent(R.id.widget_root, main);
+        v.setOnClickPendingIntent(R.id.w_tag, main);
+        v.setOnClickPendingIntent(R.id.w_vazio, main);
         return v;
     }
 
     // ---------- Próximo quarto
-    private static RemoteViews buildProximo(Context c, Cfg g, int w, int h, boolean sample) {
+    private static RemoteViews buildProximo(Context c, int id, Cfg g, int w, int h, boolean sample) {
         RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.widget_proximo);
         Th t = th(c, g);
         style(v, g, t);
@@ -299,12 +363,12 @@ final class WidgetKit {
                 v.setViewVisibility(R.id.p_count, View.GONE);
             }
         }
-        open(v, c, 9);
+        v.setOnClickPendingIntent(R.id.widget_root, act(c, id, 2, rows.isEmpty() || rows.get(0).qi < 0 ? "quartos" : "alarme", rows.isEmpty() ? null : rows.get(0)));
         return v;
     }
 
     // ---------- Plantão
-    private static RemoteViews buildPlantao(Context c, Cfg g, int w, int h, boolean sample) {
+    private static RemoteViews buildPlantao(Context c, int id, Cfg g, int w, int h, boolean sample) {
         RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.widget_plantao);
         Th t = th(c, g);
         style(v, g, t);
@@ -365,7 +429,7 @@ final class WidgetKit {
         v.setViewVisibility(R.id.w_tag, h >= 80 ? View.VISIBLE : View.GONE);
         v.setViewVisibility(R.id.w_sub, h >= 60 ? View.VISIBLE : View.GONE);
         v.setViewVisibility(R.id.w_quarto, quarto.isEmpty() || h < 95 ? View.GONE : View.VISIBLE);
-        open(v, c, 7);
+        v.setOnClickPendingIntent(R.id.widget_root, act(c, id, 3, "quartos", rows.isEmpty() ? null : rows.get(0)));
         return v;
     }
 
@@ -374,7 +438,7 @@ final class WidgetKit {
         if (m.getAppWidgetInfo(id) == null) return;
         String kind = kindOf(c, id);
         int[] s = size(c, id, kind);
-        m.updateAppWidget(id, build(c, kind, cfg(c, id), s[0], s[1], false));
+        m.updateAppWidget(id, build(c, id, kind, cfg(c, id), s[0], s[1], false));
     }
 
     static void refreshAll(Context c) {

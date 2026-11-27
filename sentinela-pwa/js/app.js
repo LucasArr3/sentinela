@@ -1198,6 +1198,17 @@ document.addEventListener('visibilitychange', () => {
   else { const la = S.d.prefs.lockAfter ?? 1; const away = (Date.now() - (S.hiddenAt || Date.now())) / 60000; if (la >= 0 && away >= la) lockNow(); }
 });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && S.sheet) closeSheet(); });
+// toque no widget: abre direto no ambiente dos quartos / alarme
+async function openFromWidget() {
+  if (!S.d || !isNative()) return;
+  try {
+    const r = await NativeAlarm.takeOpen(); if (!r || !r.open) return;
+    S.sheet = null;
+    if (r.open === 'alarme' && S.d.quarters[+r.qi]) { S.qa = +r.qi; openSheet('qalarm'); } else A['q-open']({ dataset: { date: r.date || C.today(), tab: 'noite' } });
+  } catch { /* sem pedido pendente */ }
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') setTimeout(openFromWidget, 250); });
+setTimeout(openFromWidget, 1200); setTimeout(openFromWidget, 3500);
 // gestos: deslizar no calendário troca o mês
 let tx = 0, ty = 0; document.addEventListener('touchstart', (e) => { if (e.target.closest('#cal')) { tx = e.touches[0].clientX; ty = e.touches[0].clientY; } else tx = 0; }, { passive: true });
 document.addEventListener('touchend', (e) => { if (!tx) return; const dx = e.changedTouches[0].clientX - tx, dy = e.changedTouches[0].clientY - ty; tx = 0; if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) { shiftMonth(S.cal, dx < 0 ? 1 : -1); S.calDir = dx < 0 ? 'l' : 'r'; render(); S.calDir = ''; } }, { passive: true });

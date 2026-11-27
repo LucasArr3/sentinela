@@ -303,6 +303,30 @@ public class SentinelaAlarmPlugin extends Plugin {
         });
     }
 
+    // ---------------- toque no widget ----------------
+    private static volatile String pOpen, pDate;
+    private static volatile int pQi = -1;
+
+    static void setPending(String open, String date, int qi) {
+        pOpen = open;
+        pDate = date;
+        pQi = qi;
+    }
+
+    @PluginMethod
+    public void takeOpen(PluginCall call) {
+        JSObject r = new JSObject();
+        if (pOpen != null) {
+            r.put("open", pOpen);
+            r.put("date", pDate == null ? "" : pDate);
+            r.put("qi", pQi);
+            pOpen = null;
+            pDate = null;
+            pQi = -1;
+        }
+        call.resolve(r);
+    }
+
     // ---------------- widget do plantão ----------------
     @PluginMethod
     public void widget(PluginCall call) {

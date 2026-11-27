@@ -98,8 +98,8 @@ export function buildWidget(state, now = new Date()) {
     const st = slotDate(ev.date, q, sc).getTime(); const [eh, em] = q.end.split(':').map(Number); const sd = new Date(st);
     let en = new Date(sd.getFullYear(), sd.getMonth(), sd.getDate(), eh, em).getTime(); if (en <= st) en += 864e5;
     const lead = q.lead ?? state.prefs.lead ?? 15; const on = q.alarm !== false && state.prefs.reminders !== false && !(q.alvorada && !state.prefs.alvorada);
-    if (en > nowMs) quartos.push({ s: st, e: en, l: qLabel(q), p: posts.join(' + '), a: st - lead * 60000, on });
+    if (en > nowMs - 14 * 3600e3) quartos.push({ s: st, e: en, l: qLabel(q), p: posts.join(' + '), a: st - lead * 60000, on, d: ev.date, i: state.quarters.indexOf(q) });
   }
   quartos.sort((a, b) => a.s - b.s);
-  return { shifts, quartos: quartos.slice(0, 20) };
+  return { shifts, quartos: quartos.slice(0, 30) };
 }

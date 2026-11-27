@@ -286,7 +286,7 @@ public class WidgetConfigActivity extends Activity {
     private void redraw() {
         pct.setText("Opacidade do fundo: " + cfg.alpha + "%");
         prev.removeAllViews();
-        android.widget.RemoteViews rv = WidgetKit.build(this, kind, cfg, wDp, hDp, true);
+        android.widget.RemoteViews rv = WidgetKit.build(this, widgetId, kind, cfg, wDp, hDp, true);
         View v = rv.apply(this, prev);
         prev.addView(v, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
     }
