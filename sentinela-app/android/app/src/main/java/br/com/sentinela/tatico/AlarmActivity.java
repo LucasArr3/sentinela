@@ -35,55 +35,50 @@ public class AlarmActivity extends Activity {
         }
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
-        int pad = dp(28);
+        int pad = dp(24);
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setGravity(Gravity.CENTER);
         root.setBackgroundColor(Color.parseColor("#050505"));
-        root.setPadding(pad, pad, pad, pad);
+        root.setPadding(pad, dp(48), pad, dp(36));
 
-        TextView tag = new TextView(this);
-        tag.setText("SENTINELA TÁTICO");
-        tag.setTextColor(Color.parseColor("#8B8B92"));
-        tag.setTextSize(13);
-        tag.setLetterSpacing(0.2f);
-        tag.setTypeface(Typeface.DEFAULT_BOLD);
-        tag.setGravity(Gravity.CENTER);
+        // parte de cima: hora e do que se trata
+        LinearLayout top = new LinearLayout(this);
+        top.setOrientation(LinearLayout.VERTICAL);
+        top.setGravity(Gravity.CENTER);
 
         android.widget.TextClock clock = new android.widget.TextClock(this);
         clock.setFormat24Hour("HH:mm");
         clock.setFormat12Hour("HH:mm");
-        clock.setTextColor(Color.parseColor("#F5A524"));
-        clock.setTextSize(64);
+        clock.setTextColor(Color.WHITE);
+        clock.setTextSize(72);
         clock.setTypeface(Typeface.DEFAULT_BOLD);
         clock.setGravity(Gravity.CENTER);
-        clock.setPadding(0, dp(18), 0, 0);
 
         titleView = new TextView(this);
-        titleView.setTextColor(Color.WHITE);
-        titleView.setTextSize(34);
+        titleView.setTextColor(Color.parseColor("#F5A524"));
+        titleView.setTextSize(22);
         titleView.setTypeface(Typeface.DEFAULT_BOLD);
         titleView.setGravity(Gravity.CENTER);
-        titleView.setPadding(0, dp(24), 0, dp(8));
+        titleView.setPadding(0, dp(8), 0, dp(4));
 
         bodyView = new TextView(this);
-        bodyView.setTextColor(Color.parseColor("#B5B5BC"));
-        bodyView.setTextSize(20);
+        bodyView.setTextColor(Color.parseColor("#9A9AA3"));
+        bodyView.setTextSize(16);
         bodyView.setGravity(Gravity.CENTER);
-        bodyView.setPadding(0, 0, 0, dp(48));
 
-        Button stop = button("DESLIGAR", Color.parseColor("#F5A524"), Color.parseColor("#0A0A0A"), true);
+        top.addView(clock);
+        top.addView(titleView);
+        top.addView(bodyView);
+        root.addView(top, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f));
+
+        // parte de baixo (alcance do polegar): desligar e soneca
+        Button stop = button("Desligar", Color.parseColor("#F5A524"), Color.parseColor("#0A0A0A"), true);
         stop.setOnClickListener(v -> send(AlarmService.ACTION_STOP));
-        Button snooze = button("SONECA " + AlarmStore.snoozeMin(this) + " MIN", Color.TRANSPARENT, Color.WHITE, false);
+        Button snooze = button("Soneca " + AlarmStore.snoozeMin(this) + " min", Color.TRANSPARENT, Color.parseColor("#E8E8EA"), false);
         snooze.setOnClickListener(v -> send(AlarmService.ACTION_SNOOZE));
-
-        root.addView(tag);
-        root.addView(clock);
-        root.addView(titleView);
-        root.addView(bodyView);
-        root.addView(stop, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(104)));
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(68));
-        lp.topMargin = dp(14);
+        root.addView(stop, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(84)));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(56));
+        lp.topMargin = dp(12);
         root.addView(snooze, lp);
         setContentView(root);
         fill(getIntent());
@@ -120,11 +115,11 @@ public class AlarmActivity extends Activity {
         Button b = new Button(this);
         b.setText(text);
         b.setTextColor(fg);
-        b.setTextSize(filled ? 28 : 17);
+        b.setTextSize(filled ? 24 : 16);
         b.setTypeface(Typeface.DEFAULT_BOLD);
         b.setAllCaps(false);
         GradientDrawable d = new GradientDrawable();
-        d.setCornerRadius(dp(20));
+        d.setCornerRadius(dp(42));
         d.setColor(bg);
         if (!filled) d.setStroke(dp(2), Color.parseColor("#4A4A50"));
         b.setBackground(d);
