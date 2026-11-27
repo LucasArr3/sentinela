@@ -1110,3 +1110,9 @@ input[type=color].x,.mkc input[type=color],.mkrow input[type=color]{-webkit-appe
 .mkc input[type=color]::-webkit-color-swatch-wrapper,.mkrow input[type=color]::-webkit-color-swatch-wrapper{padding:0}
 .mkc input[type=color]::-webkit-color-swatch,.mkrow input[type=color]::-webkit-color-swatch{border:0;border-radius:50%}
 .mkrow .mki{width:26px;height:26px}.mkrow .mki svg{width:13px;height:13px}
+/* anel fino e inteiro (não corta nas bordas da célula) */
+.cal[data-cs=circle] .cell{overflow:visible}
+.cell .rg{inset:-3px;-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 2.5px),#000 calc(100% - 2px));mask:radial-gradient(farthest-side,transparent calc(100% - 2.5px),#000 calc(100% - 2px))}
+.cal[data-cs=circle] .cell.today .rg{inset:-8px}
+:root:is([data-ms=vazado],[data-ms=icone],[data-ms=risco]) .cell .rg{inset:0}
+:root:is([data-ms=vazado],[data-ms=icone],[data-ms=risco]) .cal[data-cs=circle] .cell.today .rg{inset:-8px}
