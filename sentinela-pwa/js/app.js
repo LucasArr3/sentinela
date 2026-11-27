@@ -465,8 +465,8 @@ function monthCard(x) {
     }
     if (C.holidayName(d, S.d.holidays)) by.feriado.push(d);
   }
-  const rows = G.filter((g) => by[g[0]].length).map(([k, l, c, icn]) => { const days = [...new Set(by[k])]; return `<div class="mrow"><span class="sti" style="background:${c}">${ic(icn || 'target')}</span><div class="sp" style="min-width:0"><div class="t">${l} <span class="muted">· ${days.length}</span></div><div class="mdays">${days.map((d) => `<button type="button" data-act="cal-pick" data-date="${d}">${+d.slice(8)}</button>`).join('')}</div></div></div>`; }).join('');
-  return `<div class="dcard msum"><div class="dch"><div class="sp"><div class="dct">${C.MONTHS[x.m].toUpperCase()} ${x.y}</div><div class="dcs">Resumo do mês</div></div></div>${rows || '<div class="muted sm" style="padding:6px 0">Nada marcado neste mês.</div>'}</div>`;
+  const rows = G.filter((g) => by[g[0]].length).map(([k, l, c]) => { const days = [...new Set(by[k])]; return `<li><i style="background:${c}"></i><span class="ml">${esc(l)}</span><b class="mn">${days.length}</b><span class="md">${days.map((d) => `<button type="button" data-act="cal-pick" data-date="${d}">${+d.slice(8)}</button>`).join('')}</span></li>`; }).join('');
+  return `<div class="msum"><div class="mttl">Resumo de ${C.MONTHS[x.m].toLowerCase()}</div>${rows ? `<ul>${rows}</ul>` : '<div class="muted sm">Nada marcado neste mês.</div>'}</div>`;
 }
 function sumArea(x) {
   const m = S.calSum === 'mes';
