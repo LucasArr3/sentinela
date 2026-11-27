@@ -298,6 +298,20 @@ final class WidgetKit {
         return r;
     }
 
+    /** [0]=início, [1]=fim do último plantão que já acabou; [2]=extras do mês. */
+    static long[] lastInfo(Context c) {
+        long[] r = new long[3];
+        try {
+            JSONObject j = new JSONObject(AlarmStore.widgetJson(c));
+            JSONObject l = j.optJSONObject("last");
+            if (l != null) { r[0] = l.optLong("s"); r[1] = l.optLong("e"); }
+            r[2] = j.optLong("extrasMonth", 0);
+        } catch (Exception ignored) {
+            // sem dados
+        }
+        return r;
+    }
+
     /** Agenda a próxima atualização do widget para o próximo quarto/plantão que começa ou termina. */
     static void scheduleTick(Context c) {
         long now = System.currentTimeMillis();
@@ -360,7 +374,8 @@ final class WidgetKit {
         boolean idle = !sample && (all.isEmpty() || allPast) && ss[0] == 0;
         boolean keep = idle && allPast && ("ultimo".equals(g.after) || ("resumo".equals(g.after) && now - lastEnd < 6 * 3600000L));
         boolean ended = idle && !keep;
-        if (ended && ss[1] > 0 && !"ultimo".equals(g.after)) return buildPlantao(c, id, g, w, h, sample);
+        if (ended && ss[1] > 0 && h < 100) return buildPlantao(c, id, g, w, h, sample);
+        if (idle && ss[1] > 0 && h >= 100) head = true;
         String dia = ss[1] > 0 ? new SimpleDateFormat("EEE dd/MM", new Locale("pt", "BR")).format(new Date(ss[1])) : "";
         String empty = "Nenhum quarto marcado";
         if (ended && ss[1] > 0) empty = "Plantão " + dia + " " + hhmm(ss[1]);
@@ -372,7 +387,13 @@ final class WidgetKit {
                 v.setTextViewText(R.id.w_ht, hhmm(ss[1]));
                 v.setTextViewText(R.id.w_hr, "ENTRA EM");
                 v.setTextViewText(R.id.w_hv, dur(ss[1] - now));
-                empty = "";
+                long[] li = lastInfo(c);
+                java.util.Calendar cs = java.util.Calendar.getInstance();
+                cs.setTimeInMillis(now);
+                java.util.Calendar cl = java.util.Calendar.getInstance();
+                cl.setTimeInMillis(li[0]);
+                boolean today = li[0] > 0 && cs.get(java.util.Calendar.DAY_OF_YEAR) == cl.get(java.util.Calendar.DAY_OF_YEAR) && cs.get(java.util.Calendar.YEAR) == cl.get(java.util.Calendar.YEAR);
+                empty = (today ? "Plantão encerrado" : "Folga hoje") + (li[2] > 0 ? " · " + li[2] + (li[2] == 1 ? " extra" : " extras") + " no mês" : "");
             } else {
                 v.setTextViewText(R.id.w_hl, "PRÓXIMO ALARME");
                 v.setTextViewText(R.id.w_ht, nx != null ? hhmm(nx.a) : "--:--");
@@ -454,8 +475,15 @@ final class WidgetKit {
         }
         boolean serving = ss[0] > 0;
         if (sample && !serving && ss[1] == 0) { serving = true; ss[0] = now + 7 * 3600000L; shiftStart = now - 17 * 3600000L; }
+        long[] li = lastInfo(c);
+        boolean folga = !serving && ss[1] > 0;
         String tag, big, el, ev;
-        if (serving) {
+        if (folga) {
+            tag = "FOLGA";
+            big = "Descanso até " + new SimpleDateFormat("EEE", new Locale("pt", "BR")).format(new Date(ss[1]));
+            el = "";
+            ev = "";
+        } else if (serving) {
             tag = "EM SERVIÇO";
             big = "faltam " + dur(ss[0] - now);
             el = "TERMINA";
@@ -483,7 +511,16 @@ final class WidgetKit {
         size(v, R.id.c_el, 10, Math.min(f, 1.3f));
         size(v, R.id.c_big, 26, f);
         size(v, R.id.c_ev, 20, f);
-        if (serving && shiftStart > 0 || (serving && sample)) {
+        if (folga && li[1] > 0 && ss[1] > li[1]) {
+            int total = 24, fill = (int) Math.max(0, Math.min(total, Math.round(total * (double) (now - li[1]) / (ss[1] - li[1]))));
+            StringBuilder b = new StringBuilder();
+            for (int i = 0; i < total; i++) b.append('━');
+            android.text.SpannableString bar = new android.text.SpannableString(b.toString());
+            bar.setSpan(new android.text.style.ForegroundColorSpan(t.accent), 0, fill, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            bar.setSpan(new android.text.style.ForegroundColorSpan((t.muted & 0x00FFFFFF) | 0x55000000), fill, total, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            v.setTextViewText(R.id.c_bar, bar);
+            v.setViewVisibility(R.id.c_bar, View.VISIBLE);
+        } else if (serving && shiftStart > 0 || (serving && sample)) {
             int total = 24, fill = (int) Math.max(0, Math.min(total, Math.round(total * (double) (now - shiftStart) / (ss[0] - shiftStart))));
             StringBuilder b = new StringBuilder();
             for (int i = 0; i < total; i++) b.append('━');
@@ -505,8 +542,9 @@ final class WidgetKit {
         if (cur == null && nx == null && sample) {
             for (Row r : sampleRows(now, 8)) { if (r.past) continue; if (r.s <= now) cur = r; else if (nx == null) nx = r; if (nxa == null) nxa = r; }
         }
-        String nowTxt = cur != null ? "Agora: " + cur.p + " · " + cur.l.replace(":00", "") : (nx != null ? "Próximo: " + nx.p + " · " + nx.l.replace(":00", "") : "");
-        String nextTxt = cur != null && nx != null ? "próx. " + nx.p + " " + hhmm(nx.s) : "";
+        String dfmt = "EEE dd/MM";
+        String nowTxt = folga ? "Próximo: " + new SimpleDateFormat(dfmt, new Locale("pt", "BR")).format(new Date(ss[1])) + " · " + hhmm(ss[1]) : cur != null ? "Agora: " + cur.p + " · " + cur.l.replace(":00", "") : (nx != null ? "Próximo: " + nx.p + " · " + nx.l.replace(":00", "") : "");
+        String nextTxt = folga ? "em " + dur(ss[1] - now) : cur != null && nx != null ? "próx. " + nx.p + " " + hhmm(nx.s) : "";
         v.setTextViewText(R.id.c_now, nowTxt);
         v.setTextColor(R.id.c_now, t.accent);
         v.setTextViewText(R.id.c_next, nextTxt);
@@ -514,11 +552,11 @@ final class WidgetKit {
         size(v, R.id.c_now, 14, f);
         size(v, R.id.c_next, 12, f);
         v.setViewVisibility(R.id.c_row, nowTxt.isEmpty() || h < 95 ? View.GONE : View.VISIBLE);
-        String foot = nxa != null ? "🔔 próximo alarme " + hhmm(nxa.a) + " · em " + dur(nxa.a - now) : "";
+        String foot = folga ? (li[1] > 0 ? "Último plantão: " + new SimpleDateFormat(dfmt, new Locale("pt", "BR")).format(new Date(li[0])) + " · " + hhmm(li[0]) : "") : nxa != null ? "🔔 próximo alarme " + hhmm(nxa.a) + " · em " + dur(nxa.a - now) : "";
         v.setTextViewText(R.id.c_foot, foot);
         v.setTextColor(R.id.c_foot, t.muted);
         size(v, R.id.c_foot, 12, f);
-        v.setViewVisibility(R.id.c_foot, foot.isEmpty() || !g.alarm || h < 120 ? View.GONE : View.VISIBLE);
+        v.setViewVisibility(R.id.c_foot, foot.isEmpty() || (!folga && !g.alarm) || h < 120 ? View.GONE : View.VISIBLE);
         v.setOnClickPendingIntent(R.id.widget_root, act(c, id, 4, "quartos", cur != null ? cur : nx));
         return v;
     }

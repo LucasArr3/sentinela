@@ -101,5 +101,12 @@ export function buildWidget(state, now = new Date()) {
     if (en > nowMs - 14 * 3600e3) quartos.push({ s: st, e: en, l: qLabel(q), p: posts.join(' + '), a: alarmMs(q, st, state.prefs.lead), on, d: ev.date, i: state.quarters.indexOf(q) });
   }
   quartos.sort((a, b) => a.s - b.s);
-  return { shifts, quartos: quartos.slice(0, 30) };
+  let last = null;
+  for (let d = iso(now), n = 0; n < 12 && !last; d = addDays(d, -1), n++) {
+    const info = dayInfo(d, state); if (!info.works) continue;
+    const [y, m, dd] = d.split('-').map(Number); const s0 = new Date(y, m - 1, dd, sh, sm).getTime(); const e0 = s0 + shiftHours(info, sc) * 3600e3;
+    if (e0 <= nowMs) last = { s: s0, e: e0 };
+  }
+  const mk = iso(now).slice(0, 7); const extrasMonth = state.events.filter((e) => e.type === 'extra' && String(e.date).startsWith(mk)).length;
+  return { shifts, quartos: quartos.slice(0, 30), last, extrasMonth };
 }
