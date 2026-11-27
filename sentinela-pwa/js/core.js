@@ -152,9 +152,10 @@ export function dayMarks(info, state) {
   return out;
 }
 /** Cor/estado da célula: dia de plantão (ou plantão assumido) fica com a cor de plantão; atestado, férias e folga em dia livre ficam neutros. */
-export function cellStatus(info) {
+export function cellStatus(info, ms) {
   if (info.scheduled || info.status === 'permuta_in') return 'plantao';
   if (['atestado', 'ferias', 'folga'].includes(info.status)) return 'livre';
+  if (info.status === 'extra' && ms && ms !== 'cheia') return 'livre';
   return info.status;
 }
 export const STATUS = {
