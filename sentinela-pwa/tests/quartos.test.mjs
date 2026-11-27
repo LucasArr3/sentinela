@@ -42,7 +42,7 @@ test('comando de voz para quartos', () => {
 });
 test('resumo inclui quartos e postos', () => {
   const s = st([{ id: 'a', type: 'quarto', date: '2026-11-23', slot: '22-00', post: 'Muralha' }, { id: 'b', type: 'quarto', date: '2026-11-23', slot: '02-04', post: 'Ronda' }]);
-  const t = buildSummary(s, 2026, 10, { kind: 'completo' }); assert.match(t, /QUARTOS E POSTOS \(2\)/); assert.match(t, /22h–00h Muralha · 02h–04h Ronda/);
+  const t = buildSummary(s, 2026, 10, { kind: 'completo' }); assert.match(t, /QUARTOS E POSTOS \(2\)/); assert.match(t, /22:00–00:00 Muralha · 02:00–04:00 Ronda/);
   assert.equal(quartosOn(s, '2026-11-23').map((e) => e.slot).join(), '22-00,02-04');
 });
 
@@ -101,6 +101,6 @@ test('widget: próximos plantões e quartos para a tela inicial', () => {
   const s = st([{ id: 'w1', type: 'quarto', date: '2026-11-23', slot: '22-00', post: 'Bloco A' }]); const now = new Date(2026, 10, 23, 8, 0);
   const w = buildWidget(s, now); assert.ok(w.shifts.length >= 3 && w.shifts[0].s <= now.getTime() && w.shifts[0].e > now.getTime()); // plantão em andamento
   assert.equal(new Date(w.shifts[0].s).getHours(), 7); assert.equal(w.shifts[0].e - w.shifts[0].s, 24 * 3600e3);
-  assert.deepEqual([w.quartos.length, w.quartos[0].l, w.quartos[0].p], [1, '22h–00h', 'Bloco A']); assert.equal(new Date(w.quartos[0].e).getDate(), 24);
+  assert.deepEqual([w.quartos.length, w.quartos[0].l, w.quartos[0].p], [1, '22:00–00:00', 'Bloco A']); assert.equal(new Date(w.quartos[0].e).getDate(), 24);
   assert.deepEqual(buildWidget(s, new Date(2026, 10, 25, 9, 0)).quartos, []); // quarto já passou
 });

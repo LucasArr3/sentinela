@@ -876,3 +876,36 @@ details[data-sec=daymore] .add i{width:30px;height:30px;border-radius:10px}
 .qcard .gr.now>i{background:var(--ok);box-shadow:0 0 0 4px color-mix(in srgb,var(--ok) 25%,transparent)}
 .qcard .gr.nxt>i{background:var(--accent);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 25%,transparent)}
 .qcard .gr.now .gt,.qcard .gr.nxt .gt{color:var(--text)}
+
+/* ===== próximo quarto em destaque (prioridade do operador) ===== */
+.qcard .qch .hl{color:var(--pri,#f5a524);font-weight:800;font-size:12.5px}
+.qcard .qch .hl.on{color:var(--ok)}
+.qcard .gr.nxt{background:color-mix(in srgb,#f5a524 17%,transparent);border-radius:14px;margin:0 -10px;padding:0 10px;border-top-color:transparent;box-shadow:inset 0 0 0 1px color-mix(in srgb,#f5a524 45%,transparent)}
+.qcard .gr.nxt+.gr{border-top-color:transparent}
+.qcard .gr.nxt>i{background:#f5a524;box-shadow:0 0 0 4px color-mix(in srgb,#f5a524 28%,transparent)}
+.qcard .gr.nxt .gt{color:#f5a524}.qcard .gr.nxt .gp b{color:var(--text)}
+.qcard .gr.nxt .qal{border-color:color-mix(in srgb,#f5a524 55%,transparent);color:#f5a524}
+.qcard .gr.now{background:color-mix(in srgb,var(--ok) 15%,transparent);border-radius:14px;margin:0 -10px;padding:0 10px;border-top-color:transparent}
+.qcard .gr.now+.gr{border-top-color:transparent}
+.wgi{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;background:var(--surface2);border:1px solid var(--line)}.wgi b{font-size:14.5px}
+
+/* ===== marcação do dia atual, do dia selecionado e das anotações (um desenho só) ===== */
+.ccard{--gap:var(--surface)}.cwrap{--gap:var(--bg)}
+:root[data-layout=moderno] .cal .cell{--tc:var(--accent)}
+:root[data-layout=moderno] .cal .cell:not([data-st=livre]){--tc:var(--sc)}
+/* dia de hoje: anel com respiro, na cor do próprio dia; sem brilho nem animação */
+:root[data-layout=moderno] .cal .cell.today{outline:none!important;animation:none!important;border-color:transparent}
+:root[data-layout=moderno] .cal .cell.today .n{text-shadow:none}
+:root[data-layout=moderno] .cal:not([data-cs=circle]) .cell.today{box-shadow:0 0 0 2px var(--gap),0 0 0 4px var(--tc)!important}
+:root[data-layout=moderno] .cal[data-cs=circle] .cell.today{box-shadow:none!important}
+:root[data-layout=moderno] .cal[data-cs=circle] .cell.today .n{box-shadow:0 0 0 2px var(--gap),0 0 0 4px var(--tc)!important}
+/* dia selecionado: leve realce (não é outro contorno) */
+:root[data-layout=moderno] .cal .cell.sel{outline:none!important}
+:root[data-layout=moderno] .cal:not([data-cs=circle]) .cell.sel{transform:scale(1.07);background-image:linear-gradient(color-mix(in srgb,var(--text) 14%,transparent),color-mix(in srgb,var(--text) 14%,transparent))}
+:root[data-layout=moderno] .cal[data-cs=circle] .cell.sel .n{transform:scale(1.1)}
+:root[data-layout=moderno] .cal[data-cs=circle] .cell.sel[data-st=livre] .n{background:color-mix(in srgb,var(--text) 16%,transparent)}
+/* anotação: pontinho âmbar com borda, visível sobre qualquer cor */
+.cell.hasn::before{background:#f5a524!important;box-shadow:0 0 0 2px var(--gap,var(--bg2))!important;width:7px!important;height:7px!important;top:4px!important;right:5px!important}
+:root[data-layout=moderno] .cal[data-cs=circle] .cell.hasn::before{display:none}
+:root[data-layout=moderno] .cal[data-cs=circle] .cell.hasn .n{position:relative}
+:root[data-layout=moderno] .cal[data-cs=circle] .cell.hasn .n::after{content:"";display:block!important;position:absolute;top:-1px;right:-1px;width:9px;height:9px;border-radius:50%;background:#f5a524;box-shadow:0 0 0 2px var(--gap);margin:0}

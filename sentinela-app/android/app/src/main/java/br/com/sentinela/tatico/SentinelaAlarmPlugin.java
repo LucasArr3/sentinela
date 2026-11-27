@@ -312,6 +312,20 @@ public class SentinelaAlarmPlugin extends Plugin {
         call.resolve();
     }
 
+    // Pede ao Android para fixar um widget na tela inicial (plantao | quartos | proximo)
+    @PluginMethod
+    public void pinWidget(PluginCall call) {
+        String kind = call.getString("kind", "plantao");
+        Class<?> cls = "quartos".equals(kind) ? QuartosWidget.class : ("proximo".equals(kind) ? ProximoWidget.class : PlantaoWidget.class);
+        android.appwidget.AppWidgetManager m = android.appwidget.AppWidgetManager.getInstance(getContext());
+        if (Build.VERSION.SDK_INT >= 26 && m.isRequestPinAppWidgetSupported()) {
+            m.requestPinAppWidget(new android.content.ComponentName(getContext(), cls), null, null);
+            call.resolve();
+        } else {
+            call.reject("Este celular não permite adicionar por aqui. Segure a tela inicial e escolha Widgets.");
+        }
+    }
+
     // ---------------- sons importados ----------------
     @PluginMethod
     public void pickSound(PluginCall call) {

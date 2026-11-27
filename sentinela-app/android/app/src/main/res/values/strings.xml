@@ -5,4 +5,6 @@
     <string name="package_name">br.com.sentinela.tatico</string>
     <string name="custom_url_scheme">br.com.sentinela.tatico</string>
     <string name="widget_desc">Status do plantão e próximo quarto de hora</string>
+    <string name="widget_desc_quartos">Lista dos próximos quartos de hora com o horário do alarme</string>
+    <string name="widget_desc_proximo">Próximo quarto de hora, posto e contagem regressiva</string>
 </resources>

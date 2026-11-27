@@ -21,6 +21,8 @@ check "WebView carregou a interface (sem 'Uncaught' no console)" "! grep -E 'Unc
 check "Capacitor carregou o app local" "grep -q 'Loading app at' '$OUT/logcat-abertura.txt'"
 
 check "widget do plantão registrado no app" "adb shell dumpsys package $PKG | grep -q 'PlantaoWidget'"
+check "widget de quartos registrado no app" "adb shell dumpsys package $PKG | grep -q 'QuartosWidget'"
+check "widget do próximo quarto registrado no app" "adb shell dumpsys package $PKG | grep -q 'ProximoWidget'"
 check "biometria declarada" "adb shell dumpsys package $PKG | grep -q 'USE_BIOMETRIC'"
 
 # Dispara um alarme de teste em 8 s e manda o app para segundo plano (HOME)

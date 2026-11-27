@@ -89,12 +89,16 @@ export function buildWidget(state, now = new Date()) {
     const [y, m, dd] = d.split('-').map(Number); const s = new Date(y, m - 1, dd, sh, sm).getTime(); const e = s + shiftHours(info, sc) * 3600e3;
     if (e > nowMs) shifts.push({ s, e });
   }
-  const quartos = [];
+  const quartos = []; const grp = new Map();
   for (const ev of state.events) {
     if (ev.type !== 'quarto') continue; const q = state.quarters.find((x) => x.id === ev.slot); if (!q) continue;
+    const k = `${ev.date}|${ev.slot}`; if (!grp.has(k)) grp.set(k, { ev, q, posts: [] }); if (ev.post) grp.get(k).posts.push(ev.post);
+  }
+  for (const { ev, q, posts } of grp.values()) {
     const st = slotDate(ev.date, q, sc).getTime(); const [eh, em] = q.end.split(':').map(Number); const sd = new Date(st);
     let en = new Date(sd.getFullYear(), sd.getMonth(), sd.getDate(), eh, em).getTime(); if (en <= st) en += 864e5;
-    if (en > nowMs) quartos.push({ s: st, e: en, l: qLabel(q), p: ev.post || '' });
+    const lead = q.lead ?? state.prefs.lead ?? 15; const on = q.alarm !== false && state.prefs.reminders !== false && !(q.alvorada && !state.prefs.alvorada);
+    if (en > nowMs) quartos.push({ s: st, e: en, l: qLabel(q), p: posts.join(' + '), a: st - lead * 60000, on });
   }
   quartos.sort((a, b) => a.s - b.s);
   return { shifts, quartos: quartos.slice(0, 20) };

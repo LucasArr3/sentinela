@@ -59,7 +59,7 @@ export const DEFAULT_DAY_POSTS = ['Bloco A', 'Bloco B', 'Bloco C', 'Superior', '
 export const DEFAULT_NEED_WHERE = ['Calibre 12', 'Chefe de bloco'];
 export const OLD_DEFAULT_POSTS = ['Portaria', 'Pavilhão A', 'Pavilhão B', 'Muralha', 'Ronda'];
 const hh = (t) => t.replace(':00', '') + 'h';
-export const qLabel = (q) => `${hh(q.start)}–${hh(q.end)}`;
+export const qLabel = (q) => `${q.start}–${q.end}`;
 export const qName = (q) => (q.name ? `${q.name} (${qLabel(q)})` : qLabel(q));
 // Início real do quarto: horas antes da entrada do plantão pertencem ao dia seguinte.
 export function slotDate(date, q, sc) {
