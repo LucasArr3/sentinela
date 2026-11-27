@@ -5,6 +5,7 @@ import android.app.Activity;
 import android.app.AlarmManager;
 import android.app.NotificationManager;
 import android.content.Context;
+import android.os.Bundle;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
@@ -302,6 +303,23 @@ public class SentinelaAlarmPlugin extends Plugin {
                     .build();
             bp.authenticate(info);
         });
+    }
+
+    /** Teste só do relógio: manda o aviso daqui a N segundos (dá tempo de bloquear a tela). */
+    @PluginMethod
+    public void testWatch(PluginCall call) {
+        final Context c = getContext();
+        int sec = Math.max(3, call.getInt("seconds", 10));
+        final Bundle b = new Bundle();
+        b.putString(AlarmScheduler.EXTRA_TITLE, "Teste no relógio");
+        b.putString(AlarmScheduler.EXTRA_BODY, "Se você leu isso no relógio, o aviso funciona.");
+        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                AlarmService.postWatch(c, b);
+            }
+        }, sec * 1000L);
+        call.resolve();
     }
 
     // ---------------- toque no widget ----------------

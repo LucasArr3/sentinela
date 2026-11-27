@@ -96,15 +96,16 @@ public class AlarmService extends Service {
         nm.createNotificationChannel(ch);
     }
 
-    private void postWatch(Bundle b) {
+    /** Aviso para o smartwatch (espelhado pelo celular). Estático para o teste também poder usar. */
+    static void postWatch(Context c, Bundle b) {
         try {
-            ensureWatchChannel(this);
+            ensureWatchChannel(c);
             String title = b != null ? b.getString(AlarmScheduler.EXTRA_TITLE, "Alarme") : "Alarme";
             String body = b != null ? b.getString(AlarmScheduler.EXTRA_BODY, "") : "";
             int imm = PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT;
-            PendingIntent stop = PendingIntent.getService(this, 12, new Intent(this, AlarmService.class).setAction(ACTION_STOP), imm);
-            PendingIntent snooze = PendingIntent.getService(this, 13, new Intent(this, AlarmService.class).setAction(ACTION_SNOOZE), imm);
-            Notification n = new NotificationCompat.Builder(this, WATCH_CHANNEL)
+            PendingIntent stop = PendingIntent.getService(c, 12, new Intent(c, AlarmService.class).setAction(ACTION_STOP), imm);
+            PendingIntent snooze = PendingIntent.getService(c, 13, new Intent(c, AlarmService.class).setAction(ACTION_SNOOZE), imm);
+            Notification n = new NotificationCompat.Builder(c, WATCH_CHANNEL)
                     .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
                     .setContentTitle(title)
                     .setContentText(body)
@@ -114,11 +115,13 @@ public class AlarmService extends Service {
                     .setVibrate(new long[]{0, 600, 300, 600, 300, 600})
                     .setOngoing(false)
                     .setAutoCancel(true)
-                    .setTimeoutAfter(AlarmStore.autostopMin(this) * 60_000L)
+                    .setLocalOnly(false)
+                    .extend(new NotificationCompat.WearableExtender().setHintContentIntentLaunchesActivity(false))
+                    .setTimeoutAfter(AlarmStore.autostopMin(c) * 60_000L)
                     .addAction(0, "Desligar", stop)
                     .addAction(0, "Soneca", snooze)
                     .build();
-            NotificationManagerCompat.from(this).notify(WATCH_ID, n);
+            NotificationManagerCompat.from(c).notify(WATCH_ID, n);
         } catch (SecurityException ignored) {
             // sem permissão de notificação
         }
@@ -162,6 +165,8 @@ public class AlarmService extends Service {
     private void start(Bundle b) {
         stopPlayback();
         current = b;
+        // o aviso do relógio sai ANTES de acender a tela: o celular só espelha para o relógio com a tela apagada
+        if (AlarmStore.watch(this)) postWatch(this, b);
         ensureChannel(this);
         Notification n = buildNotification(this, b);
         try {
@@ -195,7 +200,6 @@ public class AlarmService extends Service {
             soundTask = () -> startSound(sound);
             handler.postDelayed(soundTask, AlarmStore.vibLead(this) * 1000L);
         }
-        if (AlarmStore.watch(this)) postWatch(b);
         showScreen(b);
         autoStopTask = this::stopAlarm;
         handler.postDelayed(autoStopTask, autostopMin * 60_000L);

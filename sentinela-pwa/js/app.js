@@ -312,7 +312,7 @@ function alarmesTop() {
    <div class="grid2"><label class="f">Avisar antes (min)<input type="number" min="0" max="120" inputmode="numeric" data-bind="prefs.lead" data-num value="${pr.lead}"></label><label class="f">Som padrão<select data-bind="prefs.sound">${sndOpts(pr.sound)}</select></label></div>
    <div class="grid2"><label class="f">Soneca (min)<input type="number" min="1" max="30" inputmode="numeric" data-bind="prefs.snooze" data-num value="${pr.snooze}"></label><label class="f">Parar sozinho (min)<input type="number" min="1" max="30" inputmode="numeric" data-bind="prefs.autostop" data-num value="${pr.autostop}"></label></div>
    <label class="tgl"><span><div class="b">Volume crescente</div><div class="muted xs">Começa baixo e sobe em ~10 s</div></span><input type="checkbox" data-bind="prefs.ramp" ${pr.ramp ? 'checked' : ''}></label></div></details>`;
-  const wakeBody = `${seg}${vib}<label class="tgl"><span><div class="b">Avisar no relógio</div><div class="muted xs">Galaxy Watch: ligue as notificações do Sentinela no app Galaxy Wearable.</div></span><input type="checkbox" data-bind="prefs.watch" ${pr.watch !== false ? 'checked' : ''}></label>${more}${nat ? `<button class="btn pri blk" data-act="nat-test">${ic('alert')}Testar em 10 s</button>` : `<button class="btn pri blk" data-act="alarm-test">${ic('alert')}Testar alarme</button>`}`;
+  const wakeBody = `${seg}${vib}<label class="tgl"><span><div class="b">Avisar no relógio</div><div class="muted xs">Galaxy Watch: ligue as notificações do Sentinela no app Galaxy Wearable.</div></span><input type="checkbox" data-bind="prefs.watch" ${pr.watch !== false ? 'checked' : ''}></label>${nat ? `<button class="btn sm blk" data-act="watch-test">${ic('bell')}Testar só no relógio (10 s)</button><div class="muted xs">Bloqueie a tela do celular logo depois de tocar. O Samsung só manda o aviso ao relógio com a tela do celular apagada.</div>` : ''}${more}${nat ? `<button class="btn pri blk" data-act="nat-test">${ic('alert')}Testar em 10 s</button>` : `<button class="btn pri blk" data-act="alarm-test">${ic('alert')}Testar alarme</button>`}`;
   const wakeSub = ({ vibsom: `Vibra ${vl} s e depois toca`, vib: 'Só vibra', som: 'Só toca' })[vm];
   const permBody = nat ? `${natChecks()}<button class="btn sm" data-act="nat-refresh">Atualizar</button>` : '';
   return `${banner}${head}${list}
@@ -1056,6 +1056,7 @@ const A = {
     playSound(id, { previewMs: 3500 });
   },
   'nat-test': async () => { try { await NativeAlarm.test(10, S.d.prefs.sound); toast('Alarme daqui a 10 segundos. Bloqueie a tela!'); } catch (e) { toast(e.message || 'Falha no teste', 'err'); } },
+  'watch-test': async () => { try { await NativeAlarm.testWatch(10); toast('Aviso no relógio em 10 s. Bloqueie a tela do celular!'); } catch (e) { toast(e.message || 'Falha no teste', 'err'); } },
   'nat-refresh': () => { loadAlarmStatus(); syncAlarms(); },
   'upd-check': () => runUpdateCheck(true),
   'upd-get': async () => { try { await openApkDownload(); } catch (e) { toast('Não consegui abrir o download'); } },
