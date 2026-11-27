@@ -19,6 +19,7 @@ export interface DayData {
   quarters: string[];
   observation?: string;
   swapWith?: string;
+  markers?: string[]; // ex.: ATESTADO, FERIAS, LICENCA_PREMIUM (ver lib/merge-import.ts)
   occurrences?: Occurrence[];
 }
 

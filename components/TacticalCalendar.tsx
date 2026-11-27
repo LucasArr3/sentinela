@@ -18,6 +18,7 @@ import { ptBR } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { getBaseShift, ShiftType } from '@/lib/scale-utils';
 import { DayData } from '@/lib/db-service';
+import { MARKER_SHORT } from '@/lib/merge-import';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -214,6 +215,15 @@ export default function TacticalCalendar({
                   </span>
                 )}
               </div>
+
+              {(dayData[format(day, 'yyyy-MM-dd')]?.markers?.length ?? 0) > 0 && (
+                <span className="text-[5px] font-black uppercase mt-0.5 px-1 rounded truncate max-w-full bg-red-500/20 text-red-500">
+                  {(() => {
+                    const m = dayData[format(day, 'yyyy-MM-dd')]!.markers!;
+                    return (MARKER_SHORT[m[0]] ?? m[0]) + (m.length > 1 ? ` +${m.length - 1}` : '');
+                  })()}
+                </span>
+              )}
 
               {observation && (
                 <div className="absolute bottom-1 right-1 w-1 h-1 bg-white/40 rounded-full" />

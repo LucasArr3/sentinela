@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
 // import removido: generateICS, downloadICS
+import {
   Shield, 
   Settings, 
   LogOut, 
@@ -20,6 +21,7 @@ import { format } from 'date-fns';
   Palette,
   CloudUpload,
   CloudDownload,
+  FilePlus2,
   MessageSquare,
   LogIn
 } from 'lucide-react';
@@ -40,6 +42,7 @@ function cn(...inputs: ClassValue[]) {
 
 import Image from 'next/image';
 import { saveUserData, loadUserData, DayData, Occurrence, AlarmSettings } from '@/lib/db-service';
+import { parseMergePayload, mergeDayData } from '@/lib/merge-import';
 import AIAssistant from '@/components/AIAssistant';
 import OccurrenceBook from '@/components/OccurrenceBook';
 import { auth, googleProvider } from '@/lib/firebase';
@@ -282,6 +285,27 @@ export default function Home() {
     }
   };
 
+  const importInputRef = useRef<HTMLInputElement>(null);
+
+  // Importação aditiva: soma os lançamentos ao calendário, sem apagar nada.
+  const handleImportMerge = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      const payload = parseMergePayload(await file.text());
+      const { merged, stats } = mergeDayData(dayData, payload, baseDate, scaleCycle);
+      const resumo = `${stats.novos} dia(s) novo(s), ${stats.atualizados} atualizado(s), ${stats.inalterados} sem mudança` +
+        (stats.ignorados.length ? `, ${stats.ignorados.length} ignorado(s)` : '');
+      if (confirm(`Somar ao calendário?\n${resumo}.\nNada do que já existe será apagado.`)) {
+        setDayData(merged);
+        alert(`Importação concluída: ${resumo}.`);
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Erro ao importar o arquivo.');
+    }
+  };
+
   const handleScaleTextChange = (text: string) => {
     setScaleText(text);
     // Parse XxY format
@@ -322,7 +346,13 @@ export default function Home() {
     const key = format(selectedDate, 'yyyy-MM-dd');
     
     const newDayData = { ...dayData };
-    if (type === 'FOLGA') {
+    const existingMarkers = dayData[key]?.markers;
+    if (type === 'FOLGA' && existingMarkers?.length) {
+      newDayData[key] = { type: 'FOLGA', quarters: [], markers: existingMarkers };
+      const newOverrides = { ...overrides };
+      delete newOverrides[key];
+      setOverrides(newOverrides);
+    } else if (type === 'FOLGA') {
       delete newDayData[key];
       // Also cleanup legacy overrides
       const newOverrides = { ...overrides };
@@ -334,7 +364,8 @@ export default function Home() {
         quarters: editQuarters,
         observation: editObservation,
         swapWith: editSwapWith,
-        occurrences: editOccurrences
+        occurrences: editOccurrences,
+        ...(existingMarkers?.length ? { markers: existingMarkers } : {})
       };
     }
     
@@ -957,6 +988,15 @@ export default function Home() {
                       <span className="text-[9px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-500">Restaurar</span>
                     </button>
                   </div>
+
+                  <input ref={importInputRef} type="file" accept="application/json,.json" onChange={handleImportMerge} className="hidden" />
+                  <button onClick={() => importInputRef.current?.click()} className={cn(
+                    "w-full p-4 border rounded-3xl flex items-center justify-center gap-3 transition-all active:scale-95",
+                    theme === 'dark' ? "bg-amber-600/10 border-amber-500/20 hover:bg-amber-600/20" : "bg-amber-50 border-amber-200 hover:bg-amber-100"
+                  )}>
+                    <FilePlus2 size={18} className="text-amber-600 dark:text-amber-500" />
+                    <span className="text-[9px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-500">Importar escala (somar, sem apagar)</span>
+                  </button>
                 </div>
               </div>
 
