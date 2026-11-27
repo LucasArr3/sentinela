@@ -134,6 +134,31 @@ public class WidgetConfigActivity extends Activity {
         panel.addView(cornerRow);
 
         {
+            Switch hs = new Switch(this);
+            hs.setText("Mostrar “Próximo alarme” no topo");
+            hs.setTextColor(Color.parseColor("#F0F0F4"));
+            hs.setTextSize(15);
+            hs.setChecked(cfg.head);
+            hs.setOnCheckedChangeListener(new android.widget.CompoundButton.OnCheckedChangeListener() {
+                @Override
+                public void onCheckedChanged(android.widget.CompoundButton v, boolean on) {
+                    cfg.head = on;
+                    redraw();
+                }
+            });
+            LinearLayout.LayoutParams hl = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, (int) (52 * d));
+            hl.topMargin = (int) (10 * d);
+            panel.addView(hs, hl);
+        }
+        panel.addView(label("Indicador do alarme (Quartos)"));
+        panel.addView(seg(new String[]{"Sino + horário", "Interruptor"}, "switch".equals(cfg.ctl) ? 1 : 0, new Pick() {
+            @Override
+            public void on(int i) {
+                cfg.ctl = i == 1 ? "switch" : "bell";
+                redraw();
+            }
+        }));
+        {
             Switch sw = new Switch(this);
             sw.setText("Mostrar horário do alarme");
             sw.setTextColor(Color.parseColor("#F0F0F4"));

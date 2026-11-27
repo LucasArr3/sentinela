@@ -42,6 +42,8 @@ final class WidgetKit {
         int text = 1;
         int corner = 1;
         boolean alarm = true;
+        boolean head = true;
+        String ctl = "bell";
     }
 
     static final class Th {
@@ -75,16 +77,18 @@ final class WidgetKit {
         g.text = p.getInt("x_" + id, 1);
         g.corner = p.getInt("r_" + id, 1);
         g.alarm = p.getBoolean("l_" + id, true);
+        g.head = p.getBoolean("h_" + id, true);
+        g.ctl = p.getString("k_" + id, "bell");
         return g;
     }
 
     static void save(Context c, int id, Cfg g) {
         sp(c).edit().putInt("a_" + id, g.alpha).putString("t_" + id, g.theme).putString("c_" + id, g.accent)
-                .putInt("x_" + id, g.text).putInt("r_" + id, g.corner).putBoolean("l_" + id, g.alarm).apply();
+                .putInt("x_" + id, g.text).putInt("r_" + id, g.corner).putBoolean("l_" + id, g.alarm).putBoolean("h_" + id, g.head).putString("k_" + id, g.ctl).apply();
     }
 
     static void forget(Context c, int id) {
-        sp(c).edit().remove("a_" + id).remove("t_" + id).remove("c_" + id).remove("x_" + id).remove("r_" + id).remove("l_" + id).apply();
+        sp(c).edit().remove("a_" + id).remove("t_" + id).remove("c_" + id).remove("x_" + id).remove("r_" + id).remove("l_" + id).remove("h_" + id).remove("k_" + id).apply();
     }
 
     static Th th(Context c, Cfg g) {
@@ -313,6 +317,10 @@ final class WidgetKit {
     private static final int[] QR = {R.id.qr1, R.id.qr2, R.id.qr3, R.id.qr4, R.id.qr5, R.id.qr6, R.id.qr7, R.id.qr8};
     private static final int[] QT = {R.id.qr1_t, R.id.qr2_t, R.id.qr3_t, R.id.qr4_t, R.id.qr5_t, R.id.qr6_t, R.id.qr7_t, R.id.qr8_t};
     private static final int[] QP = {R.id.qr1_p, R.id.qr2_p, R.id.qr3_p, R.id.qr4_p, R.id.qr5_p, R.id.qr6_p, R.id.qr7_p, R.id.qr8_p};
+    private static final int[] QS = {R.id.qr1_sw, R.id.qr2_sw, R.id.qr3_sw, R.id.qr4_sw, R.id.qr5_sw, R.id.qr6_sw, R.id.qr7_sw, R.id.qr8_sw};
+    private static final int[] QSK = {R.id.qr1_sk, R.id.qr2_sk, R.id.qr3_sk, R.id.qr4_sk, R.id.qr5_sk, R.id.qr6_sk, R.id.qr7_sk, R.id.qr8_sk};
+    private static final int[] QKL = {R.id.qr1_kl, R.id.qr2_kl, R.id.qr3_kl, R.id.qr4_kl, R.id.qr5_kl, R.id.qr6_kl, R.id.qr7_kl, R.id.qr8_kl};
+    private static final int[] QKR = {R.id.qr1_kr, R.id.qr2_kr, R.id.qr3_kr, R.id.qr4_kr, R.id.qr5_kr, R.id.qr6_kr, R.id.qr7_kr, R.id.qr8_kr};
     private static final int[] QA = {R.id.qr1_a, R.id.qr2_a, R.id.qr3_a, R.id.qr4_a, R.id.qr5_a, R.id.qr6_a, R.id.qr7_a, R.id.qr8_a};
 
     private static RemoteViews buildQuartos(Context c, int id, Cfg g, int w, int h, boolean sample) {
@@ -322,7 +330,9 @@ final class WidgetKit {
         float f = tx(g);
         long now = System.currentTimeMillis();
         boolean tag = h >= 70;
-        float avail = h - 28 - (tag ? 22 : 0);
+        boolean head = g.head && h >= 150;
+        boolean sw = "switch".equals(g.ctl);
+        float avail = h - 28 - (head ? 56 : (tag ? 22 : 0));
         int n = (int) clamp(avail / (36f * Math.max(1f, f)), 1, 8);
         int[] an = new int[1];
         List<Row> all = night(c, now, sample, an);
@@ -334,7 +344,21 @@ final class WidgetKit {
         boolean showA = g.alarm && w >= 200;
         int dim = (t.muted & 0x00FFFFFF) | 0x88000000;
         int dimText = (t.text & 0x00FFFFFF) | 0x88000000;
-        v.setViewVisibility(R.id.w_tag, tag ? View.VISIBLE : View.GONE);
+        v.setViewVisibility(R.id.w_tag, tag && !head ? View.VISIBLE : View.GONE);
+        v.setViewVisibility(R.id.w_head, head ? View.VISIBLE : View.GONE);
+        if (head) {
+            Row nx = null;
+            for (Row r : all) if (!r.past && r.on && r.a > now) { nx = r; break; }
+            v.setTextViewText(R.id.w_ht, nx != null ? hhmm(nx.a) : "--:--");
+            v.setTextViewText(R.id.w_hv, nx != null ? dur(nx.a - now) : (all.isEmpty() ? "sem quartos" : "nenhum ligado"));
+            v.setTextViewText(R.id.w_hr, nx != null ? "TOCA EM" : "");
+            v.setTextColor(R.id.w_hl, t.muted);
+            v.setTextColor(R.id.w_hr, t.muted);
+            v.setTextColor(R.id.w_ht, t.accent);
+            v.setTextColor(R.id.w_hv, t.text);
+            size(v, R.id.w_ht, 34, Math.min(f, 1.2f));
+            size(v, R.id.w_hv, 17, Math.min(f, 1.2f));
+        }
         v.setTextColor(R.id.w_tag, t.muted);
         boolean allPast = !all.isEmpty() && an[0] >= 0 && all.get(an[0]).past;
         long[] ss = shiftState(c, now);
@@ -358,11 +382,18 @@ final class WidgetKit {
             Row r = all.get(k);
             boolean cur = k == an[0];
             v.setViewVisibility(QR[i], View.VISIBLE);
-            String alarmTxt = r.on ? "🔔 " + hhmm(r.a) : "sem alarme";
-            v.setTextViewText(QT[i], r.past ? strike(r.l) : r.l);
+            String alarmTxt = sw ? (r.on ? hhmm(r.a) : "--:--") : (r.on ? "🔔 " + hhmm(r.a) : "sem alarme");
+            String lab = r.l.replace(":00", "");
+            v.setTextViewText(QT[i], r.past ? strike(lab) : lab);
             v.setTextViewText(QP[i], r.past ? strike(r.p) : r.p);
             v.setTextViewText(QA[i], r.past ? strike(alarmTxt) : alarmTxt);
             v.setViewVisibility(QA[i], showA ? View.VISIBLE : View.GONE);
+            v.setViewVisibility(QS[i], sw && w >= 200 ? View.VISIBLE : View.GONE);
+            if (sw) {
+                v.setInt(QSK[i], "setColorFilter", r.on ? (r.past ? dim : t.accent) : (t.muted & 0x00FFFFFF) | 0x44000000);
+                v.setViewVisibility(QKL[i], r.on ? View.GONE : View.VISIBLE);
+                v.setViewVisibility(QKR[i], r.on ? View.VISIBLE : View.GONE);
+            }
             v.setTextColor(QT[i], r.past ? dim : (cur ? t.accent : t.muted));
             v.setTextColor(QP[i], r.past ? dimText : (cur ? t.accent : t.text));
             v.setTextColor(QA[i], r.past ? dim : (cur ? t.accent : t.muted));

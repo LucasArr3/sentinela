@@ -27,6 +27,58 @@
             android:text="QUARTOS DE HORA"
             android:layout_marginBottom="6dp"
             />
+        <LinearLayout
+            android:id="@+id/w_head"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="bottom"
+            android:layout_marginBottom="6dp">
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/w_hl"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:maxLines="1"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.15"
+                    android:text="PRÓXIMO ALARME" />
+                <TextView
+                    android:id="@+id/w_ht"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:maxLines="1"
+                    android:textSize="34sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="end">
+                <TextView
+                    android:id="@+id/w_hr"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:maxLines="1"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.15"
+                    android:text="TOCA EM" />
+                <TextView
+                    android:id="@+id/w_hv"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:maxLines="1"
+                    android:textSize="17sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </LinearLayout>
         <TextView
             android:id="@+id/w_vazio"
             android:layout_width="match_parent"
@@ -44,9 +96,8 @@
             android:orientation="horizontal">
             <TextView
                 android:id="@+id/qr1_t"
-                android:layout_width="wrap_content"
+                android:layout_width="78dp"
                 android:layout_height="wrap_content"
-                android:minWidth="100dp"
                 android:maxLines="1"
                 android:textSize="14sp"
                 android:textStyle="bold" />
@@ -67,6 +118,32 @@
                 android:maxLines="1"
                 android:textSize="13sp"
                 android:textStyle="bold" />
+                    <FrameLayout
+                android:id="@+id/qr1_sw"
+                android:layout_width="44dp"
+                android:layout_height="24dp"
+                android:layout_marginStart="8dp"
+                android:visibility="gone">
+                <ImageView
+                    android:id="@+id/qr1_sk"
+                    android:layout_width="44dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/sw_track" />
+                <ImageView
+                    android:id="@+id/qr1_kl"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:layout_gravity="start|center_vertical"
+                    android:layout_marginStart="3dp"
+                    android:src="@drawable/sw_knob" />
+                <ImageView
+                    android:id="@+id/qr1_kr"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:layout_gravity="end|center_vertical"
+                    android:layout_marginEnd="3dp"
+                    android:src="@drawable/sw_knob" />
+            </FrameLayout>
         </LinearLayout>
         <LinearLayout
             android:id="@+id/qr2"
@@ -76,9 +153,8 @@
             android:orientation="horizontal">
             <TextView
                 android:id="@+id/qr2_t"
-                android:layout_width="wrap_content"
+                android:layout_width="78dp"
                 android:layout_height="wrap_content"
-                android:minWidth="100dp"
                 android:maxLines="1"
                 android:textSize="14sp"
                 android:textStyle="bold" />
@@ -99,6 +175,32 @@
                 android:maxLines="1"
                 android:textSize="13sp"
                 android:textStyle="bold" />
+                    <FrameLayout
+                android:id="@+id/qr2_sw"
+                android:layout_width="44dp"
+                android:layout_height="24dp"
+                android:layout_marginStart="8dp"
+                android:visibility="gone">
+                <ImageView
+                    android:id="@+id/qr2_sk"
+                    android:layout_width="44dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/sw_track" />
+                <ImageView
+                    android:id="@+id/qr2_kl"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:layout_gravity="start|center_vertical"
+                    android:layout_marginStart="3dp"
+                    android:src="@drawable/sw_knob" />
+                <ImageView
+                    android:id="@+id/qr2_kr"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:layout_gravity="end|center_vertical"
+                    android:layout_marginEnd="3dp"
+                    android:src="@drawable/sw_knob" />
+            </FrameLayout>
         </LinearLayout>
         <LinearLayout
             android:id="@+id/qr3"
@@ -108,9 +210,8 @@
             android:orientation="horizontal">
             <TextView
                 android:id="@+id/qr3_t"
-                android:layout_width="wrap_content"
+                android:layout_width="78dp"
                 android:layout_height="wrap_content"
-                android:minWidth="100dp"
                 android:maxLines="1"
                 android:textSize="14sp"
                 android:textStyle="bold" />
@@ -131,6 +232,32 @@
                 android:maxLines="1"
                 android:textSize="13sp"
                 android:textStyle="bold" />
+                    <FrameLayout
+                android:id="@+id/qr3_sw"
+                android:layout_width="44dp"
+                android:layout_height="24dp"
+                android:layout_marginStart="8dp"
+                android:visibility="gone">
+                <ImageView
+                    android:id="@+id/qr3_sk"
+                    android:layout_width="44dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/sw_track" />
+                <ImageView
+                    android:id="@+id/qr3_kl"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:layout_gravity="start|center_vertical"
+                    android:layout_marginStart="3dp"
+                    android:src="@drawable/sw_knob" />
+                <ImageView
+                    android:id="@+id/qr3_kr"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:layout_gravity="end|center_vertical"
+                    android:layout_marginEnd="3dp"
+                    android:src="@drawable/sw_knob" />
+            </FrameLayout>
         </LinearLayout>
         <LinearLayout
             android:id="@+id/qr4"
@@ -140,9 +267,8 @@
             android:orientation="horizontal">
             <TextView
                 android:id="@+id/qr4_t"
-                android:layout_width="wrap_content"
+                android:layout_width="78dp"
                 android:layout_height="wrap_content"
-                android:minWidth="100dp"
                 android:maxLines="1"
                 android:textSize="14sp"
                 android:textStyle="bold" />
@@ -163,6 +289,32 @@
                 android:maxLines="1"
                 android:textSize="13sp"
                 android:textStyle="bold" />
+                    <FrameLayout
+                android:id="@+id/qr4_sw"
+                android:layout_width="44dp"
+                android:layout_height="24dp"
+                android:layout_marginStart="8dp"
+                android:visibility="gone">
+                <ImageView
+                    android:id="@+id/qr4_sk"
+                    android:layout_width="44dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/sw_track" />
+                <ImageView
+                    android:id="@+id/qr4_kl"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:layout_gravity="start|center_vertical"
+                    android:layout_marginStart="3dp"
+                    android:src="@drawable/sw_knob" />
+                <ImageView
+                    android:id="@+id/qr4_kr"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:layout_gravity="end|center_vertical"
+                    android:layout_marginEnd="3dp"
+                    android:src="@drawable/sw_knob" />
+            </FrameLayout>
         </LinearLayout>
         <LinearLayout
             android:id="@+id/qr5"
@@ -172,9 +324,8 @@
             android:orientation="horizontal">
             <TextView
                 android:id="@+id/qr5_t"
-                android:layout_width="wrap_content"
+                android:layout_width="78dp"
                 android:layout_height="wrap_content"
-                android:minWidth="100dp"
                 android:maxLines="1"
                 android:textSize="14sp"
                 android:textStyle="bold" />
@@ -195,6 +346,32 @@
                 android:maxLines="1"
                 android:textSize="13sp"
                 android:textStyle="bold" />
+                    <FrameLayout
+                android:id="@+id/qr5_sw"
+                android:layout_width="44dp"
+                android:layout_height="24dp"
+                android:layout_marginStart="8dp"
+                android:visibility="gone">
+                <ImageView
+                    android:id="@+id/qr5_sk"
+                    android:layout_width="44dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/sw_track" />
+                <ImageView
+                    android:id="@+id/qr5_kl"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:layout_gravity="start|center_vertical"
+                    android:layout_marginStart="3dp"
+                    android:src="@drawable/sw_knob" />
+                <ImageView
+                    android:id="@+id/qr5_kr"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:layout_gravity="end|center_vertical"
+                    android:layout_marginEnd="3dp"
+                    android:src="@drawable/sw_knob" />
+            </FrameLayout>
         </LinearLayout>
         <LinearLayout
             android:id="@+id/qr6"
@@ -204,9 +381,8 @@
             android:orientation="horizontal">
             <TextView
                 android:id="@+id/qr6_t"
-                android:layout_width="wrap_content"
+                android:layout_width="78dp"
                 android:layout_height="wrap_content"
-                android:minWidth="100dp"
                 android:maxLines="1"
                 android:textSize="14sp"
                 android:textStyle="bold" />
@@ -227,6 +403,32 @@
                 android:maxLines="1"
                 android:textSize="13sp"
                 android:textStyle="bold" />
+                    <FrameLayout
+                android:id="@+id/qr6_sw"
+                android:layout_width="44dp"
+                android:layout_height="24dp"
+                android:layout_marginStart="8dp"
+                android:visibility="gone">
+                <ImageView
+                    android:id="@+id/qr6_sk"
+                    android:layout_width="44dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/sw_track" />
+                <ImageView
+                    android:id="@+id/qr6_kl"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:layout_gravity="start|center_vertical"
+                    android:layout_marginStart="3dp"
+                    android:src="@drawable/sw_knob" />
+                <ImageView
+                    android:id="@+id/qr6_kr"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:layout_gravity="end|center_vertical"
+                    android:layout_marginEnd="3dp"
+                    android:src="@drawable/sw_knob" />
+            </FrameLayout>
         </LinearLayout>
         <LinearLayout
             android:id="@+id/qr7"
@@ -236,9 +438,8 @@
             android:orientation="horizontal">
             <TextView
                 android:id="@+id/qr7_t"
-                android:layout_width="wrap_content"
+                android:layout_width="78dp"
                 android:layout_height="wrap_content"
-                android:minWidth="100dp"
                 android:maxLines="1"
                 android:textSize="14sp"
                 android:textStyle="bold" />
@@ -259,6 +460,32 @@
                 android:maxLines="1"
                 android:textSize="13sp"
                 android:textStyle="bold" />
+                    <FrameLayout
+                android:id="@+id/qr7_sw"
+                android:layout_width="44dp"
+                android:layout_height="24dp"
+                android:layout_marginStart="8dp"
+                android:visibility="gone">
+                <ImageView
+                    android:id="@+id/qr7_sk"
+                    android:layout_width="44dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/sw_track" />
+                <ImageView
+                    android:id="@+id/qr7_kl"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:layout_gravity="start|center_vertical"
+                    android:layout_marginStart="3dp"
+                    android:src="@drawable/sw_knob" />
+                <ImageView
+                    android:id="@+id/qr7_kr"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:layout_gravity="end|center_vertical"
+                    android:layout_marginEnd="3dp"
+                    android:src="@drawable/sw_knob" />
+            </FrameLayout>
         </LinearLayout>
         <LinearLayout
             android:id="@+id/qr8"
@@ -268,9 +495,8 @@
             android:orientation="horizontal">
             <TextView
                 android:id="@+id/qr8_t"
-                android:layout_width="wrap_content"
+                android:layout_width="78dp"
                 android:layout_height="wrap_content"
-                android:minWidth="100dp"
                 android:maxLines="1"
                 android:textSize="14sp"
                 android:textStyle="bold" />
@@ -291,6 +517,32 @@
                 android:maxLines="1"
                 android:textSize="13sp"
                 android:textStyle="bold" />
+                    <FrameLayout
+                android:id="@+id/qr8_sw"
+                android:layout_width="44dp"
+                android:layout_height="24dp"
+                android:layout_marginStart="8dp"
+                android:visibility="gone">
+                <ImageView
+                    android:id="@+id/qr8_sk"
+                    android:layout_width="44dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/sw_track" />
+                <ImageView
+                    android:id="@+id/qr8_kl"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:layout_gravity="start|center_vertical"
+                    android:layout_marginStart="3dp"
+                    android:src="@drawable/sw_knob" />
+                <ImageView
+                    android:id="@+id/qr8_kr"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:layout_gravity="end|center_vertical"
+                    android:layout_marginEnd="3dp"
+                    android:src="@drawable/sw_knob" />
+            </FrameLayout>
         </LinearLayout>
     </LinearLayout>
 </FrameLayout>

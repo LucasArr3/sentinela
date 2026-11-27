@@ -1157,20 +1157,3 @@ input[type=color].x,.mkc input[type=color],.mkrow input[type=color]{-webkit-appe
 .msum .t{font-weight:700;font-size:14.5px}
 .mdays{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
 .mdays button{min-width:30px;height:28px;padding:0 7px;border-radius:9px;border:1px solid var(--line);background:var(--surface2);font-size:12.5px;font-weight:700;color:var(--text)}
-
-/* ===== Alarmes: colunas fixas (Quarto | Posto | Alarme | Botão) ===== */
-.alist .ahead,.arow .abtn{display:grid;grid-template-columns:64px minmax(0,1fr) 58px;column-gap:10px;align-items:center}
-.alist .ahead{padding:2px 56px 8px 0;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:800;color:var(--muted);border-bottom:1px solid var(--line)}
-.alist .ahead .ah{width:auto;font-size:10.5px;font-weight:800;letter-spacing:.12em;text-align:right}
-.arow .abtn{flex:1;min-width:0;gap:0}
-.arow .aq{font-size:14px;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
-.arow .pp{font-size:16px;font-weight:700}
-.arow .ah{width:auto;text-align:right;font-size:15px;font-weight:700;letter-spacing:0;color:var(--muted)}
-.arow .abody{display:none}
-.arow .actl{flex:none;width:46px;display:flex;justify-content:flex-end}
-.arow .ahd{gap:10px;padding:11px 0}
-.arow.cur .aq,.arow.cur .pp,.arow.cur .ah{color:#f5a524}
-.arow.cur .abtn{border:0}
-.arow.past{opacity:.38}.arow.past .aq,.arow.past .pp,.arow.past .ah{text-decoration:line-through}
-.abell{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--line);background:var(--surface2);color:var(--muted)}
-.abell svg{width:19px;height:19px}.abell.on{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 55%,transparent);background:color-mix(in srgb,var(--accent) 14%,transparent)}
