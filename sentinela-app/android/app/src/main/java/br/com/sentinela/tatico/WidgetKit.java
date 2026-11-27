@@ -269,6 +269,46 @@ final class WidgetKit {
         v.setTextViewTextSize(id, TypedValue.COMPLEX_UNIT_SP, sp * f);
     }
 
+    /** [0]=fim do plantão em andamento (0 = nenhum), [1]=início do próximo (0 = nenhum). */
+    static long[] shiftState(Context c, long now) {
+        long[] r = new long[2];
+        try {
+            JSONArray sh = new JSONObject(AlarmStore.widgetJson(c)).optJSONArray("shifts");
+            if (sh == null) return r;
+            for (int i = 0; i < sh.length(); i++) {
+                JSONObject o = sh.optJSONObject(i);
+                if (o == null) continue;
+                long s = o.optLong("s"), e = o.optLong("e");
+                if (s <= now && now < e) r[0] = e;
+                else if (s > now && r[1] == 0) r[1] = s;
+            }
+        } catch (Exception ignored) {
+            // sem dados
+        }
+        return r;
+    }
+
+    /** Agenda a próxima atualização do widget para o próximo quarto/plantão que começa ou termina. */
+    static void scheduleTick(Context c) {
+        long now = System.currentTimeMillis();
+        long next = now + 30 * 60000L;
+        for (Row r : all(c, now)) {
+            if (r.s > now && r.s < next) next = r.s;
+            if (r.e > now && r.e < next) next = r.e;
+        }
+        long[] st = shiftState(c, now);
+        if (st[0] > now && st[0] < next) next = st[0];
+        if (st[1] > now && st[1] < next) next = st[1];
+        try {
+            android.app.AlarmManager am = (android.app.AlarmManager) c.getSystemService(Context.ALARM_SERVICE);
+            Intent in = new Intent(c, PlantaoWidget.class).setAction("br.com.sentinela.tatico.WIDGET_TICK");
+            PendingIntent pi = PendingIntent.getBroadcast(c, 7100, in, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+            am.set(android.app.AlarmManager.RTC, next + 1500, pi);
+        } catch (Exception ignored) {
+            // o sistema ainda atualiza a cada 30 min
+        }
+    }
+
     // ---------- Quartos de hora
     private static final int[] QR = {R.id.qr1, R.id.qr2, R.id.qr3, R.id.qr4, R.id.qr5, R.id.qr6, R.id.qr7, R.id.qr8};
     private static final int[] QT = {R.id.qr1_t, R.id.qr2_t, R.id.qr3_t, R.id.qr4_t, R.id.qr5_t, R.id.qr6_t, R.id.qr7_t, R.id.qr8_t};
@@ -296,7 +336,17 @@ final class WidgetKit {
         int dimText = (t.text & 0x00FFFFFF) | 0x88000000;
         v.setViewVisibility(R.id.w_tag, tag ? View.VISIBLE : View.GONE);
         v.setTextColor(R.id.w_tag, t.muted);
-        v.setTextViewText(R.id.w_vazio, "Nenhum quarto marcado");
+        boolean allPast = !all.isEmpty() && an[0] >= 0 && all.get(an[0]).past;
+        long[] ss = shiftState(c, now);
+        boolean ended = !sample && (all.isEmpty() || allPast) && ss[0] == 0;
+        String empty = "Nenhum quarto marcado";
+        if (ended && ss[1] > 0) {
+            empty = (allPast ? "Quartos concluídos ✓\n" : "") + "Próximo plantão: " + new SimpleDateFormat("EEE dd/MM", new Locale("pt", "BR")).format(new Date(ss[1])) + " " + hhmm(ss[1]) + "\nem " + dur(ss[1] - now);
+        } else if (ended && allPast) {
+            empty = "Quartos concluídos ✓";
+        }
+        if (ended) all = new ArrayList<>();
+        v.setTextViewText(R.id.w_vazio, empty);
         v.setTextColor(R.id.w_vazio, t.muted);
         v.setViewVisibility(R.id.w_vazio, all.isEmpty() ? View.VISIBLE : View.GONE);
         for (int i = 0; i < 8; i++) {
@@ -447,6 +497,7 @@ final class WidgetKit {
         String kind = kindOf(c, id);
         int[] s = size(c, id, kind);
         m.updateAppWidget(id, build(c, id, kind, cfg(c, id), s[0], s[1], false));
+        scheduleTick(c);
     }
 
     static void refreshAll(Context c) {

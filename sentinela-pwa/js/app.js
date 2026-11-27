@@ -335,7 +335,7 @@ function alarmesTop() {
   const list = `<div class="card alist">${rows || '<div class="muted sm" style="padding:8px 2px">Nenhum quarto marcado. Marque em Postos e ele aparece aqui.</div>'}</div>`;
   const seg = `<div class="seg">${WAKE.map(([v, l]) => `<button class="${vm === v ? 'on' : ''}" data-act="almode" data-v="${v}">${l}</button>`).join('')}</div>`;
   const vib = vm === 'vibsom' ? `<div class="achips">${[5, 10, 15, 30, 60].map((n) => `<button type="button" class="chip ${vl === n ? 'on' : ''}" data-act="alvib" data-v="${n}">${n} s</button>`).join('')}</div>` : '';
-  const more = `<details class="sub alsub" data-sec="alwake2" ${S.open.has('alwake2') ? 'open' : ''}><summary>Mais opções</summary><div class="col" style="margin-top:10px;gap:12px">
+  const more = `<details class="sub alsub" data-sec="alwake2" ${S.open.has('alwake2') ? 'open' : ''}><summary>Anotação e ocorrência</summary><div class="col" style="margin-top:10px;gap:12px">
    <div class="grid2"><label class="f">Avisar antes (min)<input type="number" min="0" max="120" inputmode="numeric" data-bind="prefs.lead" data-num value="${pr.lead}"></label><label class="f">Som padrão<select data-bind="prefs.sound">${sndOpts(pr.sound)}</select></label></div>
    <div class="grid2"><label class="f">Soneca (min)<input type="number" min="1" max="30" inputmode="numeric" data-bind="prefs.snooze" data-num value="${pr.snooze}"></label><label class="f">Parar sozinho (min)<input type="number" min="1" max="30" inputmode="numeric" data-bind="prefs.autostop" data-num value="${pr.autostop}"></label></div>
    <label class="tgl"><span><div class="b">Volume crescente</div><div class="muted xs">Começa baixo e sobe em ~10 s</div></span><input type="checkbox" data-bind="prefs.ramp" ${pr.ramp ? 'checked' : ''}></label></div></details>`;
@@ -449,6 +449,29 @@ function daySummary(date) {
   if (infoStyle() !== 'cartoes') { const its = renderItems(dayItems(date), infoStyle()); const meta = [hol, i.status === 'plantao' ? `Plantão ${d.scale.hours}h · ${d.scale.start}` : (i.status === 'extra' ? (i.events.find((e) => e.type === 'extra')?.turno === 'noturna' ? 'Extra noturna' : 'Extra diurna') : '')].filter(Boolean).join(' · '); const rws = evs.filter((e) => e.type !== 'extra').map((e) => `<div class="ir ev"><b>${esc(evTitle(e))}</b><span>${esc(e.type === 'ocorrencia' ? [e.cat, e.place].filter(Boolean).join(' · ') : evSub(e))}</span></div>`).join(''); return `<div class="dplain" role="button" tabindex="0" data-act="day" data-date="${date}"><div class="dch"><div class="sp" style="min-width:0"><div class="dct">${C.dateLong(date)}</div>${meta ? `<div class="dcs">${esc(meta)}</div>` : ''}</div><span class="dgear" aria-hidden="true">${ic('settings')}</span></div>${its}${rws ? `<div class="ilist">${rws}</div>` : ''}</div>`; }
   return `<div class="dcard" role="button" tabindex="0" data-act="day" data-date="${date}"><div class="dch"><div class="sp" style="min-width:0"><div class="dct">${C.dateLong(date)}</div><div class="dcs">Resumo do dia</div></div><span class="dgear" aria-hidden="true">${ic('settings')}</span></div>${chips.length ? `<div class="row wrap" style="gap:6px">${chips.join('')}</div>` : ''}${sit ? `<div class="dsec">Situação do dia</div>${sit}` : ''}${tm ? `<div class="dsec">Durante o dia</div>${tm}` : ''}${qh}${rows ? `<div class="dsec">${evs.some((e) => e.type === 'obs') ? 'Anotações e registros' : 'Registros'}</div>${rows}` : ''}</div>`;
 }
+// ---------- resumo do mês (tudo que está marcado, tipo agenda) ----------
+function monthCard(x) {
+  const col = (ck) => (S.d.prefs.colors && S.d.prefs.colors[ck]) || C.DEFAULT_COLORS[ck];
+  const G = [['plantao', 'Plantões', S.d.prefs.colors?.plantao || (getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#3b82f6'), 'shield'], ['diurna', 'Extras diurnas', col('extraD'), C.MARK_ICONS.extraD], ['noturna', 'Extras noturnas', col('extraN'), C.MARK_ICONS.extraN], ['permuta', 'Permutas', col('permuta'), C.MARK_ICONS.permuta], ['folga', 'Folgas', col('folga'), C.MARK_ICONS.folga], ['atestado', 'Atestados', col('atestado'), C.MARK_ICONS.atestado], ['ferias', 'Férias', col('ferias'), C.MARK_ICONS.ferias], ['feriado', 'Feriados', holColor(), 'calendar']];
+  (S.d.tags || []).forEach((t) => G.push(['t:' + t.id, t.name, t.color, t.icon || 'target']));
+  const by = {}; G.forEach((g) => { by[g[0]] = []; });
+  for (const d of C.monthDays(x.y, x.m)) {
+    const i = C.dayInfo(d, S.d);
+    if (i.status === 'plantao' || (i.scheduled && !['extra', 'permuta_out', 'folga', 'atestado', 'ferias'].includes(i.status))) by.plantao.push(d);
+    for (const e of i.events) {
+      if (e.type === 'extra') by[e.turno === 'noturna' ? 'noturna' : 'diurna'].push(d);
+      else if (e.type === 'marca') (by['t:' + e.tag] || []).push(d);
+      else if (by[e.type]) by[e.type].push(d);
+    }
+    if (C.holidayName(d, S.d.holidays)) by.feriado.push(d);
+  }
+  const rows = G.filter((g) => by[g[0]].length).map(([k, l, c, icn]) => { const days = [...new Set(by[k])]; return `<div class="mrow"><span class="sti" style="background:${c}">${ic(icn || 'target')}</span><div class="sp" style="min-width:0"><div class="t">${l} <span class="muted">· ${days.length}</span></div><div class="mdays">${days.map((d) => `<button type="button" data-act="cal-pick" data-date="${d}">${+d.slice(8)}</button>`).join('')}</div></div></div>`; }).join('');
+  return `<div class="dcard msum"><div class="dch"><div class="sp"><div class="dct">${C.MONTHS[x.m].toUpperCase()} ${x.y}</div><div class="dcs">Resumo do mês</div></div></div>${rows || '<div class="muted sm" style="padding:6px 0">Nada marcado neste mês.</div>'}</div>`;
+}
+function sumArea(x) {
+  const m = S.calSum === 'mes';
+  return `<div class="seg sumseg"><button class="${m ? '' : 'on'}" data-act="cal-sum" data-v="dia">Resumo do dia</button><button class="${m ? 'on' : ''}" data-act="cal-sum" data-v="mes">Resumo do mês</button></div>${m ? monthCard(x) : daySummary(x.selDay)}`;
+}
 // ---------- formatos do calendário (mesmas funções, jeitos diferentes) ----------
 const CAL_MODES = [['circulos', 'Círculos'], ['padrao', 'Células'], ['limpo', 'Limpo'], ['solto', 'Solto'], ['semanas', 'Semanas'], ['faixa', 'Faixa'], ['agenda', 'Agenda'], ['ano', 'Ano']];
 const CAL_STYLE_IDS = ['circulos', 'padrao', 'limpo', 'solto'];
@@ -512,17 +535,17 @@ function calCell(date, x, withPost) {
 }
 function calGrade(x, withPost) {
   const first = new Date(x.y, x.m, 1).getDay(); const cells = Array.from({ length: first }, () => '<div class="cell blank"></div>').join('') + C.monthDays(x.y, x.m).map((d) => calCell(d, x, withPost)).join('');
-  return `<div class="${S.d.prefs.calCard === false ? 'cwrap' : 'ccard'}">${calHead(x)}${calTicker(x)}<div class="dow">${C.WD3.map((w) => `<div>${w.charAt(0)}</div>`).join('')}</div><div class="cal ${withPost ? 'cal-postos' : ''} ${S.calDir ? 'slide-' + S.calDir : ''}" id="cal" data-cs="${S.d.prefs.cellStyle}">${cells}</div>${calLegend(x)}</div>${calFab()}${daySummary(x.selDay)}`;
+  return `<div class="${S.d.prefs.calCard === false ? 'cwrap' : 'ccard'}">${calHead(x)}${calTicker(x)}<div class="dow">${C.WD3.map((w) => `<div>${w.charAt(0)}</div>`).join('')}</div><div class="cal ${withPost ? 'cal-postos' : ''} ${S.calDir ? 'slide-' + S.calDir : ''}" id="cal" data-cs="${S.d.prefs.cellStyle}">${cells}</div>${calLegend(x)}</div>${calFab()}${sumArea(x)}`;
 }
 function calSemanas(x) {
   const days = C.monthDays(x.y, x.m); const first = new Date(x.y, x.m, 1).getDay(); const weeks = []; let cur = Array(first).fill(null);
   days.forEach((d) => { cur.push(d); if (cur.length === 7) { weeks.push(cur); cur = []; } }); if (cur.length) { while (cur.length < 7) cur.push(null); weeks.push(cur); }
   const cards = weeks.map((w, k) => { const real = w.filter(Boolean); const n = real.filter((d) => ['plantao', 'permuta_in'].includes(C.dayInfo(d, S.d).status)).length; return `<div class="wkcard"><div class="wkh"><b>Semana ${k + 1}</b><span>${C.fmtShort(real[0])} – ${C.fmtShort(real[real.length - 1])}</span><em>${n ? `${n} ${n === 1 ? 'plantão' : 'plantões'} · ${n * x.sc.hours}h` : 'sem plantão'}</em></div><div class="cal wk" data-cs="${S.d.prefs.cellStyle}">${w.map((d) => (d ? calCell(d, x, false) : '<div class="cell blank"></div>')).join('')}</div></div>`; }).join('');
-  return `${calHead(x)}${calTicker(x)}<div class="dow">${C.WD3.map((w) => `<div>${w.charAt(0)}</div>`).join('')}</div><div id="cal" class="wks ${S.calDir ? 'slide-' + S.calDir : ''}">${cards}</div>${calLegend(x)}${calFab()}${daySummary(x.selDay)}`;
+  return `${calHead(x)}${calTicker(x)}<div class="dow">${C.WD3.map((w) => `<div>${w.charAt(0)}</div>`).join('')}</div><div id="cal" class="wks ${S.calDir ? 'slide-' + S.calDir : ''}">${cards}</div>${calLegend(x)}${calFab()}${sumArea(x)}`;
 }
 function calFaixa(x) {
   const strip = C.monthDays(x.y, x.m).map((d) => { const i = C.dayInfo(d, S.d); return `<button class="sd ${d === x.t ? 'today' : ''} ${d === x.selDay ? 'sel' : ''}" style="--sc:${cellColor(i)}" data-st="${C.cellStatus(i, fillStyle())}" data-act="cal-pick" data-date="${d}"><small>${C.WD3[C.weekday(d)]}</small><b>${+d.slice(8)}</b><i></i>${C.dayMarks(i, S.d).length ? `<em class="smk" style="background:${C.dayMarks(i, S.d)[0].color}"></em>` : ''}</button>`; }).join('');
-  return `${calHead(x)}${calTicker(x)}<div class="strip ${S.calDir ? 'slide-' + S.calDir : ''}" id="cal">${strip}</div>${daySummary(x.selDay) || '<div class="muted sm" style="text-align:center;margin-top:8px">Toque num dia</div>'}${calLegend(x)}${calFab()}`;
+  return `${calHead(x)}${calTicker(x)}<div class="strip ${S.calDir ? 'slide-' + S.calDir : ''}" id="cal">${strip}</div>${S.calSum === 'mes' || x.selDay ? sumArea(x) : '<div class="muted sm" style="text-align:center;margin-top:8px">Toque num dia</div>'}${calLegend(x)}${calFab()}`;
 }
 function calAgenda(x) {
   const rel = (d) => { const i = C.dayInfo(d, S.d); return i.status !== 'livre' || i.events.length || C.holidayName(d, x.hols); };
@@ -674,21 +697,26 @@ function tagRow(date, evs) {
 }
 function daySheet(date) {
   const i = C.dayInfo(date, S.d); const st = C.STATUS[i.status]; const hol = C.holidayName(date, S.d.holidays); const qs = C.quartosOn(S.d, date); const evs = i.events.filter((e) => e.type !== 'quarto');
-  const extra = evs.find((e) => e.type === 'extra'); const others = evs.filter((e) => e.type !== 'extra' && e.type !== 'posto' && e.type !== 'marca'); const dpost = postoDia(date); const hasFolga = others.some((e) => e.type === 'folga');
+  const extra = evs.find((e) => e.type === 'extra'); const others = evs.filter((e) => e.type !== 'extra' && e.type !== 'posto' && e.type !== 'marca');
+  const minis = others.filter((e) => e.type === 'obs' || e.type === 'ocorrencia' || e.who || e.cid || e.note || e.reason); const dpost = postoDia(date); const hasFolga = others.some((e) => e.type === 'folga');
   const qsum = qGroups(date).map((g) => { const q = S.d.quarters.find((x) => x.id === g.slot); return `${q ? C.qLabel(q) : g.slot}${g.posts.length ? ' ' + g.posts.join('+') : ''}`; }).join(' · ');
-  const big = (k, small, label, color) => `<button class="qk" data-act="ev-quick" data-k="${k}" data-date="${date}" style="--qc:${color}"><small>${small}</small><b>${label}</b></button>`;
-  const main = extra
-    ? `<div class="exrow"><div class="seg sp"><button class="${extra.turno !== 'noturna' ? 'on' : ''}" data-act="ev-quick" data-k="diurna" data-date="${date}">Extra diurna</button><button class="${extra.turno === 'noturna' ? 'on' : ''}" data-act="ev-quick" data-k="noturna" data-date="${date}">Extra noturna</button></div><button class="ibtn dng" data-act="ev-rm" data-id="${extra.id}" aria-label="Remover extra">${ic('trash')}</button></div>`
-    : `<div class="quick3">${big('diurna', 'Extra', 'Diurna', C.EXTRA_D)}${big('noturna', 'Extra', 'Noturna', C.EXTRA_N)}${hasFolga ? '' : big('folga', 'Dia de', 'Folga', C.TYPES.folga.color)}</div>`;
+  const SITS = [['diurna', 'Diurna', 'extraD', 'extraD'], ['noturna', 'Noturna', 'extraN', 'extraN'], ['folga', 'Folga', 'folga', 'folga'], ['atestado', 'Atestado', 'atestado', 'atestado'], ['ferias', 'Férias', 'ferias', 'ferias'], ['permuta', 'Permuta', 'permuta', 'permuta']];
+  const colOf = (ck) => (S.d.prefs.colors && S.d.prefs.colors[ck]) || C.DEFAULT_COLORS[ck];
+  const isOn = (k) => (k === 'diurna' || k === 'noturna') ? (extra && (extra.turno === 'noturna') === (k === 'noturna')) : others.some((e) => e.type === k);
+  const act = SITS.filter(([k]) => isOn(k));
+  const main = `<div class="sitgrid">${SITS.map(([k, l, ck]) => `<button type="button" class="sitt ${isOn(k) ? 'on' : ''}" style="--tc:${colOf(ck)}" data-act="sit-toggle" data-k="${k}" data-date="${date}" aria-pressed="${isOn(k)}"><i>${ic(C.MARK_ICONS[ck] || 'target')}</i><b>${l}</b></button>`).join('')}</div>`;
+  const icoGrid = (k) => (S.icoPick === k ? `<div class="icopick g">${C.ICON_CHOICES.map((n) => `<button type="button" data-act="ico-set" data-v="${n}" aria-label="${n}">${ic(n)}</button>`).join('')}</div>` : '');
+  const custom = act.length ? `<details class="sub" data-sec="daycust" ${S.open.has('daycust') ? 'open' : ''} style="margin-top:10px"><summary>Cor e ícone do que está marcado</summary><div class="mkgrid" style="margin-top:10px">${act.map(([k, l, ck]) => `<div class="mkc"><button type="button" class="mki" style="background:${colOf(ck)}" data-act="ico-open" data-k="${ck}" aria-label="Trocar ícone">${ic(C.MARK_ICONS[ck] || 'target')}</button><span class="sp">${l}</span><input type="color" data-color="${ck}" value="${colOf(ck)}" aria-label="Cor ${l}"></div>`).join('')}</div>${S.icoPick && !String(S.icoPick).startsWith('t:') && act.some((x) => x[3] === S.icoPick) ? icoGrid(S.icoPick) : ''}<div class="muted xs" style="margin-top:6px">Vale para todos os dias com essa situação.</div></details>` : '';
   const mini = (e) => `<div class="mini"><i style="background:${evColor(e)}"></i><button class="sp" data-act="ev-edit" data-id="${e.id}">${esc(evTitle(e))}</button><button class="ibtn" data-act="ev-rm" data-id="${e.id}" aria-label="Remover">${ic('trash')}</button></div>`;
   const add = (k, label) => `<button class="add w3" data-act="ev-new" data-t="${k}" data-date="${date}"><i style="background:${tint(typeColor(k), 20)};color:${typeColor(k)}">${ic(C.TYPES[k].icon)}</i>${label}</button>`;
   return `<div class="grab"></div><div class="row"><div class="sp"><div class="muted sm">${C.relDays(date)}</div><h3>${C.dateLong(date)}</h3></div><button class="ibtn" data-act="close">${ic('x')}</button></div>
   <div class="row wrap" style="margin:8px 0 14px;gap:6px"><span class="badge" style="background:${tint(st.color, 20)};color:${st.color}">${st.label}</span>${hol ? `<span class="badge" style="background:${tint('#d4a24c', 20)};color:#d4a24c">${esc(hol)}</span>` : ''}</div>
   ${main}
   ${tagRow(date, evs)}
-  ${others.length ? `<div class="col" style="gap:6px;margin-top:10px">${others.map(mini).join('')}</div>` : ''}
+  ${minis.length ? `<div class="col" style="gap:6px;margin-top:10px">${minis.map(mini).join('')}</div>` : ''}
+  ${custom}
   ${i.works || qs.length || dpost || diaResumo(date) ? `<button class="item slim" data-act="q-open" data-date="${date}"><div class="ico" style="background:${tint(C.TYPES.quarto.color, 20)};color:${C.TYPES.quarto.color}">${ic('clock')}</div><div class="sp" style="min-width:0"><div class="t">Postos e quartos</div><div class="s">${dpost || qs.length || diaResumo(date) ? esc([diaResumo(date) ? 'Dia: ' + diaResumo(date) : '', qsum].filter(Boolean).join(' · ')) : 'Toque para marcar'}</div></div>${ic('chevR')}</button>` : ''}
-  <details class="sub" data-sec="daymore" ${S.open.has('daymore') ? 'open' : ''} style="margin-top:12px"><summary>Mais opções</summary><div class="adds" style="margin-top:10px">${add('obs', 'Anotação')}${add('permuta', 'Permuta')}${add('atestado', 'Atestado')}${add('ferias', 'Férias')}${add('ocorrencia', 'Ocorrência')}</div></details>`;
+  <details class="sub" data-sec="daymore" ${S.open.has('daymore') ? 'open' : ''} style="margin-top:12px"><summary>Mais opções</summary><div class="adds" style="margin-top:10px">${add('obs', 'Anotação')}${add('ocorrencia', 'Ocorrência')}</div></details>`;
 }
 function formSheet() {
   if (S.draft.type === 'ocorrencia') return ocForm();
@@ -1010,7 +1038,7 @@ const A = {
   'tag-add': () => { const nm = ($('#tagNew')?.value || '').trim(); if (!nm) return toast('Dê um nome ao marcador', 'err'); (S.d.tags = S.d.tags || []).push({ id: C.uid(), name: nm, color: '#6EA2FF', icon: 'target' }); save(); renderView(); },
   'tag-del': async (el) => { const t = tagOf(el.dataset.id); if (!t) return; if (!(await ask(`Remover o marcador “${t.name}” e as marcações dele nos dias?`, 'Remover'))) return; S.d.tags = S.d.tags.filter((x) => x.id !== t.id); S.d.events = S.d.events.filter((e) => !(e.type === 'marca' && e.tag === t.id)); S.icoPick = null; save(); renderView(); },
   'ico-open': (el) => { const k = el.dataset.k; S.icoPick = S.icoPick === k ? null : k; renderView(); if (S.sheet) renderSheet(); },
-  'ico-set': (el) => { const k = S.icoPick; if (!k) return; if (k.startsWith('t:')) { const t = tagOf(k.slice(2)); if (t) t.icon = el.dataset.v; } else { S.d.prefs.icons = { ...(S.d.prefs.icons || {}), [k]: el.dataset.v }; C.applyIcons(S.d.prefs.icons); } S.icoPick = null; save(); render(); },
+  'ico-set': (el) => { const k = S.icoPick; if (!k) return; if (k.startsWith('t:')) { const t = tagOf(k.slice(2)); if (t) t.icon = el.dataset.v; } else { S.d.prefs.icons = { ...(S.d.prefs.icons || {}), [k]: el.dataset.v }; C.applyIcons(S.d.prefs.icons); } S.icoPick = null; save(); render(); if (S.sheet) renderSheet(); },
   'cal-panel': () => { S.calPanel = !S.calPanel; renderView(); },
   'cal-view2': (el) => { const pr = S.d.prefs; const cur = calMode(pr); const v = el.dataset.v; if (v === 'mes') pr.calView = ''; else { if (v === 'ano' && cur !== 'ano') pr.calPrevView = cur; applyCalMode(pr, v); } save(); render(); },
   'cal-style': (el) => { applyCalMode(S.d.prefs, el.dataset.v); save(); render(); },
@@ -1023,6 +1051,22 @@ const A = {
   'mk-icons': (el) => { const on = el.dataset.v === '1'; pvSet((pr) => { pr.markIcons = on; }, on ? 'Com ícones' : 'Sem ícones'); },
   'mk-icons-q': (el) => { S.d.prefs.markIcons = el.dataset.v === '1'; save(); render(); },
   'mk-reset': () => { S.d.prefs.icons = {}; S.d.prefs.colors = { ...(S.d.prefs.colors || {}) }; for (const k of ['extraD', 'extraN', 'permuta', 'folga', 'atestado', 'ferias']) delete S.d.prefs.colors[k]; C.applyIcons({}); C.applyColors(S.d.prefs.colors); save(); render(); toast('Marcadores restaurados'); },
+  'sit-toggle': async (el) => {
+    const k = el.dataset.k; const date = el.dataset.date; const ev = S.d.events; const undo = (gone, back) => () => { S.d.events = S.d.events.filter((x) => !(back || []).includes(x)); S.d.events.push(...gone); save(); renderSheet(); render(); };
+    if (k === 'permuta' && !ev.some((e) => e.type === 'permuta' && C.dayInfo(date, S.d).events.includes(e))) { S.sheet = null; openForm({ type: 'permuta', date, note: '' }); S.sheet.back = date; return; }
+    if (k === 'diurna' || k === 'noturna') {
+      const ex = ev.find((x) => x.type === 'extra' && x.date === date);
+      if (ex && ex.turno === k) { S.d.events = ev.filter((x) => x !== ex); save(); renderSheet(); render(); return toast('Extra removida', '', undo([ex])); }
+      if (ex) { const old = ex.turno; ex.turno = k; ex.value = S.d.money[k]; save(); renderSheet(); render(); return toast('Extra alterada', '', () => { ex.turno = old; ex.value = S.d.money[old]; save(); renderSheet(); render(); }); }
+      const n = { id: C.uid(), type: 'extra', date, turno: k, value: S.d.money[k], paid: false, note: '' }; ev.push(n); save(); renderSheet(); render(); return toast(`${C.TURNOS[k].replace(' (12h)', '')} registrada`, '', undo([], [n]));
+    }
+    const hit = C.dayInfo(date, S.d).events.filter((e) => e.type === k);
+    if (hit.length) {
+      if (hit.some((e) => e.end && e.end !== e.date) && !(await ask(`${C.TYPES[k].label} de vários dias: remover o período todo?`, 'Remover'))) return;
+      S.d.events = ev.filter((x) => !hit.includes(x)); save(); renderSheet(); render(); return toast(`${C.TYPES[k].label} removida`, '', undo(hit));
+    }
+    const n = { id: C.uid(), type: k, date, note: '' }; ev.push(n); save(); renderSheet(); render(); toast(`${C.TYPES[k].label} registrada`, '', undo([], [n]));
+  },
   'ev-quick': (el) => {
     const k = el.dataset.k; const date = el.dataset.date;
     if (k === 'folga') { S.d.events.push({ id: C.uid(), type: 'folga', date, note: '' }); toast('Folga registrada ✅'); }
