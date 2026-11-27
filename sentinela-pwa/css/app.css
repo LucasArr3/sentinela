@@ -925,3 +925,14 @@ details[data-sec=daymore] .add i{width:30px;height:30px;border-radius:10px}
 .arow.past{opacity:.5}.arow.past .at,.arow.past .ahd b,.arow.past .ab{text-decoration:line-through}
 .arow .aed{display:flex;flex-direction:column;gap:14px;padding:4px 0 16px}
 .qcard .gr.past .gt,.qcard .gr.past .gp b{text-decoration:line-through}
+
+/* ===== Alarmes (enxuto, estilo relógio) ===== */
+.anext{display:flex;align-items:baseline;gap:10px;padding:2px 6px}.anext span{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:700}.anext b{font-size:26px;font-weight:900;font-variant-numeric:tabular-nums;color:var(--accent)}.anext small{color:var(--muted);font-weight:600;font-size:13px}
+.alist{padding:4px 16px}
+.arow .ahd{display:flex;align-items:center;gap:12px;height:auto;padding:10px 0}
+.arow .abody{flex:1;min-width:0;text-align:left;display:flex;flex-direction:column;gap:1px}
+.arow .ah{font-size:30px;font-weight:800;letter-spacing:-.02em;line-height:1.1;font-variant-numeric:tabular-nums}
+.arow .as2{font-size:13px;color:var(--muted);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.arow .as2 b{color:var(--text);font-weight:700}
+.arow.cur .ah{color:#f5a524}
+.arow.past{opacity:.45}.arow.past .ah,.arow.past .as2{text-decoration:line-through}
+.arow .aed{padding:0 0 14px}
