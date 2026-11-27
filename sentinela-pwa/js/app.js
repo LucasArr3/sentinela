@@ -8,7 +8,7 @@ import { startReminders, playSound, stopSound, SOUNDS, keepAwake, notify, askNot
 import { SOUND_CATS, soundLabel, DEFAULT_SOUND, isBuiltin } from './sounds.js';
 import { NativeAlarm, isNative, startListening, canListen, APK_URL, checkUpdate, openApkDownload } from './native.js';
 import { editPhoto, urlToDataUrl, bigGooglePhoto } from './photo.js';
-import { buildReport, reportText, renderReport, makePdf, dataUrlBytes, bytesB64, rowDia, rowNoite } from './report.js';
+import { buildReport, reportText, renderReport, makePdf, dataUrlBytes, bytesB64, reportModel, reportOpts, REPORT_PRESETS, REPORT_DEFAULT } from './report.js';
 import { signUp, signIn, signInGoogle, sendVerify, refreshVerified, GOOGLE_WEB_CLIENT_ID, resetPassword, backupUpload, backupDownload, getMeta, explain, checkAuthEnabled } from './cloud.js';
 
 const nowD = new Date();
@@ -377,17 +377,30 @@ function livroView() {
   <input id="livQ" type="search" placeholder="Buscar nas ocorrências" value="${esc(S.livf.q)}"><div class="chips"><button class="chip ${!S.livf.cat ? 'on' : ''}" data-act="liv-cat" data-v="">Todas</button>${C.OC_CATS.map((c) => `<button class="chip ${S.livf.cat === c ? 'on' : ''}" data-act="liv-cat" data-v="${c}">${c}</button>`).join('')}</div>
   <div class="list" id="livList">${livList()}</div>`;
 }
+const RP_TOG = [['dow', 'Dia da semana'], ['diaWhere', 'Local do posto diurno'], ['diaTime', 'Horário do diurno'], ['nightTime', 'Horário do quarto'], ['nightPost', 'Local do quarto'], ['extras', 'Extras'], ['total', 'Total de plantões'], ['header', 'Nome e unidade']];
+const RP_PRE = [['padrao', 'Padrão'], ['diurno', 'Só diurno'], ['noturno', 'Só noturno'], ['pordia', 'Por dia'], ['completo', 'Completo']];
 function reportView() {
-  const { y, m } = S.rep; const rep = buildReport(S.d, y, m); const text = reportText(rep, S.d.profile);
+  const { y, m } = S.rep; const o = reportOpts(S.d.prefs); const rep = buildReport(S.d, y, m); const text = reportText(rep, S.d.profile, o); const model = reportModel(rep, S.d.profile, o);
+  const same = (a, b) => Object.keys(REPORT_DEFAULT).every((k) => a[k] === b[k]); const cur = RP_PRE.find(([k]) => same(o, REPORT_PRESETS[k]));
+  const seg = (act, items, val) => `<div class="seg">${items.map(([v, l]) => `<button class="${val === v ? 'on' : ''}" data-act="${act}" data-v="${v}">${l}</button>`).join('')}</div>`;
+  const cfg = `<details class="sub" data-sec="rpcfg" ${S.open.has('rpcfg') ? 'open' : ''}><summary>Escolher o que mostrar</summary><div class="col" style="margin-top:10px;gap:12px">
+   <div><div class="b" style="margin-bottom:8px">Postos</div>${seg('rp-show', [['ambos', 'Diurno e noturno'], ['dia', 'Só diurno'], ['noite', 'Só noturno']], o.show)}</div>
+   <div><div class="b" style="margin-bottom:8px">Organizar</div>${seg('rp-group', [['tipo', 'Por tipo'], ['dia', 'Por dia']], o.group)}</div>
+   <div><div class="b" style="margin-bottom:8px">Dados</div><div class="chips">${RP_TOG.map(([k, l]) => `<button type="button" class="chip ${o[k] ? 'on' : ''}" data-act="rp-tog" data-k="${k}">${l}</button>`).join('')}</div></div>
+  </div></details>`;
+  const secs = model.sections.filter((s) => s.rows.length).map((s) => `${s.title ? `<div class="h2 rsh">${s.icon} ${esc(s.title)}</div>` : ''}<div class="rlist">${s.rows.map((r) => `<div class="rrow"><div class="rdt"><b>${C.fmtShort(r.date)}</b>${r.dow ? `<span>${r.dow}</span>` : ''}</div><div class="rinf">${r.lines.map((l) => `<div class="rl">${l.tag ? `<i>${l.tag}</i>` : ''}${esc(l.text)}</div>`).join('')}</div></div>`).join('')}</div>`).join('');
   return `<div class="calhead"><button class="ibtn" data-act="rep-prev" aria-label="Mês anterior">${ic('chevL')}</button><h2 style="text-align:center">${C.MONTHS[m]} <span class="muted" style="font-weight:600">${y}</span></h2><button class="ibtn" data-act="rep-next" aria-label="Próximo mês">${ic('chevR')}</button></div>
   <div class="rexp"><button class="btn sm" data-act="rep-pdf">${ic('download')}PDF</button><button class="btn sm" data-act="rep-img">${ic('image')}Imagem</button><a class="btn sm wa" data-act="rep-wa" data-native href="${esc(waLink(text, S.d.prefs.waPhone))}" target="_blank" rel="noopener">${ic('chat')}WhatsApp</a><button class="btn sm" data-act="rep-copy">${ic('copy')}Copiar</button></div>
-  <div class="muted sm" style="margin:2px 4px">${rep.plantoes} ${rep.plantoes === 1 ? 'plantão' : 'plantões'} · postos de cada dia</div>
-  ${rep.rows.length ? `<div class="rlist">${rep.rows.map((r) => `<div class="rrow"><div class="rdt"><b>${C.fmtShort(r.date)}</b><span>${r.dow}</span></div><div class="rinf"><div class="rd"><i>Diurno</i>${esc(rowDia(r) || '—')}</div><div class="rn"><i>Noturno</i>${esc(rowNoite(r) || '—')}</div></div></div>`).join('')}</div><div class="muted xs" style="text-align:center;margin-top:6px">Extras e valores ficam em Finanças.</div>` : '<div class="card empty">Nenhum posto registrado neste mês.</div>'}`;
+  <div class="chips rpre">${RP_PRE.map(([k, l]) => `<button type="button" class="chip ${cur && cur[0] === k ? 'on' : ''}" data-act="rp-preset" data-v="${k}">${l}</button>`).join('')}${cur ? '' : '<span class="chip on">Personalizado</span>'}</div>
+  ${cfg}
+  ${model.count ? `<div class="muted sm" style="margin:2px 4px">${model.count}</div>` : ''}
+  ${model.empty ? '<div class="card empty">Nenhum registro neste mês.<br><span class="xs">Marque postos e quartos nos dias de plantão.</span></div>' : secs}
+  <details class="sub" data-sec="rpwa" ${S.open.has('rpwa') ? 'open' : ''}><summary>Ver o texto do WhatsApp</summary><pre class="rtxt">${esc(text)}</pre></details>`;
 }
 async function reportFile(kind) {
   const rep = buildReport(S.d, S.rep.y, S.rep.m); const prof = S.d.profile; const name = `relatorio-${C.ymKey(S.rep.y, S.rep.m)}`;
-  if (kind === 'pdf') { const pages = renderReport(rep, prof, { paged: true }); const jp = pages.map((cv) => ({ bytes: dataUrlBytes(cv.toDataURL('image/jpeg', 0.92)), w: cv.width, h: cv.height })); return { name: name + '.pdf', mime: 'application/pdf', bytes: makePdf(jp) }; }
-  const cv = renderReport(rep, prof, { paged: false })[0]; return { name: name + '.png', mime: 'image/png', bytes: dataUrlBytes(cv.toDataURL('image/png')) };
+  if (kind === 'pdf') { const pages = renderReport(rep, prof, { paged: true, opts: reportOpts(S.d.prefs) }); const jp = pages.map((cv) => ({ bytes: dataUrlBytes(cv.toDataURL('image/jpeg', 0.92)), w: cv.width, h: cv.height })); return { name: name + '.pdf', mime: 'application/pdf', bytes: makePdf(jp) }; }
+  const cv = renderReport(rep, prof, { paged: false, opts: reportOpts(S.d.prefs) })[0]; return { name: name + '.png', mime: 'image/png', bytes: dataUrlBytes(cv.toDataURL('image/png')) };
 }
 async function shareReportFile(f) {
   if (isNative()) return NativeAlarm.shareFile(f.name, f.mime, bytesB64(f.bytes));
@@ -974,7 +987,11 @@ const A = {
   'rep-prev': () => { shiftMonth(S.rep, -1); renderView(); }, 'rep-next': () => { shiftMonth(S.rep, 1); renderView(); },
   'rep-pdf': async () => { try { toast('Gerando PDF…'); await shareReportFile(await reportFile('pdf')); } catch (e) { toast('Não consegui gerar o PDF: ' + ((e && e.message) || e), 'err'); } },
   'rep-img': async () => { try { toast('Gerando imagem…'); await shareReportFile(await reportFile('img')); } catch (e) { toast('Não consegui gerar a imagem: ' + ((e && e.message) || e), 'err'); } },
-  'rep-copy': async () => { const t = reportText(buildReport(S.d, S.rep.y, S.rep.m), S.d.profile); try { await navigator.clipboard.writeText(t); toast('Relatório copiado ✅'); } catch { toast('Não consegui copiar', 'err'); } },
+  'rp-preset': (el) => { S.d.prefs.report = { ...REPORT_PRESETS[el.dataset.v] }; save(); renderView(); },
+  'rp-show': (el) => { S.d.prefs.report = { ...reportOpts(S.d.prefs), show: el.dataset.v }; save(); renderView(); },
+  'rp-group': (el) => { S.d.prefs.report = { ...reportOpts(S.d.prefs), group: el.dataset.v }; save(); renderView(); },
+  'rp-tog': (el) => { const o = reportOpts(S.d.prefs); S.d.prefs.report = { ...o, [el.dataset.k]: !o[el.dataset.k] }; save(); renderView(); },
+  'rep-copy': async () => { const t = reportText(buildReport(S.d, S.rep.y, S.rep.m), S.d.profile, reportOpts(S.d.prefs)); try { await navigator.clipboard.writeText(t); toast('Relatório copiado ✅'); } catch { toast('Não consegui copiar', 'err'); } },
   'qv-all': () => { S.qv.all = !S.qv.all; renderView(); },
   'qv-prev': () => { shiftMonth(S.qv, -1); render(); }, 'qv-next': () => { shiftMonth(S.qv, 1); render(); },
   'liv-prev': () => { shiftMonth(S.liv, -1); render(); }, 'liv-next': () => { shiftMonth(S.liv, 1); render(); },
@@ -1358,5 +1375,5 @@ function demoData(theme, cell) {
   if (S.d?.prefs.wake) keepAwake(true);
   if (isNative()) { loadBio(); loadAlarmStatus(); syncAlarms(); setTimeout(() => runUpdateCheck(false), 4000); setInterval(syncAlarms, 6 * 3600e3); document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { loadAlarmStatus(); syncAlarms(); } }); }
   else startReminders(() => (S.uid && S.d?.onboarded ? S.d : null), showAlarm);
-  window.__sentinela = { S, go, openSheet, openForm, render }; // útil para depuração/testes
+  window.__sentinela = { S, go, openSheet, openForm, render, reportFile }; // útil para depuração/testes
 })();

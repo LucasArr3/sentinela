@@ -1049,3 +1049,7 @@ input[type=color][data-tagdraft]{width:42px;height:34px;padding:0;border-radius:
 :root[data-ms=vazado] .cal[data-cs=circle] .cell[data-st=plantao] .n{color:var(--text)}
 :root[data-ms=vazado] .cal[data-cs=circle] .cell.today .n{box-shadow:inset 0 0 0 2.5px var(--sc),0 0 0 2px var(--gap,var(--bg)),0 0 0 4px var(--tc,var(--text))!important}
 :root:is([data-ms=vazado],[data-ms=icone],[data-ms=risco]) .cell .rg{inset:0}
+
+.rpre{margin:10px 0 2px}.rsh{margin:14px 4px 6px}
+.rrow .rl{font-size:15px;font-weight:700;line-height:1.35}.rrow .rl i{font-style:normal;font-size:10.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-right:8px}
+.rtxt{white-space:pre-wrap;font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--surface2);border:1px solid var(--line);border-radius:14px;padding:12px;margin:10px 0 0;color:var(--text)}
