@@ -27,7 +27,7 @@ export const defaultData = (name = '') => ({
   quarters: DEFAULT_QUARTERS.map((q) => ({ ...q })), posts: [...DEFAULT_POSTS], dayPosts: [...DEFAULT_DAY_POSTS], dayNeedWhere: [...DEFAULT_NEED_WHERE], holidays: [], customSounds: [], tags: [],
   scale: defaultScale(today()),
   money: { diurna: 219, noturna: 219 },
-  prefs: { theme: 'dark', accent: '', speak: false, waPhone: '', waKind: 'completo', lastPost: '', reminders: true, lead: 15, sound: DEFAULT_SOUND, shiftReminder: 0, shiftSound: 'carrilhao', snooze: 5, ramp: true, autostop: 5, markStyle: 'anel', markV: 2, watchRate: 'c', icons: {}, vibMode: 'vibsom', vibLead: 15, watch: true, alvorada: true, wake: false, cellStyle: 'circle', colors: {}, layout: 'moderno', infoStyle: 'cartoes', calCard: true, ai: { provider: 'gemini', key: '', model: '' } },
+  prefs: { theme: 'dark', accent: '', speak: false, waPhone: '', waKind: 'completo', lastPost: '', reminders: true, lead: 15, sound: DEFAULT_SOUND, shiftReminder: 0, shiftSound: 'carrilhao', snooze: 5, ramp: true, autostop: 5, markStyle: 'anel', markIcons: false, markV: 3, watchRate: 'c', icons: {}, vibMode: 'vibsom', vibLead: 15, watch: true, alvorada: true, wake: false, cellStyle: 'circle', colors: {}, layout: 'moderno', infoStyle: 'cartoes', calCard: true, ai: { provider: 'gemini', key: '', model: '' } },
   events: [],
 });
 
@@ -43,7 +43,13 @@ export const Store = {
       (d.events || []).forEach((e) => { if (e.post && map[e.post]) e.post = map[e.post]; });
     }
     if (d.prefs) { if (['tatico', 'safira'].includes(d.prefs.theme)) { d.prefs.theme = 'dark'; d.prefs.layout = 'safira'; } if (!['dark', 'escuro', 'light', 'night'].includes(d.prefs.theme)) d.prefs.theme = 'dark'; if (!['moderno', 'aurora', 'safira', 'vivido', 'grafite'].includes(d.prefs.layout)) d.prefs.layout = 'moderno'; if (d.prefs.layout === 'aurora' && !['dark', 'light'].includes(d.prefs.theme)) d.prefs.theme = 'light'; }
-    if (d.prefs && d.prefs.markV !== 2) { d.prefs.markStyle = 'anel'; d.prefs.markV = 2; }
+    if (d.prefs && d.prefs.markV !== 3) { // marcação em dois campos: forma (anel, risco, bolinha, vazado, cheio) + ícones sim/não
+      const mp = { icone: ['anel', true], vazado: ['vazado', true], cheia: ['cheia', true], anel: ['anel', false], risco: ['risco', false], bolinha: ['bolinha', false] }[d.prefs.markStyle] || ['anel', false];
+      d.prefs.markStyle = mp[0]; d.prefs.markIcons = mp[1];
+      if (d.prefs.cellStyle === 'solid') { d.prefs.cellStyle = 'classic'; d.prefs.markStyle = 'cheia'; }
+      if (d.prefs.calView === 'postos' || d.prefs.calView === 'cheio') d.prefs.calView = '';
+      d.prefs.markV = 3;
+    }
     if (d.prefs && d.prefs.sound) d.prefs.sound = migrateSound(d.prefs.sound); if (Array.isArray(d.quarters)) d.quarters.forEach((q) => { if (q.sound) q.sound = migrateSound(q.sound); }); return { ...b, ...d, profile: { ...b.profile, ...d.profile }, scale: { ...b.scale, ...d.scale }, money: { ...b.money, ...d.money }, prefs: { ...b.prefs, ...d.prefs, accent: (d.prefs || {}).accent && !['#3b82f6', '#e8e8ea'].includes(d.prefs.accent) ? d.prefs.accent : '', ai: { ...b.prefs.ai, ...(d.prefs || {}).ai } }, quarters: Array.isArray(d.quarters) && d.quarters.length ? d.quarters : b.quarters, posts: Array.isArray(d.posts) ? d.posts : b.posts, holidays: Array.isArray(d.holidays) ? d.holidays : [], customSounds: Array.isArray(d.customSounds) ? d.customSounds : [], tags: Array.isArray(d.tags) ? d.tags : [] }; },
   save(id, data) { return wr(`${K}:data:${id}`, data); },
   async register({ name, email, password, guest = false }) {
