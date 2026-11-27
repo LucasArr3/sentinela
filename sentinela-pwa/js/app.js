@@ -379,20 +379,31 @@ function livroView() {
 }
 const RP_TOG = [['dow', 'Dia da semana'], ['diaWhere', 'Local do posto diurno'], ['diaTime', 'Horário do diurno'], ['nightTime', 'Horário do quarto'], ['nightPost', 'Local do quarto'], ['extras', 'Extras'], ['total', 'Total de plantões'], ['header', 'Nome e unidade']];
 const RP_PRE = [['padrao', 'Padrão'], ['diurno', 'Só diurno'], ['noturno', 'Só noturno'], ['pordia', 'Por dia'], ['completo', 'Completo']];
+function rpFilterSheet() {
+  const o = reportOpts(S.d.prefs); const same = (a, b) => Object.keys(REPORT_DEFAULT).every((k) => a[k] === b[k]); const cur = RP_PRE.find(([k]) => same(o, REPORT_PRESETS[k]));
+  const seg = (act, items, val) => `<div class="seg">${items.map(([v, l]) => `<button class="${val === v ? 'on' : ''}" data-act="${act}" data-v="${v}">${l}</button>`).join('')}</div>`;
+  const grp = (title, rows) => `<div class="rfl">${title}</div><div class="fgrp">${rows}</div>`;
+  const row = (k, l) => `<label class="frow"><span>${l}</span><input type="checkbox" class="sw2" data-rpk="${k}" ${o[k] ? 'checked' : ''}></label>`;
+  return `<div class="grab"></div><div class="row"><h3 class="sp">Filtros do relatório</h3><button class="ibtn" data-act="close" aria-label="Fechar">${ic('x')}</button></div>
+  <div class="col" style="margin-top:12px;gap:8px">
+   <div class="rfl">Atalhos</div><div class="chips rpre">${RP_PRE.map(([k, l]) => `<button type="button" class="chip ${cur && cur[0] === k ? 'on' : ''}" data-act="rp-preset" data-v="${k}">${l}</button>`).join('')}</div>
+   <div class="rfl">Postos</div>${seg('rp-show', [['ambos', 'Diurno e noturno'], ['dia', 'Só diurno'], ['noite', 'Só noturno']], o.show)}
+   <div class="rfl">Organizar</div>${seg('rp-group', [['tipo', 'Por tipo'], ['dia', 'Por dia']], o.group)}
+   ${grp('Posto diurno', row('diaWhere', 'Local (Bloco A, Bloco C…)') + row('diaTime', 'Horário'))}
+   ${grp('Posto noturno', row('nightTime', 'Horário do quarto') + row('nightPost', 'Local do quarto'))}
+   ${grp('Mais', row('dow', 'Dia da semana') + row('extras', 'Extras') + row('total', 'Total de plantões') + row('header', 'Nome e unidade'))}
+   <button type="button" class="btn pri blk" data-act="close" style="margin-top:6px">Concluir</button>
+  </div>`;
+}
 function reportView() {
   const { y, m } = S.rep; const o = reportOpts(S.d.prefs); const rep = buildReport(S.d, y, m); const text = reportText(rep, S.d.profile, o); const model = reportModel(rep, S.d.profile, o);
   const same = (a, b) => Object.keys(REPORT_DEFAULT).every((k) => a[k] === b[k]); const cur = RP_PRE.find(([k]) => same(o, REPORT_PRESETS[k]));
   const seg = (act, items, val) => `<div class="seg">${items.map(([v, l]) => `<button class="${val === v ? 'on' : ''}" data-act="${act}" data-v="${v}">${l}</button>`).join('')}</div>`;
-  const fsum = `${({ ambos: 'Diurno e noturno', dia: 'Só diurno', noite: 'Só noturno' })[o.show]} · ${o.group === 'tipo' ? 'Por tipo' : 'Por dia'}`;
-  const cfg = `<details class="rfil" data-sec="rpcfg" ${S.open.has('rpcfg') ? 'open' : ''}><summary>${ic('settings')}<b>Filtros</b><span>${fsum}</span><i>⌄</i></summary><div class="rfbody">
-   <div class="rfl">Postos</div>${seg('rp-show', [['ambos', 'Diurno e noturno'], ['dia', 'Só diurno'], ['noite', 'Só noturno']], o.show)}
-   <div class="rfl">Organizar</div>${seg('rp-group', [['tipo', 'Por tipo'], ['dia', 'Por dia']], o.group)}
-   <div class="rfl">Dados</div><div class="chips xs">${RP_TOG.map(([k, l]) => `<button type="button" class="chip ${o[k] ? 'on' : ''}" data-act="rp-tog" data-k="${k}">${l}</button>`).join('')}</div>
-  </div></details>`;
+  const fsum = `${cur ? cur[1] : 'Personalizado'} · ${({ ambos: 'Diurno e noturno', dia: 'Só diurno', noite: 'Só noturno' })[o.show]}`;
+  const cfg = `<button type="button" class="rfbtn" data-act="rp-open">${ic('settings')}<b>Filtros</b><span>${fsum}</span><i>⌄</i></button>`;
   const secs = model.sections.filter((s) => s.rows.length).map((s) => `${s.title ? `<div class="h2 rsh">${s.icon} ${esc(s.title)}</div>` : ''}<div class="rlist">${s.rows.map((r) => `<div class="rrow"><div class="rdt"><b>${C.fmtShort(r.date)}</b>${r.dow ? `<span>${r.dow}</span>` : ''}</div><div class="rinf">${r.lines.map((l) => `<div class="rl">${l.tag ? `<i>${l.tag}</i>` : ''}${esc(l.text)}</div>`).join('')}</div></div>`).join('')}</div>`).join('');
   return `<div class="calhead"><button class="ibtn" data-act="rep-prev" aria-label="Mês anterior">${ic('chevL')}</button><h2 style="text-align:center">${C.MONTHS[m]} <span class="muted" style="font-weight:600">${y}</span></h2><button class="ibtn" data-act="rep-next" aria-label="Próximo mês">${ic('chevR')}</button></div>
   <div class="rexp"><button class="btn sm" data-act="rep-pdf">${ic('download')}PDF</button><button class="btn sm" data-act="rep-img">${ic('image')}Imagem</button><a class="btn sm wa" data-act="rep-wa" data-native href="${esc(waLink(text, S.d.prefs.waPhone))}" target="_blank" rel="noopener">${ic('chat')}WhatsApp</a><button class="btn sm" data-act="rep-copy">${ic('copy')}Copiar</button></div>
-  <div class="chips rpre">${RP_PRE.map(([k, l]) => `<button type="button" class="chip ${cur && cur[0] === k ? 'on' : ''}" data-act="rp-preset" data-v="${k}">${l}</button>`).join('')}${cur ? '' : '<span class="chip on">Personalizado</span>'}</div>
   ${cfg}
   ${model.count ? `<div class="muted sm" style="margin:2px 4px">${model.count}</div>` : ''}
   ${model.empty ? '<div class="card empty">Nenhum registro neste mês.<br><span class="xs">Marque postos e quartos nos dias de plantão.</span></div>' : secs}
@@ -868,7 +879,7 @@ function renderSheet() {
   if (!root.firstChild || (root.dataset.kind === 'ai') !== (sh.kind === 'ai')) { root.dataset.kind = sh.kind; root.innerHTML = `<div class="overlay" data-act="overlay"><div class="sheet" role="dialog" aria-modal="true"></div></div>`; }
   root.dataset.kind = sh.kind; const el = $('.sheet', root); const top = el.scrollTop;
   if (sh.kind === 'ai') assistant.mount(el);
-  else { el.innerHTML = { day: () => daySheet(sh.date), quartos: () => quartosSheet(sh.date), qalarm: qAlarmSheet, ppick: postPickSheet, qslots: slotsSheet, ptime: timeSheet, pform: postoForm, form: formSheet, pw: pwSheet, pinset: pinSheet, roster: rosterSheet }[sh.kind](); el.scrollTop = top; }
+  else { el.innerHTML = { day: () => daySheet(sh.date), quartos: () => quartosSheet(sh.date), rpfilt: rpFilterSheet, qalarm: qAlarmSheet, ppick: postPickSheet, qslots: slotsSheet, ptime: timeSheet, pform: postoForm, form: formSheet, pw: pwSheet, pinset: pinSheet, roster: rosterSheet }[sh.kind](); el.scrollTop = top; }
 }
 function openForm(base) {
   const T = C.TYPES[base.type]; const e = { turno: 'diurna', dir: 'passei', ...base };
@@ -988,9 +999,10 @@ const A = {
   'rep-prev': () => { shiftMonth(S.rep, -1); renderView(); }, 'rep-next': () => { shiftMonth(S.rep, 1); renderView(); },
   'rep-pdf': async () => { try { toast('Gerando PDF…'); await shareReportFile(await reportFile('pdf')); } catch (e) { toast('Não consegui gerar o PDF: ' + ((e && e.message) || e), 'err'); } },
   'rep-img': async () => { try { toast('Gerando imagem…'); await shareReportFile(await reportFile('img')); } catch (e) { toast('Não consegui gerar a imagem: ' + ((e && e.message) || e), 'err'); } },
-  'rp-preset': (el) => { S.d.prefs.report = { ...REPORT_PRESETS[el.dataset.v] }; save(); renderView(); },
-  'rp-show': (el) => { S.d.prefs.report = { ...reportOpts(S.d.prefs), show: el.dataset.v }; save(); renderView(); },
-  'rp-group': (el) => { S.d.prefs.report = { ...reportOpts(S.d.prefs), group: el.dataset.v }; save(); renderView(); },
+  'rp-preset': (el) => { S.d.prefs.report = { ...REPORT_PRESETS[el.dataset.v] }; save(); renderView(); renderSheet(); },
+  'rp-show': (el) => { S.d.prefs.report = { ...reportOpts(S.d.prefs), show: el.dataset.v }; save(); renderView(); renderSheet(); },
+  'rp-group': (el) => { S.d.prefs.report = { ...reportOpts(S.d.prefs), group: el.dataset.v }; save(); renderView(); renderSheet(); },
+  'rp-open': () => openSheet('rpfilt'),
   'rp-tog': (el) => { const o = reportOpts(S.d.prefs); S.d.prefs.report = { ...o, [el.dataset.k]: !o[el.dataset.k] }; save(); renderView(); },
   'rep-copy': async () => { const t = reportText(buildReport(S.d, S.rep.y, S.rep.m), S.d.profile, reportOpts(S.d.prefs)); try { await navigator.clipboard.writeText(t); toast('Relatório copiado ✅'); } catch { toast('Não consegui copiar', 'err'); } },
   'qv-all': () => { S.qv.all = !S.qv.all; renderView(); },
@@ -1280,6 +1292,7 @@ document.addEventListener('input', (ev) => {
 function renderHint() { /* atualização leve do texto "Até dd/mm" ao digitar */ const h = $('#sheetRoot .muted.xs[style*="-6px"]'); if (h) h.textContent = (+S.draft._days || 1) > 1 && S.draft.date ? `Até ${C.fmtBR(C.addDays(S.draft.date, (+S.draft._days || 1) - 1))}` : ''; }
 document.addEventListener('change', async (ev) => {
   const t = ev.target;
+  if (t.dataset.rpk) { const o = reportOpts(S.d.prefs); S.d.prefs.report = { ...o, [t.dataset.rpk]: t.checked }; save(); renderView(); renderSheet(); return; }
   if (t.dataset.qlead !== undefined) { const q = S.d.quarters[+t.dataset.qlead]; if (q) { const n = Math.max(0, Math.min(720, Math.round(Number(t.value) || 0))); q.lead = n; delete q.at; save(); render(); } return; }
   if (t.dataset.qat !== undefined) { const q = S.d.quarters[+t.dataset.qat]; if (q) { if (/^\d{2}:\d{2}$/.test(t.value)) q.at = t.value; else delete q.at; save(); render(); } return; }
   if (t.dataset.tagdraft) { if (S.tagDraft) S.tagDraft[t.dataset.tagdraft] = t.value; return; }

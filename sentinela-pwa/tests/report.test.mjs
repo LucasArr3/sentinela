@@ -24,15 +24,15 @@ test('lista só dias de plantão ou com posto, sem extras', () => {
 test('texto do WhatsApp: diurnos com data e posto, noturnos com quarto e local', () => {
   const t = reportText(buildReport(mk(ev), 2026, 10), { name: 'Lucas', unit: 'Unidade X' });
   assert.match(t, /Relatório de postos — Novembro\/2026/);
-  assert.match(t, /☀️ \*Postos diurnos\*/); assert.match(t, /28\/11 \(Sáb\) · Bloco A · Chefe de bloco/);
+  assert.match(t, /☀️ \*Postos diurnos\*/); assert.match(t, /28\/11 \(Sáb\) · Chefe de bloco · Bloco A/);
   assert.match(t, /🌙 \*Postos noturnos\*/); assert.match(t, /\*24\/11 \(Ter\)\*\n   • 18:00–20:00 · G1\n   • 20:00–22:00 · G1\n   • 00:00–02:00 · G2/);
 });
 test('relatório personalizável: só noturno, só diurno, por dia e dados opcionais', () => {
   const rep = buildReport(mk(ev), 2026, 10);
   const tn = reportText(rep, {}, REPORT_PRESETS.noturno); assert.ok(!/Postos diurnos/.test(tn)); assert.match(tn, /Postos noturnos/);
-  const td = reportText(rep, {}, REPORT_PRESETS.diurno); assert.ok(!/Postos noturnos/.test(td)); assert.match(td, /\*24\/11 \(Ter\)\*\n   • Bloco C · Calibre 12\n   • G1/);
-  const tp = reportText(rep, {}, REPORT_PRESETS.pordia); assert.match(tp, /\*28\/11 \(Sáb\)\*\n   ☀️ Diurno: Bloco A · Chefe de bloco/);
-  const tc = reportText(rep, {}, { ...REPORT_PRESETS.completo }); assert.match(tc, /Diurno: Bloco C · Calibre 12 \(08:00–14:00\) \/ G1 \(14:00–18:00\)/); assert.match(tc, /Extras/); assert.match(tc, /26\/11 \(Qui\) · Extra diurna/);
+  const td = reportText(rep, {}, REPORT_PRESETS.diurno); assert.ok(!/Postos noturnos/.test(td)); assert.match(td, /\*24\/11 \(Ter\)\*\n   • Calibre 12 · Bloco C\n   • G1/);
+  const tp = reportText(rep, {}, REPORT_PRESETS.pordia); assert.match(tp, /\*28\/11 \(Sáb\)\*\n   ☀️ Diurno: Chefe de bloco · Bloco A/);
+  const tc = reportText(rep, {}, { ...REPORT_PRESETS.completo }); assert.match(tc, /Diurno: Calibre 12 · Bloco C \(08:00–14:00\) \/ G1 \(14:00–18:00\)/); assert.match(tc, /Extras/); assert.match(tc, /26\/11 \(Qui\) · Extra diurna/);
   const sem = reportModel(rep, {}, { dow: false, nightPost: false }); assert.ok(sem.sections[1].rows[0].lines[0].text === '18:00–20:00'); assert.equal(sem.sections[0].rows[0].dow, '');
 });
 test('PDF válido a partir de JPEGs', () => {

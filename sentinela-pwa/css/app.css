@@ -1068,3 +1068,11 @@ input[type=color][data-tagdraft]{width:42px;height:34px;padding:0;border-radius:
 .rfbody{margin-top:6px;padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--surface);display:flex;flex-direction:column;gap:7px}
 .rfl{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-top:4px}.rfl:first-child{margin-top:0}
 .rrow{align-items:center}
+
+/* relatório: um botão só de filtros; folha com linhas alinhadas */
+.rfbtn{display:flex;align-items:center;gap:8px;width:100%;padding:9px 14px;border-radius:13px;background:var(--surface);border:1px solid var(--line);font-size:13px;text-align:left;margin:8px 0}
+.rfbtn svg{width:15px;height:15px;color:var(--muted)}.rfbtn b{font-weight:600}.rfbtn span{margin-left:auto;color:var(--muted);font-size:12px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rfbtn i{font-style:normal;color:var(--muted)}
+.fgrp{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--surface2)}
+.frow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 14px;height:46px;font-size:14px;font-weight:500}
+.frow+.frow{border-top:1px solid var(--line)}
+.rpre{flex-wrap:wrap}

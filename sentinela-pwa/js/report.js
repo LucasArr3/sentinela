@@ -56,7 +56,7 @@ export const REPORT_PRESETS = {
 export function reportModel(rep, profile = {}, opts = {}) {
   const o = { ...REPORT_DEFAULT, ...opts };
   const nightFix = !o.nightTime && !o.nightPost ? { ...o, nightTime: true } : o;
-  const diaText = (d) => (o.diaWhere && d.where ? `${d.where} · ${d.func}` : (d.func || d.post)) + (o.diaTime && d.time ? ` (${d.time})` : '');
+  const diaText = (d) => { const f = d.func || d.post; return (o.diaWhere && d.where ? `${f} · ${d.where}` : f) + (o.diaTime && d.time ? ` (${d.time})` : ''); };
   const nightText = (n) => [nightFix.nightTime ? n.time : '', nightFix.nightPost ? n.post : ''].filter(Boolean).join(' · ');
   const wantDia = o.show !== 'noite', wantNoite = o.show !== 'dia'; const sections = []; const dw = (r) => (o.dow ? r.dow : '');
   if (o.group === 'dia') {
