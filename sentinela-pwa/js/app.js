@@ -484,7 +484,7 @@ function calCommon() {
 }
 const calLegend = (x) => { const ms = markStyle(); return `<div class="legend">${x.lg.map(([c, l, , ic2]) => `<span>${ic2 && (ms === 'icone' || ms === 'vazado' || ms === 'cheia') ? `<i class="lgi" style="background:${c}">${ic(ic2)}</i>` : (ic2 && ms === 'risco' ? `<i class="lgb" style="background:${c}"></i>` : `<i style="background:${c}"></i>`)}${l}</span>`).join('')}</div>`; };
 const calTicker = (x) => (x.mh.length ? `<div class="ticker" aria-label="Feriados do mês"><div class="tk"><div class="tkc">${x.tk}</div><div class="tkc" aria-hidden="true">${x.tk}</div></div></div>` : '');
-const calHead = (x) => `<div class="calhead"><button class="ibtn" data-act="cal-prev" aria-label="Mês anterior">${ic('chevL')}</button><h2 style="text-align:center">${C.MONTHS[x.m]} <span class="muted" style="font-weight:600">${x.y}</span></h2><button class="btn sm" data-act="cal-today">Hoje</button><button class="ibtn" data-act="cal-next" aria-label="Próximo mês">${ic('chevR')}</button></div>`;
+const calHead = (x) => `<div class="calhead"><button class="ibtn" data-act="cal-prev" aria-label="Mês anterior">${ic('chevL')}</button>${calTitle(`${C.MONTHS[x.m]} <span class="muted" style="font-weight:600">${x.y}</span>`)}<button class="btn sm" data-act="cal-today">Hoje</button><button class="ibtn" data-act="cal-next" aria-label="Próximo mês">${ic('chevR')}</button></div>${calPanel()}`;
 const calFab = () => ((S.cal.y !== nowD.getFullYear() || S.cal.m !== nowD.getMonth()) ? `<button class="fab-today" data-act="cal-today">${ic('calendar')}Hoje</button>` : '');
 const cellColor = (i) => { const st = C.cellStatus(i, markStyle()); if (st === 'livre') return 'transparent'; const ex = i.events.find((e) => e.type === 'extra'); return st === 'extra' && ex ? (ex.turno === 'noturna' ? C.EXTRA_N : C.EXTRA_D) : C.STATUS[st].color; };
 const HOLC = '#E0A93B';
@@ -535,19 +535,24 @@ function calAno() {
   const mos = Array.from({ length: 12 }, (_, m) => { const first = new Date(y, m, 1).getDay(); const cells = Array.from({ length: first }, () => '<i class="yb"></i>').join('') + C.monthDays(y, m).map((d) => { const i = C.dayInfo(d, S.d); return `<button class="yd ${d === t ? 'today' : ''} ${d === sel ? 'sel' : ''}" style="--sc:${cellColor(i)}" data-st="${C.cellStatus(i, markStyle())}" data-act="cal-pick" data-date="${d}" aria-label="${C.dateLong(d)}"><span>${+d.slice(8)}</span>${C.dayMarks(i, S.d).length ? `<em class="ymk" style="background:${C.dayMarks(i, S.d)[0].color}"></em>` : ''}</button>`; }).join('');
     return `<div class="ymo"><button class="ymn" data-act="cal-month" data-y="${y}" data-m="${m}">${C.MONTHS[m].slice(0, 3)}</button><div class="yg">${cells}</div></div>`; }).join('');
   const lg = [[C.STATUS.plantao.color, 'Plantão'], [C.EXTRA_D, 'Extra diurna', 1, 'sun'], [C.EXTRA_N, 'Extra noturna', 1, 'moon'], [C.TYPES.permuta.color, 'Permuta', 1, 'swap'], [C.TYPES.folga.color, 'Folga', 1, 'coffee'], [C.TYPES.atestado.color, 'Atestado', 1, 'medical'], [C.TYPES.ferias.color, 'Férias', 1, 'umbrella']];
-  return `<div class="calhead"><button class="ibtn" data-act="cal-yprev" aria-label="Ano anterior">${ic('chevL')}</button><h2 style="text-align:center">${y}</h2><button class="btn sm" data-act="cal-today">Hoje</button><button class="ibtn" data-act="cal-ynext" aria-label="Próximo ano">${ic('chevR')}</button></div><div class="yr" id="cal">${mos}</div><div class="legend" style="margin-top:10px">${lg.map(([c, l]) => `<span><i style="background:${c}"></i>${l}</span>`).join('')}</div><div class="muted xs" style="text-align:center;margin-top:4px">Toque no nome do mês para abri-lo.</div>${daySummary(sel)}`;
+  return `<div class="calhead"><button class="ibtn" data-act="cal-yprev" aria-label="Ano anterior">${ic('chevL')}</button>${calTitle(String(y))}<button class="btn sm" data-act="cal-today">Hoje</button><button class="ibtn" data-act="cal-ynext" aria-label="Próximo ano">${ic('chevR')}</button></div>${calPanel()}<div class="yr" id="cal">${mos}</div><div class="legend" style="margin-top:10px">${lg.map(([c, l]) => `<span><i style="background:${c}"></i>${l}</span>`).join('')}</div><div class="muted xs" style="text-align:center;margin-top:4px">Toque no nome do mês para abri-lo.</div>${daySummary(sel)}`;
 }
-function calToolbar() {
+const CAL_MK = [['anel', 'Anel'], ['vazado', 'Vazado'], ['icone', 'Ícones'], ['risco', 'Risquinhos'], ['bolinha', 'Bolinhas'], ['cheia', 'Cheia']];
+const CAL_STY_SHORT = { padrao: 'Padrão', circulos: 'Círculos', cheio: 'Cheio', limpo: 'Limpo', solto: 'Solto', postos: 'Postos' };
+const cpgBtn = (act, v, l, on) => `<button type="button" class="${on ? 'on' : ''}" data-act="${act}" data-v="${v}">${l}</button>`;
+function calPanel() {
+  if (!S.calPanel) return '';
   const pr = S.d.prefs; const cur = calMode(pr); const view = ['semanas', 'faixa', 'agenda', 'ano'].includes(cur) ? cur : 'mes';
-  const chips = CAL_VIEW_LIST.map(([v, l]) => `<button type="button" class="chip ${view === v ? 'on' : ''}" data-act="cal-view2" data-v="${v}">${l}</button>`).join('');
-  const panel = S.calPanel ? `<div class="calpanel"><div class="rfl">Estilo do mês</div><div class="chips xs">${CAL_MODES.filter(([v]) => CAL_STYLE_IDS.includes(v)).map(([v, n]) => `<button type="button" class="chip ${view === 'mes' && cur === v ? 'on' : ''}" data-act="cal-style" data-v="${v}">${n}</button>`).join('')}</div><div class="rfl">Marcação dos dias</div><div class="chips xs">${[['anel', 'Anel'], ['vazado', 'Vazado + ícones'], ['icone', 'Ícones'], ['risco', 'Risquinhos'], ['bolinha', 'Bolinhas'], ['cheia', 'Célula cheia']].map(([v, l]) => `<button type="button" class="chip ${markPref() === v ? 'on' : ''}" data-act="mk-quick" data-v="${v}">${l}</button>`).join('')}</div><div class="muted xs">Mais opções (temas, cores e ícones) em Ajustes → Aparência.</div></div>` : '';
-  return `<div class="caltb"><div class="chips xs caltbc">${chips}</div><button class="ibtn calstyle ${S.calPanel ? 'on' : ''}" data-act="cal-panel" aria-label="Estilo do calendário">${ic('palette')}</button></div>${panel}`;
+  return `<div class="calpanel"><div class="cpl">Visão</div><div class="cpg c5">${[['mes', 'Mês'], ['semanas', 'Semana'], ['faixa', 'Faixa'], ['agenda', 'Agenda'], ['ano', 'Ano']].map(([v, l]) => cpgBtn('cal-view2', v, l, view === v)).join('')}</div>
+   <div class="cpl">Estilo</div><div class="cpg c3">${CAL_STYLE_IDS.map((v) => cpgBtn('cal-style', v, CAL_STY_SHORT[v], view === 'mes' && cur === v)).join('')}</div>
+   <div class="cpl">Marcação</div><div class="cpg c3">${CAL_MK.map(([v, l]) => cpgBtn('mk-quick', v, l, markPref() === v)).join('')}</div></div>`;
 }
+const calTitle = (inner) => `<button type="button" class="calttl ${S.calPanel ? 'open' : ''}" data-act="cal-panel" aria-label="Visão e estilo do calendário"><h2>${inner}</h2>${ic('chevD')}</button>`;
 function calendar() {
   const mode = calMode(S.d.prefs); let body;
   if (mode === 'ano') body = calAno();
   else { const x = calCommon(); body = mode === 'semanas' ? calSemanas(x) : mode === 'faixa' ? calFaixa(x) : mode === 'agenda' ? calAgenda(x) : calGrade(x, mode === 'postos'); }
-  return calToolbar() + body;
+  return body;
 }
 
 // ---------- FINANÇAS ----------
@@ -622,7 +627,7 @@ function settings() {
   const aparencia = `${miniPreview()}<div class="b">Tema</div><div class="layg">${PRESETS.map((t) => `<button class="layc ${presetOf(pr).id === t.id ? 'on' : ''}" data-act="preset" data-v="${t.id}" aria-label="Tema ${t.name}"><span style="background:${t.sw}"></span><small>${t.name}</small></button>`).join('')}</div>
   <div class="muted xs">Toque para ver no app na hora. Troque à vontade e confirme em “Aplicar”.</div>
   <div class="b" style="margin-top:12px">Calendário</div><div class="calg">${CAL_MODES.filter(([v]) => CAL_STYLE_IDS.includes(v)).map(([v, n]) => `<button class="calc ${calMode(pr) === v ? 'on' : ''}" data-act="cal-view" data-v="${v}" aria-label="Calendário ${n}">${calIcon(v)}<small>${n}</small></button>`).join('')}</div>
-  <div class="b" style="margin-top:12px">Marcação dos dias</div><div class="chips xs">${[['anel', 'Anel'], ['vazado', 'Vazado + ícones'], ['icone', 'Ícones'], ['risco', 'Risquinhos'], ['bolinha', 'Bolinhas'], ['cheia', 'Célula cheia']].map(([v, l]) => `<button type="button" class="chip ${markPref() === v ? 'on' : ''}" data-act="mk-style" data-v="${v}">${l}</button>`).join('')}</div>
+  <div class="b" style="margin-top:12px">Marcação dos dias</div><div class="cpg c3">${CAL_MK.map(([v, l]) => cpgBtn('mk-style', v, l, markPref() === v)).join('')}</div>
   <button type="button" class="alink" data-act="ap-default">Voltar ao padrão do app</button>
   <details class="sub" data-sec="apmore" ${S.open.has('apmore') ? 'open' : ''}><summary>Mais opções</summary><div class="col" style="margin-top:12px">
    <div class="b">Cor de destaque</div><div class="sw3">${ACCENTS.map((c) => `<button class="${(pr.accent || '') === c ? 'on' : ''}" style="${c ? `background:${c}` : 'background:conic-gradient(#e8e8ea,#4d8dff,#d4a63a,#9bbf5a,#e8e8ea)'}" data-act="accent" data-v="${c}" aria-label="${c ? 'Cor ' + c : 'Cor do tema'}"></button>`).join('')}</div>

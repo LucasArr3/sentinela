@@ -1116,3 +1116,13 @@ input[type=color].x,.mkc input[type=color],.mkrow input[type=color]{-webkit-appe
 .cal[data-cs=circle] .cell.today .rg{inset:-8px}
 :root:is([data-ms=vazado],[data-ms=icone],[data-ms=risco]) .cell .rg{inset:0}
 :root:is([data-ms=vazado],[data-ms=icone],[data-ms=risco]) .cal[data-cs=circle] .cell.today .rg{inset:-8px}
+
+/* título do calendário abre a visão/estilo, dentro do cartão */
+.calttl{display:flex;align-items:center;justify-content:center;gap:6px;background:none;padding:0;color:inherit}.calttl h2{margin:0}
+.calttl svg{width:16px;height:16px;color:var(--muted);transition:transform .2s}.calttl.open svg{transform:rotate(180deg);color:var(--accent)}
+.calpanel{display:flex;flex-direction:column;gap:6px;padding:10px 0 12px;border-top:1px solid var(--line);margin-top:6px}
+.cpl{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-top:4px}.cpl:first-child{margin-top:0}
+.cpg{display:grid;gap:6px}.cpg.c5{grid-template-columns:repeat(5,1fr)}.cpg.c3{grid-template-columns:repeat(3,1fr)}
+.cpg button{height:32px;border-radius:10px;border:1px solid var(--line);background:var(--surface2);color:var(--muted);font-size:12px;font-weight:600;white-space:nowrap;padding:0 4px}
+.cpg button.on{border-color:var(--accent);color:var(--text);background:color-mix(in srgb,var(--accent) 16%,transparent)}
+.mcal .calpanel{display:none}.mcal .calttl svg{display:none}
