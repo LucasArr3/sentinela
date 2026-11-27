@@ -940,14 +940,14 @@ details[data-sec=daymore] .add i{width:30px;height:30px;border-radius:10px}
 /* ===== Alarmes: cabeçalho H1, linhas com horário à esquerda, passado esmaecido ===== */
 .ahd1{display:flex;align-items:flex-end;justify-content:space-between;padding:18px 20px;border-radius:26px;border:1px solid var(--line);background:var(--surface)}
 .ahd1 .lb{font-size:10.5px;letter-spacing:.16em;font-weight:700;color:var(--muted)}
-.ahd1 .tm{font-size:50px;font-weight:300;letter-spacing:-.035em;line-height:1;margin-top:8px;font-variant-numeric:tabular-nums;color:var(--accent)}
+.ahd1 .tm{font-size:50px;font-weight:300;letter-spacing:-.035em;line-height:1;margin-top:8px;font-variant-numeric:tabular-nums;color:#f5a524}
 .ahd1 .rt{text-align:right}.ahd1 .in{font-size:19px;font-weight:500;margin-top:8px}
 .arow .abtn{flex:1;min-width:0;display:flex;align-items:center;gap:14px;text-align:left}
 .arow .ah{width:84px;flex:none;font-size:27px;font-weight:300;letter-spacing:-.02em;line-height:1;font-variant-numeric:tabular-nums}
 .arow .abody{flex:1;min-width:0;border-left:1px solid var(--line);padding-left:14px;display:flex;flex-direction:column;gap:3px}
 .arow .pp{font-size:16.5px;font-weight:600;line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .arow .as2{font-size:12.5px;color:var(--muted);font-weight:500}
-.arow.cur .ah{color:var(--accent)}.arow.cur .abody{border-left:2px solid var(--accent);padding-left:13px}
+.arow.cur .ah{color:#f5a524}.arow.cur .abody{border-left:2px solid #f5a524;padding-left:13px}
 .arow.past{opacity:.32}.arow.past .ah,.arow.past .as2{text-decoration:none}
 .qcard .gr.past .gt,.qcard .gr.past .gp b{text-decoration:none}
 :root[data-theme=pmeia]{--bg:#05070D;--bg2:#0B1020;--surface:#0B1020;--surface2:#0A0E1A;--c1:#0B1020;--c2:#0A0E1A;--line:rgba(160,185,255,.10);--text:#EEF1F7;--muted:#8a92a3;--accent:#7FA6FF;--on:#06101F;--pg:linear-gradient(120deg,#5B84FF,#8FB2FF);--ok:#4ade80;--shadow:none;color-scheme:dark}
@@ -976,3 +976,5 @@ details[data-sec=daymore] .add i{width:30px;height:30px;border-radius:10px}
 :root[data-theme=pclaro] .ahd1 .tm{background:var(--pg);-webkit-background-clip:text;background-clip:text;color:transparent}
 :root[data-theme^=p] .hero .bar{background:color-mix(in srgb,var(--text) 10%,transparent)}
 :root[data-theme^=p] .hero .bar>i{background:var(--pg)}
+
+:root[data-theme^=p] .arow.cur .ah{color:var(--accent)}:root[data-theme^=p] .arow.cur .abody{border-left-color:var(--accent)}
