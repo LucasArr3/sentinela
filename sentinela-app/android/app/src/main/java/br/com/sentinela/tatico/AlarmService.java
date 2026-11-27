@@ -94,7 +94,7 @@ public class AlarmService extends Service {
         ch.setDescription("Aviso do alarme que aparece e vibra no smartwatch");
         ch.setSound(null, null);
         ch.enableVibration(true);
-        ch.setVibrationPattern(new long[]{0, 600, 300, 600, 300, 600});
+        ch.setVibrationPattern(new long[]{0, 1500, 250, 1500});
         ch.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
         nm.createNotificationChannel(ch);
     }
@@ -119,7 +119,7 @@ public class AlarmService extends Service {
                     .setCategory(NotificationCompat.CATEGORY_ALARM)
                     .setPriority(NotificationCompat.PRIORITY_MAX)
                     .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-                    .setVibrate(new long[]{0, 600, 300, 600, 300, 600})
+                    .setVibrate(new long[]{0, 1500, 250, 1500})
                     .setOngoing(false)
                     .setAutoCancel(true)
                     .setLocalOnly(false)
@@ -186,10 +186,10 @@ public class AlarmService extends Service {
                     watchFlip = !watchFlip;
                     postWatch(AlarmService.this, current, next);
                     NotificationManagerCompat.from(AlarmService.this).cancel(old);
-                    handler.postDelayed(this, 6000);
+                    handler.postDelayed(this, AlarmStore.watchRateMs(AlarmService.this));
                 }
             };
-            handler.postDelayed(watchTask, 6000);
+            handler.postDelayed(watchTask, AlarmStore.watchRateMs(this));
         }
         ensureChannel(this);
         Notification n = buildNotification(this, b);

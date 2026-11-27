@@ -34,12 +34,18 @@ final class AlarmStore {
     }
 
     /** Como acordar: "vibsom" (vibra e depois toca), "vib" (só vibra) ou "som" (só toca). */
-    static void saveWake(Context c, String mode, int vibLeadSec, boolean watch) {
-        sp(c).edit().putString("vibMode", mode).putInt("vibLead", vibLeadSec).putBoolean("watch", watch).apply();
+    static void saveWake(Context c, String mode, int vibLeadSec, boolean watch, String rate) {
+        sp(c).edit().putString("vibMode", mode).putInt("vibLead", vibLeadSec).putBoolean("watch", watch).putString("watchRate", rate).apply();
     }
 
     static String vibMode(Context c) { return sp(c).getString("vibMode", "vibsom"); }
     static int vibLead(Context c) { return Math.max(3, sp(c).getInt("vibLead", 15)); }
+    /** Intervalo entre os avisos repetidos para o relógio. */
+    static long watchRateMs(Context c) {
+        String r = sp(c).getString("watchRate", "c");
+        return "l".equals(r) ? 10000L : ("n".equals(r) ? 6000L : 3000L);
+    }
+
     static boolean watch(Context c) { return sp(c).getBoolean("watch", true); }
 
     static int snoozeMin(Context c) { return Math.max(1, sp(c).getInt("snooze", 5)); }

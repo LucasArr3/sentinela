@@ -129,6 +129,11 @@ export function dayInfo(date, state) {
   const works = ['plantao', 'permuta_in', 'extra'].includes(status) || (extra && status === 'plantao');
   return { date, scheduled, status, works, events: evs };
 }
+/** Quando o alarme do quarto toca: horário exato (q.at "HH:MM", a última ocorrência antes do início) ou X min antes. */
+export function alarmMs(q, startMs, prefLead) {
+  if (q.at && /^\d{2}:\d{2}$/.test(q.at)) { const [h, m] = q.at.split(':').map(Number); const d = new Date(startMs); d.setHours(h, m, 0, 0); let t = d.getTime(); if (t > startMs) t -= 864e5; return t; }
+  return startMs - (q.lead ?? prefLead ?? 15) * 60000;
+}
 export const MARK_ICON_DEFAULT = { atestado: 'medical', permuta: 'swap', ferias: 'umbrella', folga: 'coffee', extraD: 'sun', extraN: 'moon', extraH: 'bolt' };
 export let MARK_ICONS = { ...MARK_ICON_DEFAULT };
 export const ICON_CHOICES = ['medical', 'swap', 'umbrella', 'coffee', 'sun', 'moon', 'bolt', 'coins', 'book', 'users', 'target', 'bell', 'shield', 'clock', 'phone', 'mail', 'calendar', 'note', 'pulse', 'alert', 'check', 'home', 'wallet', 'chat'];

@@ -15,7 +15,7 @@ export const APK_URL = 'https://github.com/LucasArr3/sentinela/releases/download
 export const NativeAlarm = {
   available: () => isNative(),
   // Substitui TODOS os alarmes agendados pela lista enviada.
-  schedule: (alarms, opts = {}) => call('SentinelaAlarm', 'schedule', { alarms, snoozeMin: opts.snoozeMin ?? 5, ramp: opts.ramp !== false, autostopMin: opts.autostopMin ?? 5, vibMode: opts.vibMode || 'vibsom', vibLead: opts.vibLead ?? 15, watch: opts.watch !== false }),
+  schedule: (alarms, opts = {}) => call('SentinelaAlarm', 'schedule', { alarms, snoozeMin: opts.snoozeMin ?? 5, ramp: opts.ramp !== false, autostopMin: opts.autostopMin ?? 5, vibMode: opts.vibMode || 'vibsom', vibLead: opts.vibLead ?? 15, watch: opts.watch !== false, watchRate: opts.watchRate || 'c' }),
   cancelAll: () => call('SentinelaAlarm', 'cancelAll'),
   test: (seconds = 10, sound = 'sirene_lamento') => call('SentinelaAlarm', 'test', { seconds, sound }),
   status: () => call('SentinelaAlarm', 'status'),

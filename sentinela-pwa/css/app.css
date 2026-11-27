@@ -1026,3 +1026,5 @@ input[type=color][data-tagdraft]{width:42px;height:34px;padding:0;border-radius:
 .mkrow{display:flex;align-items:center;gap:12px;padding:6px 0}.mkrow input[type=color]{width:40px;height:30px;padding:0;border-radius:9px;border:1px solid var(--line);background:none;flex:none}
 .mkrow .mki{flex:none;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;color:#fff}.mkrow .mki svg{width:16px;height:16px;stroke-width:2.4}
 .mkrow input.sp{min-width:0}
+
+.acustom{display:grid;grid-template-columns:1fr 1.3fr;gap:10px}.acustom .f{font-size:12px}.acustom input{height:42px}

@@ -63,7 +63,7 @@ public class SentinelaAlarmPlugin extends Plugin {
         JSArray alarms = call.getArray("alarms", new JSArray());
         AlarmStore.save(c, alarms,
                 call.getInt("snoozeMin", 5), call.getBoolean("ramp", true), call.getInt("autostopMin", 5));
-        AlarmStore.saveWake(c, call.getString("vibMode", "vibsom"), call.getInt("vibLead", 15), call.getBoolean("watch", true));
+        AlarmStore.saveWake(c, call.getString("vibMode", "vibsom"), call.getInt("vibLead", 15), call.getBoolean("watch", true), call.getString("watchRate", "c"));
         int n = AlarmScheduler.scheduleAll(c);
         JSObject r = new JSObject();
         r.put("count", n);
@@ -322,7 +322,7 @@ public class SentinelaAlarmPlugin extends Plugin {
                     AlarmService.postWatch(c, b, id);
                     NotificationManagerCompat.from(c).cancel(id == 7002 ? 7003 : 7002);
                 }
-            }, sec * 1000L + k * 6000L);
+            }, sec * 1000L + k * AlarmStore.watchRateMs(c));
         }
         call.resolve();
     }

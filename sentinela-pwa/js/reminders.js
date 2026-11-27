@@ -1,7 +1,7 @@
 // Alarmes de quarto (padrão 15 min antes, ajustável por quarto) e Alvorada.
 // - buildAlarms(): lista pura dos próximos alarmes (enviada ao Android, que toca mesmo com o app fechado).
 // - No navegador, dueAlarms()/startReminders() tocam só com o app aberto.
-import { slotDate, addDays, dayInfo, iso, qLabel } from './core.js';
+import { slotDate, addDays, dayInfo, iso, qLabel, alarmMs } from './core.js';
 import { SOUND_LIST, soundUrl, DEFAULT_SOUND, isBuiltin } from './sounds.js';
 
 export const SOUNDS = SOUND_LIST;
@@ -38,7 +38,7 @@ export function alarmsBetween(state, from, to) {
   for (const e of state.events) { if (e.type !== 'quarto') continue; const k = `${e.date}|${e.slot}`; if (!groups.has(k)) groups.set(k, { e, posts: [] }); if (e.post) groups.get(k).posts.push(e.post); }
   for (const { e, posts } of groups.values()) {
     const q = state.quarters.find((x) => x.id === e.slot); if (!q || q.alvorada || q.alarm === false) continue;
-    const lead = q.lead ?? p.lead ?? 15; const st = slotDate(e.date, q, state.scale); const at = st.getTime() - lead * 60000;
+    const lead = q.lead ?? p.lead ?? 15; const st = slotDate(e.date, q, state.scale); const at = alarmMs(q, st.getTime(), p.lead);
     if (at >= f && at <= t) out.push({ id: hashId(`q:${e.date}:${e.slot}`), at, kind: 'quarto', title: `Quarto ${q.start.replace(':00', 'h')}${lead ? ` em ${lead} min` : ' agora'}`, body: posts.length ? `Posto: ${posts.join(' + ')}` : 'Prepare-se para assumir o quarto', sound: q.sound || p.sound || DEFAULT_SOUND });
   }
   if (p.alvorada) {
@@ -98,7 +98,7 @@ export function buildWidget(state, now = new Date()) {
     const st = slotDate(ev.date, q, sc).getTime(); const [eh, em] = q.end.split(':').map(Number); const sd = new Date(st);
     let en = new Date(sd.getFullYear(), sd.getMonth(), sd.getDate(), eh, em).getTime(); if (en <= st) en += 864e5;
     const lead = q.lead ?? state.prefs.lead ?? 15; const on = q.alarm !== false && state.prefs.reminders !== false && !(q.alvorada && !state.prefs.alvorada);
-    if (en > nowMs - 14 * 3600e3) quartos.push({ s: st, e: en, l: qLabel(q), p: posts.join(' + '), a: st - lead * 60000, on, d: ev.date, i: state.quarters.indexOf(q) });
+    if (en > nowMs - 14 * 3600e3) quartos.push({ s: st, e: en, l: qLabel(q), p: posts.join(' + '), a: alarmMs(q, st, state.prefs.lead), on, d: ev.date, i: state.quarters.indexOf(q) });
   }
   quartos.sort((a, b) => a.s - b.s);
   return { shifts, quartos: quartos.slice(0, 30) };
