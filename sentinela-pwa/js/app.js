@@ -473,7 +473,7 @@ function sumArea(x) {
   return `<div class="seg sumseg"><button class="${m ? '' : 'on'}" data-act="cal-sum" data-v="dia">Resumo do dia</button><button class="${m ? 'on' : ''}" data-act="cal-sum" data-v="mes">Resumo do mês</button></div>${m ? monthCard(x) : daySummary(x.selDay)}`;
 }
 // ---------- formatos do calendário (mesmas funções, jeitos diferentes) ----------
-const CAL_MODES = [['circulos', 'Círculos'], ['padrao', 'Células'], ['limpo', 'Limpo'], ['solto', 'Solto'], ['semanas', 'Semanas'], ['faixa', 'Faixa'], ['agenda', 'Agenda'], ['ano', 'Ano']];
+const CAL_MODES = [['circulos', 'Círculos'], ['padrao', 'Quadrados'], ['limpo', 'Limpo'], ['solto', 'Grade'], ['semanas', 'Semanas'], ['faixa', 'Faixa'], ['agenda', 'Agenda'], ['ano', 'Ano']];
 const CAL_STYLE_IDS = ['circulos', 'padrao', 'limpo', 'solto'];
 const CAL_VIEW_LIST = [['mes', 'Mês'], ['semanas', 'Semanas'], ['faixa', 'Faixa'], ['agenda', 'Agenda'], ['ano', 'Ano']];
 const calMode = (pr) => { if (['semanas', 'faixa', 'agenda', 'ano'].includes(pr.calView)) return pr.calView; if (pr.calCard === false) return 'solto'; return ({ circle: 'circulos', solid: 'padrao', clean: 'limpo' })[pr.cellStyle] || 'padrao'; };
@@ -535,7 +535,7 @@ function calCell(date, x, withPost) {
 }
 function calGrade(x, withPost) {
   const first = new Date(x.y, x.m, 1).getDay(); const cells = Array.from({ length: first }, () => '<div class="cell blank"></div>').join('') + C.monthDays(x.y, x.m).map((d) => calCell(d, x, withPost)).join('');
-  return `<div class="${S.d.prefs.calCard === false ? 'cwrap' : 'ccard'}">${calHead(x)}${calTicker(x)}<div class="dow">${C.WD3.map((w) => `<div>${w.charAt(0)}</div>`).join('')}</div><div class="cal ${withPost ? 'cal-postos' : ''} ${S.calDir ? 'slide-' + S.calDir : ''}" id="cal" data-cs="${S.d.prefs.cellStyle}">${cells}</div>${calLegend(x)}</div>${calFab()}${sumArea(x)}`;
+  return `<div class="ccard ${S.d.prefs.calCard === false ? 'bx' : ''}">${calHead(x)}${calTicker(x)}<div class="dow">${C.WD3.map((w) => `<div>${w.charAt(0)}</div>`).join('')}</div><div class="cal ${withPost ? 'cal-postos' : ''} ${S.calDir ? 'slide-' + S.calDir : ''}" id="cal" data-cs="${S.d.prefs.cellStyle}">${cells}</div>${calLegend(x)}</div>${calFab()}${sumArea(x)}`;
 }
 function calSemanas(x) {
   const days = C.monthDays(x.y, x.m); const first = new Date(x.y, x.m, 1).getDay(); const weeks = []; let cur = Array(first).fill(null);
@@ -562,7 +562,7 @@ function calAno() {
   const lg = [[C.STATUS.plantao.color, 'Plantão'], [C.EXTRA_D, 'Extra diurna', 1, 'sun'], [C.EXTRA_N, 'Extra noturna', 1, 'moon'], [C.TYPES.permuta.color, 'Permuta', 1, 'swap'], [C.TYPES.folga.color, 'Folga', 1, 'coffee'], [C.TYPES.atestado.color, 'Atestado', 1, 'medical'], [C.TYPES.ferias.color, 'Férias', 1, 'umbrella']];
   return `<div class="calhead"><button class="ibtn" data-act="cal-yprev" aria-label="Ano anterior">${ic('chevL')}</button>${calTitle(String(y))}<button class="btn sm" data-act="cal-today">Hoje</button><button class="ibtn" data-act="cal-ynext" aria-label="Próximo ano">${ic('chevR')}</button>${calSetBtn()}</div>${calPanel()}<div class="yr" id="cal">${mos}</div><div class="legend" style="margin-top:10px">${lg.map(([c, l]) => `<span><i style="background:${c}"></i>${l}</span>`).join('')}</div><div class="muted xs" style="text-align:center;margin-top:4px">Toque no nome do mês para abri-lo.</div>${daySummary(sel)}`;
 }
-const CAL_STY_SHORT = { circulos: 'Círculos', padrao: 'Células', limpo: 'Limpo', solto: 'Solto' };
+const CAL_STY_SHORT = { circulos: 'Círculos', padrao: 'Quadrados', limpo: 'Limpo', solto: 'Grade' };
 const cpgBtn = (act, v, l, on, extra = '') => `<button type="button" class="${on ? 'on' : ''}" data-act="${act}" data-v="${v}" ${extra}>${l}</button>`;
 const mkBtn = (mode, k, v, l, on) => cpgBtn('mk-set', v, l, on, `data-k="${k}" ${mode === 'pv' ? 'data-pv="1"' : ''}`);
 const mkSwitch = (mode, k, label, on) => `<label class="aline"><span>${label}</span><input type="checkbox" class="sw2" data-mkset="${k}" ${on ? 'checked' : ''} ${mode === 'pv' ? 'data-pv="1"' : ''} aria-label="${label}"></label>`;

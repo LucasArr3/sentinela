@@ -1170,3 +1170,28 @@ input[type=color].x,.mkc input[type=color],.mkrow input[type=color]{-webkit-appe
 .msum .md button{display:inline;padding:0;margin:0 7px 0 0;border:0;background:none;font:inherit;font-weight:600;color:var(--text);min-width:0;height:auto}
 .msum .md button:last-child{margin-right:0}
 .msum .md button:not(:last-child)::after{content:"·";margin-left:7px;color:var(--muted);font-weight:400}
+
+/* ===== formatos: Círculos · Quadrados · Grade · Limpo ===== */
+/* Números neutros: o número não pega a cor da situação (exceto sobre o círculo cheio) */
+:root[data-nc=neutro] .cal .cell .n{color:var(--text)!important}
+:root[data-nc=neutro] .cal[data-cs=circle] .cell:not([data-st=livre]) .n:not([style*=background]){color:var(--text)}
+:root[data-nc=neutro] .cal .cell.hol .n,:root[data-nc=neutro] .cal .cell.hol[data-st=livre] .n{color:var(--text)!important}
+:root[data-nc=neutro] .cal[data-cs=circle][data-pf=cheio] .cell[data-st=plantao] .n{color:var(--on)!important}
+/* Grade: toda célula em caixa, dentro do cartão; plantão com borda e fundo na cor */
+.ccard.bx .cal .cell{background:color-mix(in srgb,var(--text) 5%,transparent)!important;border:1px solid var(--line)!important;border-radius:14px;box-shadow:none!important;aspect-ratio:1/1.05}
+.ccard.bx .cal .cell:not([data-st=livre]){background:color-mix(in srgb,var(--sc) 22%,transparent)!important;border-color:color-mix(in srgb,var(--sc) 60%,transparent)!important}
+.ccard.bx .cal .cell.today{box-shadow:0 0 0 2px var(--accent)!important}
+/* Limpo: sem caixas; o dia de plantão ganha um círculo (anel) em volta do número */
+.cal[data-cs=clean] .cell{background:transparent!important;border-color:transparent!important;box-shadow:none!important;aspect-ratio:1/1.2;justify-content:flex-start;padding:4px 2px 0;gap:0;overflow:visible;color:var(--text)}
+.cal[data-cs=clean] .cell .tg{display:none}
+.cal[data-cs=clean] .cell .n{width:34px;height:34px;display:grid;place-items:center;border-radius:50%;font-size:16px;flex:none;color:var(--text)}
+.cal[data-cs=clean] .cell:not([data-st=livre]) .n{box-shadow:inset 0 0 0 2px var(--sc);color:var(--sc)}
+.cal[data-cs=clean] .cell.today{animation:none}
+.cal[data-cs=clean] .cell.today .n{box-shadow:inset 0 0 0 2px var(--sc,var(--accent)),0 0 0 2px var(--bg2,var(--bg)),0 0 0 4px var(--text)!important}
+.cal[data-cs=clean] .cell.sel .n{background:color-mix(in srgb,var(--text) 14%,transparent)}
+.cal[data-cs=clean] .cell .mkd,.cal[data-cs=clean] .cell .mkb{bottom:2px;left:2px;right:2px}
+:root .cal[data-cs=clean] .cell.today{box-shadow:none!important;outline:none!important;border-color:transparent!important}
+:root[data-nc=neutro][data-pf=cheio] .cal[data-cs=circle] .cell[data-st=plantao] .n{color:var(--on)!important}
+:root[data-nc=neutro][data-pf=vazado] .cal[data-cs=circle] .cell .n{color:var(--text)!important}
+:root .cal[data-cs=clean] .cell.sel,:root .cal[data-cs=clean] .cell.today{outline:none!important;box-shadow:none!important}
+:root[data-layout][data-theme] .cal[data-cs=clean][id] .cell.today,:root[data-layout][data-theme] .cal[data-cs=clean][id] .cell.sel{box-shadow:none!important;outline:none!important}
