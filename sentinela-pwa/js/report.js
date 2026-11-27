@@ -57,22 +57,24 @@ export function reportModel(rep, profile = {}, opts = {}) {
   const o = { ...REPORT_DEFAULT, ...opts };
   const nightFix = !o.nightTime && !o.nightPost ? { ...o, nightTime: true } : o;
   const diaText = (d) => { const f = d.func || d.post; return (o.diaWhere && d.where ? `${f} · ${d.where}` : f) + (o.diaTime && d.time ? ` (${d.time})` : ''); };
+  const diaCols = (d) => [d.func || d.post, ...(o.diaWhere ? [d.where || ''] : []), ...(o.diaTime ? [d.time || ''] : [])];
   const nightText = (n) => [nightFix.nightTime ? n.time : '', nightFix.nightPost ? n.post : ''].filter(Boolean).join(' · ');
+  const nightCols = (n) => [...(nightFix.nightTime ? [n.time] : []), ...(nightFix.nightPost ? [n.post] : [])];
   const wantDia = o.show !== 'noite', wantNoite = o.show !== 'dia'; const sections = []; const dw = (r) => (o.dow ? r.dow : '');
   if (o.group === 'dia') {
     const rows = [];
     for (const r of rep.rows) {
       const lines = [];
-      if (wantDia && (r.worked || r.dia.length)) lines.push({ tag: 'Diurno', text: r.dia.map(diaText).join(' / ') || '—' });
-      if (wantNoite && r.quartos.length) lines.push({ tag: 'Noturno', text: r.quartos.map(nightText).join(' · ') });
+      if (wantDia && (r.worked || r.dia.length)) { const t = r.dia.map(diaText).join(' / ') || '—'; lines.push({ tag: 'Diurno', text: t, cols: ['Diurno', t] }); }
+      if (wantNoite && r.quartos.length) { const t = r.quartos.map(nightText).join(' · '); lines.push({ tag: 'Noturno', text: t, cols: ['Noturno', t] }); }
       if (lines.length) rows.push({ date: r.date, dow: dw(r), lines });
     }
     sections.push({ title: '', icon: '', rows });
   } else {
-    if (wantDia) sections.push({ title: 'Postos diurnos', icon: '☀️', rows: rep.rows.filter((r) => r.worked || r.dia.length).map((r) => ({ date: r.date, dow: dw(r), lines: r.dia.length ? r.dia.map((d) => ({ text: diaText(d) })) : [{ text: '—' }] })) });
-    if (wantNoite) sections.push({ title: 'Postos noturnos', icon: '🌙', rows: rep.rows.filter((r) => r.quartos.length).map((r) => ({ date: r.date, dow: dw(r), lines: r.quartos.map((n) => ({ text: nightText(n) })) })) });
+    if (wantDia) sections.push({ title: 'Postos diurnos', icon: '☀️', rows: rep.rows.filter((r) => r.worked || r.dia.length).map((r) => ({ date: r.date, dow: dw(r), lines: r.dia.length ? r.dia.map((d) => ({ text: diaText(d), cols: diaCols(d) })) : [{ text: '—', cols: ['—'] }] })) });
+    if (wantNoite) sections.push({ title: 'Postos noturnos', icon: '🌙', rows: rep.rows.filter((r) => r.quartos.length).map((r) => ({ date: r.date, dow: dw(r), lines: r.quartos.map((n) => ({ text: nightText(n), cols: nightCols(n) })) })) });
   }
-  if (o.extras && rep.extras && rep.extras.length) sections.push({ title: 'Extras', icon: '💰', rows: rep.extras.map((e) => ({ date: e.date, dow: dw(e), lines: [{ text: e.turno }] })) });
+  if (o.extras && rep.extras && rep.extras.length) sections.push({ title: 'Extras', icon: '💰', rows: rep.extras.map((e) => ({ date: e.date, dow: dw(e), lines: [{ text: e.turno, cols: [e.turno] }] })) });
   const who = o.header ? [profile.name, profile.rank, profile.unit].filter(Boolean).join(' · ') : '';
   const count = o.total ? `${rep.plantoes} ${rep.plantoes === 1 ? 'plantão' : 'plantões'}` : '';
   const empty = sections.every((s) => !s.rows.length);
@@ -104,9 +106,12 @@ export function renderReport(rep, profile = {}, { paged = true, opts = {} } = {}
   const mk = (h) => { cv = document.createElement('canvas'); cv.width = W; cv.height = h; c = cv.getContext('2d'); c.fillStyle = '#fff'; c.fillRect(0, 0, W, h); pages.push(cv); y = M; };
   const txt = (t, x, yy, font, color = '#111827', align = 'left') => { c.font = font; c.fillStyle = color; c.textAlign = align; c.fillText(t, x, yy); };
   const wrap = (t, max, font) => { c.font = font; const out = []; let cur = ''; for (const w of String(t).split(' ')) { const tt = cur ? cur + ' ' + w : w; if (c.measureText(tt).width > max && cur) { out.push(cur); cur = w; } else cur = tt; } if (cur) out.push(cur); return out; };
-  const X1 = M, X2 = M + 280, LH = 36; const colW = W - M - X2;
-  c = document.createElement('canvas').getContext('2d');
-  const meas = model.sections.map((s) => s.rows.map((r) => { const ls = []; for (const l of r.lines) { const ws = wrap(l.text, colW - (l.tag ? 150 : 0), F('700', 26)); ws.forEach((w, k) => ls.push({ tag: k === 0 ? l.tag : '', text: w })); } return { ls, h: Math.max(ls.length, 1) * LH + 26 }; }));
+  const X1 = M, X2 = M + 270, LH = 36; const GAP = 44; const avail = W - M - X2;
+  c = document.createElement('canvas').getContext('2d'); const FB = F('700', 26);
+  // larguras de cada coluna por seção: todas as linhas ficam alinhadas na mesma coluna
+  const widths = model.sections.map((s) => { const w = []; for (const r of s.rows) for (const l of r.lines) { if (l.tag) continue; (l.cols || [l.text]).forEach((t, k) => { c.font = FB; w[k] = Math.max(w[k] || 0, c.measureText(t || '').width); }); } return w; });
+  const tagged = (r) => r.lines.some((l) => l.tag);
+  const meas = model.sections.map((s) => s.rows.map((r) => { if (!tagged(r)) return { h: r.lines.length * LH + 26, ls: null }; const ls = []; for (const l of r.lines) { const ws = wrap(l.text, avail - 150, FB); ws.forEach((w, k) => ls.push({ tag: k === 0 ? l.tag : '', text: w })); } return { ls, h: Math.max(ls.length, 1) * LH + 26 }; }));
   const totalH = M + 330 + model.sections.reduce((n, s, i) => n + (s.title ? 90 : 20) + meas[i].reduce((a, b) => a + b.h, 0), 0) + 140;
   mk(paged ? PH : Math.max(900, totalH));
   const foot = () => { txt(`${model.month} · Sentinela Tático`, M, cv.height - 52, F('', 21), '#94a3b8'); if (paged) txt(`Página ${pages.length}`, W - M, cv.height - 52, F('', 21), '#94a3b8', 'right'); };
@@ -120,8 +125,9 @@ export function renderReport(rep, profile = {}, { paged = true, opts = {} } = {}
     s.rows.forEach((r, i) => {
       const mm = meas[si][i]; if (paged && y + mm.h > PH - 110) { foot(); mk(PH); if (s.title) { y += 10; txt(s.title.toUpperCase() + ' (cont.)', M, y + 20, F('800', 22), '#475569'); y += 44; } }
       if (i % 2 === 0) { c.fillStyle = '#f8fafc'; c.fillRect(M - 12, y, W - 2 * M + 24, mm.h); }
-      const base = y + 16 + 26; const mid = y + mm.h / 2 + 10; txt(fmtShort(r.date), X1, mid, F('800', 28)); if (r.dow) txt(r.dow, X1 + 100, mid, F('600', 22), '#94a3b8');
-      mm.ls.forEach((l, k) => { if (l.tag) txt(l.tag, X2, base + k * LH, F('800', 20), '#94a3b8'); txt(l.text, X2 + (r.lines.some((x) => x.tag) ? 150 : 0), base + k * LH, F('700', 26), '#0f172a'); });
+      const mid = y + mm.h / 2 + 10; txt(fmtShort(r.date), X1, mid, F('800', 28)); if (r.dow) txt(r.dow, X1 + 100, mid, F('600', 22), '#94a3b8');
+      if (mm.ls) mm.ls.forEach((l, k) => { const base = y + 16 + 26; if (l.tag) txt(l.tag, X2, base + k * LH, F('800', 20), '#94a3b8'); txt(l.text, X2 + 150, base + k * LH, FB, '#0f172a'); });
+      else r.lines.forEach((l, k) => { const base = y + 16 + 26 + k * LH; let x = X2; (l.cols || [l.text]).forEach((t, ci) => { txt(t || '', x, base, FB, ci === 0 ? '#0f172a' : '#334155'); x += (widths[si][ci] || 0) + GAP; }); });
       y += mm.h;
     });
   });

@@ -1076,3 +1076,11 @@ input[type=color][data-tagdraft]{width:42px;height:34px;padding:0;border-radius:
 .frow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 14px;height:46px;font-size:14px;font-weight:500}
 .frow+.frow{border-top:1px solid var(--line)}
 .rpre{flex-wrap:wrap}
+
+/* relatório em colunas: a data (com o dia da semana na frente) fica na vertical do meio, e função/local alinham em colunas */
+.rtab{width:100%;border-collapse:collapse}
+.rtab td{padding:9px 10px;font-size:14.5px;font-weight:700;vertical-align:middle;text-align:left}
+.rtab tr.g td{border-top:1px solid var(--line)}.rtab tr.g:first-child td{border-top:0}
+.rtab td.rdc{padding-left:14px;white-space:normal}.rtab td.rdc b{font-size:15.5px;font-weight:800;white-space:nowrap}
+.rtab td.rdc span{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;white-space:nowrap}
+.rtab td.rc2{color:var(--muted);font-weight:600}.rtab td.rtg{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:800;width:1%;white-space:nowrap}
