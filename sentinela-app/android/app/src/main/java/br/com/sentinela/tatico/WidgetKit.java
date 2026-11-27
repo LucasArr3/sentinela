@@ -43,6 +43,7 @@ final class WidgetKit {
         int corner = 1;
         boolean alarm = true;
         boolean head = true;
+        String after = "resumo";
         String ctl = "bell";
     }
 
@@ -78,17 +79,18 @@ final class WidgetKit {
         g.corner = p.getInt("r_" + id, 1);
         g.alarm = p.getBoolean("l_" + id, true);
         g.head = p.getBoolean("h_" + id, true);
+        g.after = p.getString("o_" + id, "resumo");
         g.ctl = p.getString("k_" + id, "alarmes".equals(kindOf(c, id)) ? "switch" : "bell");
         return g;
     }
 
     static void save(Context c, int id, Cfg g) {
         sp(c).edit().putInt("a_" + id, g.alpha).putString("t_" + id, g.theme).putString("c_" + id, g.accent)
-                .putInt("x_" + id, g.text).putInt("r_" + id, g.corner).putBoolean("l_" + id, g.alarm).putBoolean("h_" + id, g.head).putString("k_" + id, g.ctl).apply();
+                .putInt("x_" + id, g.text).putInt("r_" + id, g.corner).putBoolean("l_" + id, g.alarm).putBoolean("h_" + id, g.head).putString("k_" + id, g.ctl).putString("o_" + id, g.after).apply();
     }
 
     static void forget(Context c, int id) {
-        sp(c).edit().remove("a_" + id).remove("t_" + id).remove("c_" + id).remove("x_" + id).remove("r_" + id).remove("l_" + id).remove("h_" + id).remove("k_" + id).apply();
+        sp(c).edit().remove("a_" + id).remove("t_" + id).remove("c_" + id).remove("x_" + id).remove("r_" + id).remove("l_" + id).remove("h_" + id).remove("k_" + id).remove("o_" + id).apply();
     }
 
     static Th th(Context c, Cfg g) {
@@ -260,7 +262,7 @@ final class WidgetKit {
 
     static RemoteViews build(Context c, int id, String kind, Cfg g, int w, int h, boolean sample) {
         if ("quartos".equals(kind)) return buildQuartos(c, id, g, w, h, sample, false);
-        if ("alarmes".equals(kind)) return buildQuartos(c, id, g, w, h, sample, true);
+        if ("alarmes".equals(kind)) return buildQuartos(c, id, g, w, h, sample, false);
         if ("central".equals(kind)) return buildCentral(c, id, g, w, h, sample);
         if ("proximo".equals(kind)) return buildProximo(c, id, g, w, h, sample);
         return buildPlantao(c, id, g, w, h, sample);
@@ -350,12 +352,33 @@ final class WidgetKit {
         int dimText = (t.text & 0x00FFFFFF) | 0x88000000;
         v.setViewVisibility(R.id.w_tag, tag && !head ? View.VISIBLE : View.GONE);
         v.setViewVisibility(R.id.w_head, head ? View.VISIBLE : View.GONE);
+        v.setTextColor(R.id.w_tag, t.muted);
+        boolean allPast = !all.isEmpty() && an[0] >= 0 && all.get(an[0]).past;
+        long[] ss = shiftState(c, now);
+        long lastEnd = 0;
+        for (Row r : all) if (r.e > lastEnd) lastEnd = r.e;
+        boolean idle = !sample && (all.isEmpty() || allPast) && ss[0] == 0;
+        boolean keep = idle && allPast && ("ultimo".equals(g.after) || ("resumo".equals(g.after) && now - lastEnd < 6 * 3600000L));
+        boolean ended = idle && !keep;
+        String dia = ss[1] > 0 ? new SimpleDateFormat("EEE dd/MM", new Locale("pt", "BR")).format(new Date(ss[1])) : "";
+        String empty = "Nenhum quarto marcado";
+        if (ended && ss[1] > 0) empty = (allPast ? "Quartos concluídos ✓ · " : "") + "Plantão " + dia + " " + hhmm(ss[1]);
+        else if (ended && allPast) empty = "Quartos concluídos ✓";
         if (head) {
             Row nx = null;
             for (Row r : all) if (!r.past && r.on && r.a > now) { nx = r; break; }
-            v.setTextViewText(R.id.w_ht, nx != null ? hhmm(nx.a) : "--:--");
-            v.setTextViewText(R.id.w_hv, nx != null ? dur(nx.a - now) : (all.isEmpty() ? "sem quartos" : "nenhum ligado"));
-            v.setTextViewText(R.id.w_hr, nx != null ? "TOCA EM" : "");
+            if (idle && ss[1] > 0) {
+                v.setTextViewText(R.id.w_hl, "PRÓXIMO PLANTÃO");
+                v.setTextViewText(R.id.w_ht, hhmm(ss[1]));
+                v.setTextViewText(R.id.w_hr, "ENTRA EM");
+                v.setTextViewText(R.id.w_hv, dur(ss[1] - now));
+                empty = (keep ? "" : (allPast ? "Quartos concluídos ✓ · " : "Sem quartos marcados · ")) + dia;
+            } else {
+                v.setTextViewText(R.id.w_hl, "PRÓXIMO ALARME");
+                v.setTextViewText(R.id.w_ht, nx != null ? hhmm(nx.a) : "--:--");
+                v.setTextViewText(R.id.w_hv, nx != null ? dur(nx.a - now) : (all.isEmpty() ? "sem quartos" : "nenhum ligado"));
+                v.setTextViewText(R.id.w_hr, nx != null ? "TOCA EM" : "");
+            }
             v.setTextColor(R.id.w_hl, t.muted);
             v.setTextColor(R.id.w_hr, t.muted);
             v.setTextColor(R.id.w_ht, t.accent);
@@ -363,20 +386,11 @@ final class WidgetKit {
             size(v, R.id.w_ht, 34, Math.min(f, 1.2f));
             size(v, R.id.w_hv, 17, Math.min(f, 1.2f));
         }
-        v.setTextColor(R.id.w_tag, t.muted);
-        boolean allPast = !all.isEmpty() && an[0] >= 0 && all.get(an[0]).past;
-        long[] ss = shiftState(c, now);
-        boolean ended = !sample && (all.isEmpty() || allPast) && ss[0] == 0;
-        String empty = "Nenhum quarto marcado";
-        if (ended && ss[1] > 0) {
-            empty = (allPast ? "Quartos concluídos ✓\n" : "") + "Próximo plantão: " + new SimpleDateFormat("EEE dd/MM", new Locale("pt", "BR")).format(new Date(ss[1])) + " " + hhmm(ss[1]) + "\nem " + dur(ss[1] - now);
-        } else if (ended && allPast) {
-            empty = "Quartos concluídos ✓";
-        }
         if (ended) all = new ArrayList<>();
+        if (keep) empty = "";
         v.setTextViewText(R.id.w_vazio, empty);
         v.setTextColor(R.id.w_vazio, t.muted);
-        v.setViewVisibility(R.id.w_vazio, all.isEmpty() ? View.VISIBLE : View.GONE);
+        v.setViewVisibility(R.id.w_vazio, all.isEmpty() && !empty.isEmpty() ? View.VISIBLE : View.GONE);
         for (int i = 0; i < 8; i++) {
             int k = start + i;
             if (i >= n || k >= all.size()) {

@@ -150,6 +150,14 @@ public class WidgetConfigActivity extends Activity {
             hl.topMargin = (int) (10 * d);
             panel.addView(hs, hl);
         }
+        panel.addView(label("Quando o plantão acabar"));
+        panel.addView(seg(new String[]{"Resumo por 6 h", "Próximo plantão", "Último quarto"}, "proximo".equals(cfg.after) ? 1 : ("ultimo".equals(cfg.after) ? 2 : 0), new Pick() {
+            @Override
+            public void on(int i) {
+                cfg.after = i == 1 ? "proximo" : (i == 2 ? "ultimo" : "resumo");
+                redraw();
+            }
+        }));
         panel.addView(label("Indicador do alarme (Quartos)"));
         panel.addView(seg(new String[]{"Sino + horário", "Interruptor"}, "switch".equals(cfg.ctl) ? 1 : 0, new Pick() {
             @Override
