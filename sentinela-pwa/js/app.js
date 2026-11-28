@@ -588,7 +588,7 @@ function calPanel() {
   if (!S.calPanel) return '';
   const pr = S.d.prefs; const cur = calMode(pr); const view = ['semanas', 'faixa', 'agenda', 'ano'].includes(cur) ? cur : 'mes';
   return `<div class="calpanel"><div class="cpl">Visão</div><div class="cpg c5">${[['mes', 'Mês'], ['semanas', 'Semana'], ['faixa', 'Faixa'], ['agenda', 'Agenda'], ['ano', 'Ano']].map(([v, l]) => cpgBtn('cal-view2', v, l, view === v)).join('')}</div>
-   <div class="cpl">Formato</div><div class="cpg c4">${CAL_STYLE_IDS.map((v) => cpgBtn('cal-style', v, CAL_STY_SHORT[v], view === 'mes' && cur === v)).join('')}</div>
+   <div class="cpl">Estilo</div><div class="cpg c4">${CAL_STYLE_IDS.map((v) => cpgBtn('cal-style', v, CAL_STY_SHORT[v], view === 'mes' && cur === v)).join('')}</div>
    <button type="button" class="alink" data-act="cal-more">${S.calMore ? 'Menos ajustes ⌃' : 'Mais ajustes ⌄'}</button>${S.calMore ? markGroups('q') : ''}</div>`;
 }
 const calTitle = (inner) => `<h2 style="text-align:center">${inner}</h2>`;

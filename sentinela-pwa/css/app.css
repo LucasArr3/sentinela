@@ -1217,3 +1217,7 @@ input[type=color].x,.mkc input[type=color],.mkrow input[type=color]{-webkit-appe
 .msum .mgt{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tnote{display:flex;align-items:center;gap:8px;margin-top:8px}.tnote i{flex:none;width:8px;height:8px;border-radius:50%}
 .tnote input{flex:1;height:38px;font-size:13.5px}
+/* abas Resumo do dia | Resumo do mês: só texto e um traço embaixo */
+.sumseg{display:flex;gap:22px;background:none!important;border:0!important;border-bottom:1px solid var(--line)!important;border-radius:0!important;padding:0!important;margin:14px 2px 8px}
+.sumseg button{flex:none;background:none!important;color:var(--muted)!important;border-radius:0;padding:8px 0;font-size:13.5px;font-weight:700;border-bottom:2px solid transparent;margin-bottom:-1px;box-shadow:none!important}
+.sumseg button.on{color:var(--text)!important;border-bottom-color:var(--accent)}
