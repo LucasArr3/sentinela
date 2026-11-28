@@ -7,6 +7,13 @@ import android.os.Bundle;
 
 public class QuartosWidget extends AppWidgetProvider {
     @Override
+    public void onReceive(Context context, android.content.Intent intent) {
+        if (intent != null && "br.com.sentinela.tatico.WIDGET_TICK".equals(intent.getAction())) { WidgetKit.refreshAll(context); return; }
+        super.onReceive(context, intent);
+    }
+
+
+    @Override
     public void onUpdate(Context context, AppWidgetManager manager, int[] ids) {
         for (int id : ids) WidgetKit.updateOne(context, id);
     }

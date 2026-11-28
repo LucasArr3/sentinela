@@ -53,7 +53,7 @@
         </receiver>
 
         <!-- Widget do plantão (tela inicial) -->
-        <receiver android:name=".PlantaoWidget" android:label="Plantão" android:exported="true">
+        <receiver android:name=".PlantaoWidget" android:label="Plantão" android:enabled="false" android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -72,13 +72,13 @@
             </intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_info_proximo" />
         </receiver>
-        <receiver android:name=".AlarmesWidget" android:label="Alarmes (próximo alarme)" android:exported="true">
+        <receiver android:name=".AlarmesWidget" android:label="Alarmes (próximo alarme)" android:enabled="false" android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_info_alarmes" />
         </receiver>
-        <receiver android:name=".CentralWidget" android:label="Central do plantão" android:exported="true">
+        <receiver android:name=".CentralWidget" android:label="Sentinela (plantão e folga)" android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>

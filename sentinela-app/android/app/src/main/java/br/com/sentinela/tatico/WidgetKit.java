@@ -325,7 +325,7 @@ final class WidgetKit {
         if (st[1] > now && st[1] < next) next = st[1];
         try {
             android.app.AlarmManager am = (android.app.AlarmManager) c.getSystemService(Context.ALARM_SERVICE);
-            Intent in = new Intent(c, PlantaoWidget.class).setAction("br.com.sentinela.tatico.WIDGET_TICK");
+            Intent in = new Intent(c, QuartosWidget.class).setAction("br.com.sentinela.tatico.WIDGET_TICK");
             PendingIntent pi = PendingIntent.getBroadcast(c, 7100, in, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
             am.set(android.app.AlarmManager.RTC, next + 1500, pi);
         } catch (Exception ignored) {
@@ -374,7 +374,7 @@ final class WidgetKit {
         boolean idle = !sample && (all.isEmpty() || allPast) && ss[0] == 0;
         boolean keep = idle && allPast && ("ultimo".equals(g.after) || ("resumo".equals(g.after) && now - lastEnd < 6 * 3600000L));
         boolean ended = idle && !keep;
-        if (ended && ss[1] > 0 && h < 100) return buildPlantao(c, id, g, w, h, sample);
+        if (ended && ss[1] > 0 && h < 100) return buildCentral(c, id, g, w, h, sample);
         if (idle && ss[1] > 0 && h >= 100) head = true;
         String dia = ss[1] > 0 ? new SimpleDateFormat("EEE dd/MM", new Locale("pt", "BR")).format(new Date(ss[1])) : "";
         String empty = "Nenhum quarto marcado";
@@ -453,6 +453,16 @@ final class WidgetKit {
         v.setOnClickPendingIntent(R.id.w_tag, main);
         v.setOnClickPendingIntent(R.id.w_vazio, main);
         return v;
+    }
+
+    private static CharSequence barText(Th t, double frac, int total) {
+        int fill = (int) Math.max(0, Math.min(total, Math.round(total * frac)));
+        StringBuilder b = new StringBuilder();
+        for (int i = 0; i < total; i++) b.append('━');
+        android.text.SpannableString bar = new android.text.SpannableString(b.toString());
+        if (fill > 0) bar.setSpan(new android.text.style.ForegroundColorSpan(t.accent), 0, fill, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        if (fill < total) bar.setSpan(new android.text.style.ForegroundColorSpan((t.muted & 0x00FFFFFF) | 0x55000000), fill, total, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        return bar;
     }
 
     // ---------- Central do plantão
@@ -553,6 +563,57 @@ final class WidgetKit {
         size(v, R.id.c_next, 12, f);
         v.setViewVisibility(R.id.c_row, nowTxt.isEmpty() || h < 95 ? View.GONE : View.VISIBLE);
         String foot = folga ? (li[1] > 0 ? "Último plantão: " + new SimpleDateFormat(dfmt, new Locale("pt", "BR")).format(new Date(li[0])) + " · " + hhmm(li[0]) : "") : nxa != null ? "🔔 próximo alarme " + hhmm(nxa.a) + " · em " + dur(nxa.a - now) : "";
+        double frac = -1;
+        if (serving && shiftStart > 0 && ss[0] > shiftStart) frac = (now - shiftStart) / (double) (ss[0] - shiftStart);
+        else if (folga && li[1] > 0 && ss[1] > li[1]) frac = (now - li[1]) / (double) (ss[1] - li[1]);
+        String dShort = new SimpleDateFormat("EEE dd/MM", new Locale("pt", "BR")).format(new Date(ss[1] > 0 ? ss[1] : now));
+        if (h < 95 && w >= 190) {
+            RemoteViews sv = new RemoteViews(c.getPackageName(), R.layout.widget_sentinela_strip);
+            style(sv, g, t);
+            String l1, r1, t1;
+            if (folga) { l1 = "FOLGA · DESCANSO ATÉ " + new SimpleDateFormat("EEE", new Locale("pt", "BR")).format(new Date(ss[1])).toUpperCase(); r1 = "em " + dur(ss[1] - now); t1 = "Próximo: " + dShort + " · " + hhmm(ss[1]); }
+            else if (serving) { l1 = "EM SERVIÇO · TERMINA " + hhmm(ss[0]); r1 = "faltam " + dur(ss[0] - now); t1 = cur != null ? cur.p + " · " + cur.l.replace(":00", "") : "Plantão em andamento"; if (cur != null && nx != null) t1 += "  → " + nx.p + " " + hhmm(nx.s); }
+            else { l1 = "SENTINELA TÁTICO"; r1 = ""; t1 = "Abra o app"; }
+            sv.setTextViewText(R.id.s_l, l1);
+            sv.setTextColor(R.id.s_l, t.muted);
+            sv.setTextViewText(R.id.s_r, r1);
+            sv.setTextColor(R.id.s_r, t.muted);
+            sv.setTextViewText(R.id.s_t, t1);
+            sv.setTextColor(R.id.s_t, t.accent);
+            float fs = tx(g) * clamp(w / 330f, 0.85f, 1.4f);
+            size(sv, R.id.s_l, 10, Math.min(fs, 1.3f));
+            size(sv, R.id.s_r, 12, fs);
+            size(sv, R.id.s_t, 17, fs);
+            sv.setViewVisibility(R.id.s_bar, frac >= 0 ? View.VISIBLE : View.GONE);
+            if (frac >= 0) sv.setTextViewText(R.id.s_bar, barText(t, frac, 40));
+            sv.setOnClickPendingIntent(R.id.widget_root, act(c, id, 5, "quartos", cur != null ? cur : nx));
+            return sv;
+        }
+        if (w < 190) {
+            RemoteViews qv = new RemoteViews(c.getPackageName(), R.layout.widget_sentinela_sq);
+            style(qv, g, t);
+            String ql, qb, qs, qa, qf;
+            if (folga) { ql = "FOLGA"; qb = dur(ss[1] - now); qs = "até " + dShort; qa = hhmm(ss[1]); qf = li[0] > 0 ? "Último: " + new SimpleDateFormat("EEE dd/MM", new Locale("pt", "BR")).format(new Date(li[0])) : ""; }
+            else if (serving) { ql = "EM SERVIÇO"; qb = dur(ss[0] - now); qs = "até " + hhmm(ss[0]); qa = cur != null ? cur.p + " · " + cur.l.replace(":00", "") : ""; qf = nxa != null ? "🔔 " + hhmm(nxa.a) : ""; }
+            else { ql = "SENTINELA TÁTICO"; qb = "Abra o app"; qs = ""; qa = ""; qf = ""; }
+            float qf2 = tx(g) * clamp(Math.min(w / 150f, h / 140f), 0.8f, 1.5f);
+            qv.setTextViewText(R.id.q_l, ql); qv.setTextColor(R.id.q_l, t.muted);
+            qv.setTextViewText(R.id.q_big, qb); qv.setTextColor(R.id.q_big, t.text);
+            qv.setTextViewText(R.id.q_sub, qs); qv.setTextColor(R.id.q_sub, t.muted);
+            qv.setTextViewText(R.id.q_acc, qa); qv.setTextColor(R.id.q_acc, t.accent);
+            qv.setTextViewText(R.id.q_foot, qf); qv.setTextColor(R.id.q_foot, t.muted);
+            size(qv, R.id.q_l, 10, Math.min(qf2, 1.3f));
+            size(qv, R.id.q_big, 28, qf2);
+            size(qv, R.id.q_sub, 12, qf2);
+            size(qv, R.id.q_acc, 15, qf2);
+            size(qv, R.id.q_foot, 11, qf2);
+            qv.setViewVisibility(R.id.q_bar, frac >= 0 && h >= 100 ? View.VISIBLE : View.GONE);
+            if (frac >= 0) qv.setTextViewText(R.id.q_bar, barText(t, frac, 18));
+            qv.setViewVisibility(R.id.q_foot, qf.isEmpty() || h < 125 ? View.GONE : View.VISIBLE);
+            qv.setViewVisibility(R.id.q_acc, qa.isEmpty() || h < 90 ? View.GONE : View.VISIBLE);
+            qv.setOnClickPendingIntent(R.id.widget_root, act(c, id, 6, "quartos", cur != null ? cur : nx));
+            return qv;
+        }
         v.setTextViewText(R.id.c_foot, foot);
         v.setTextColor(R.id.c_foot, t.muted);
         size(v, R.id.c_foot, 12, f);
@@ -580,7 +641,19 @@ final class WidgetKit {
         size(v, R.id.p_alarme, 12, f);
         size(v, R.id.p_count, 18, f);
         v.setViewVisibility(R.id.w_tag, h >= 75 ? View.VISIBLE : View.GONE);
+        Row lastQ = null;
         if (rows.isEmpty()) {
+            for (Row r : all(c, now)) if (r.past && (lastQ == null || r.e > lastQ.e)) lastQ = r;
+            if (lastQ != null && now - lastQ.e > 24 * 3600000L) lastQ = null;
+        }
+        if (rows.isEmpty() && lastQ != null) {
+            v.setTextViewText(R.id.w_tag, "ÚLTIMO QUARTO");
+            v.setTextViewText(R.id.p_hora, lastQ.l.replace(":00", ""));
+            v.setTextViewText(R.id.p_posto, lastQ.p);
+            v.setTextViewText(R.id.p_alarme, "concluído às " + hhmm(lastQ.e));
+            v.setViewVisibility(R.id.p_alarme, h >= 100 ? View.VISIBLE : View.GONE);
+            v.setViewVisibility(R.id.p_count, View.GONE);
+        } else if (rows.isEmpty()) {
             v.setTextViewText(R.id.w_tag, "PRÓXIMO QUARTO");
             v.setTextViewText(R.id.p_hora, "—");
             v.setTextViewText(R.id.p_posto, "Nenhum quarto marcado");
