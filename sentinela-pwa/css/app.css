@@ -1221,3 +1221,12 @@ input[type=color].x,.mkc input[type=color],.mkrow input[type=color]{-webkit-appe
 .sumseg{display:flex;gap:22px;background:none!important;border:0!important;border-bottom:1px solid var(--line)!important;border-radius:0!important;padding:0!important;margin:14px 2px 8px}
 .sumseg button{flex:none;background:none!important;color:var(--muted)!important;border-radius:0;padding:8px 0;font-size:13.5px;font-weight:700;border-bottom:2px solid transparent;margin-bottom:-1px;box-shadow:none!important}
 .sumseg button.on{color:var(--text)!important;border-bottom-color:var(--accent)}
+
+/* ===== quartos de hora: uma linha por quarto, horário sempre inteiro ===== */
+.th.tn,.tr.tn{grid-template-columns:minmax(0,1fr) 112px 36px 36px;gap:6px}
+.th.tn{grid-template-columns:minmax(0,1fr) 112px 78px}
+.tr.tn .pb{padding:10px}
+.tr.tn .pb:first-child span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14.5px}
+.tr.tn .pb.t{font-size:13.5px;padding:10px 8px}.tr.tn .pb.t span{white-space:nowrap;overflow:visible;text-overflow:clip}
+.tr.tn .pb.t.e{color:var(--muted);font-weight:600}
+.tr.tn .xb{width:36px}
